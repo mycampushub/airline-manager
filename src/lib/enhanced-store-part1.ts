@@ -1797,12 +1797,6 @@ export const useEnhancedAirlineStore = create<EnhancedAirlineStore>((set, get) =
     }
   },
 
-  // Load & Balance Functions (continued in part 2...)
-  generateLoadSheet: (flightNumber, date) => {
-    // This overrides the original generateLoadSheet - see implementation above
-    return get().generateLoadSheet(flightNumber, date)
-  },
-
   calculateTrimSheet: (flightNumber, date) => {
     const state = get()
     const loadSheet = state.loadSheets.find(ls =>
