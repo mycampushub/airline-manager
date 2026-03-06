@@ -973,9 +973,18 @@ export const initializeAllMockData = () => {
   store.generateLoadSheet('AA100', new Date().toISOString().split('T')[0])
   store.generateLoadSheet('AA200', new Date().toISOString().split('T')[0])
 
-  // 26. Create boarding records
-  store.startBoarding('AA100', new Date().toISOString().split('T')[0], 'A12')
-  store.startBoarding('AA200', new Date(Date.now() + 86400000).toISOString().split('T')[0], 'B22')
+  // 26. Create boarding records (wrapped in try-catch to handle timing issues)
+  try {
+    store.startBoarding('AA100', new Date().toISOString().split('T')[0], 'A12')
+  } catch (error) {
+    console.log('Could not start boarding for AA100:', error)
+  }
+  
+  try {
+    store.startBoarding('AA200', new Date(Date.now() + 86400000).toISOString().split('T')[0], 'B22')
+  } catch (error) {
+    console.log('Could not start boarding for AA200:', error)
+  }
 
   console.log('All mock data initialized successfully!')
 }

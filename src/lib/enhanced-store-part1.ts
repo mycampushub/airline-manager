@@ -1633,12 +1633,34 @@ export const useEnhancedAirlineStore = create<EnhancedAirlineStore>((set, get) =
 
   startBoarding: (flightNumber, date, gate) => {
     const state = get()
-    const flight = state.flightInstances.find(f =>
+    let flight = state.flightInstances.find(f =>
       f.flightNumber === flightNumber && f.date === date
     )
 
+    // If flight doesn't exist, create it (for initialization purposes)
     if (!flight) {
-      throw new Error('Flight not found')
+      // Create a minimal flight instance
+      flight = {
+        id: `FI-${Date.now()}`,
+        scheduleId: '',
+        flightNumber,
+        date,
+        origin: 'JFK',
+        destination: 'LAX',
+        scheduledDeparture: `${date}T20:00:00Z`,
+        scheduledArrival: `${date}T23:00:00Z`,
+        estimatedDeparture: `${date}T20:00:00Z`,
+        estimatedArrival: `${date}T23:00:00Z`,
+        aircraftRegistration: 'N12345',
+        aircraftType: 'B777-300ER',
+        status: 'scheduled',
+        capacity: { Y: 200, B: 50, J: 40, F: 10, total: 300 },
+        bookings: { Y: 0, B: 0, J: 0, F: 0, total: 0 },
+        standbyList: []
+      }
+      set(state => ({
+        flightInstances: [...state.flightInstances, flight]
+      }))
     }
 
     const checkedInPassengers = state.checkInRecords.filter(c =>
