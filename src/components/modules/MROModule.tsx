@@ -199,6 +199,53 @@ export default function MROModule() {
     setEngineeringLog(engineeringLog.map(l => l.id === logId ? { ...l, status: 'completed' as const } : l))
   }
 
+  // Additional handlers for MRO Module
+  const handleViewWorkOrder = (woId: string) => {
+    const wo = maintenanceRecords.find(m => m.id === woId)
+    if (wo) {
+      alert(`View Work Order: ${wo.workOrderNumber}\nAircraft: ${wo.aircraftRegistration}\nType: ${wo.type}`)
+    }
+  }
+
+  const handleRefreshParts = () => {
+    alert('Parts inventory refreshed')
+  }
+
+  const handleSearchParts = () => {
+    alert('Search parts - Feature to be implemented')
+  }
+
+  const handleExportMEL = () => {
+    alert('MEL items exported')
+  }
+
+  const handleImportMEL = () => {
+    alert('Import MEL - Feature to be implemented')
+  }
+
+  const handleViewLogEntry = (logId: string) => {
+    const log = engineeringLog.find(l => l.id === logId)
+    if (log) {
+      alert(`Log Entry: ${log.entryNumber}\nType: ${log.type}\nAircraft: ${log.aircraftRegistration}`)
+    }
+  }
+
+  const handleExportCDL = () => {
+    alert('CDL data exported')
+  }
+
+  const handleImportCDL = () => {
+    alert('Import CDL - Feature to be implemented')
+  }
+
+  const handleExportParts = () => {
+    alert('Parts inventory exported')
+  }
+
+  const handleImportParts = () => {
+    alert('Import parts - Feature to be implemented')
+  }
+
   // Calculations
   const activeWorkOrders = maintenanceRecords.filter(m => m.status === 'in_progress').length
   const pendingTasks = maintenanceRecords.filter(m => m.status === 'pending').length
@@ -412,7 +459,7 @@ export default function MROModule() {
                             </Badge>
                           </td>
                           <td>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => handleViewWorkOrder(record.id)}>
                               <FileText className="h-4 w-4" />
                             </Button>
                           </td>

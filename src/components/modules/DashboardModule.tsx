@@ -86,6 +86,53 @@ export default function DashboardModule() {
     { id: 4, type: 'warning', title: 'Crew Duty Time Alert', message: 'Crew member C123 approaching limit', time: '2 hours ago', acknowledged: false }
   ]
 
+  // Handlers for Dashboard Module
+  const handleSetToday = () => {
+    alert('Viewing today\'s operations')
+    console.log('Showing today\'s data')
+  }
+
+  const handleShowFilters = () => {
+    alert('Open filters dialog - Feature to be implemented')
+  }
+
+  const handleRefresh = () => {
+    alert('Refreshing dashboard data...')
+    console.log('Refreshing dashboard metrics')
+  }
+
+  const handleDownloadReport = () => {
+    alert('Downloading dashboard report')
+    console.log('Downloading report as PDF...')
+  }
+
+  const handleViewAlerts = () => {
+    setActiveTab('alerts')
+  }
+
+  const handleAcknowledgeAll = () => {
+    setAlerts(alerts.map(a => ({ ...a, acknowledged: true })))
+    alert(`Acknowledged ${alerts.length} alerts`)
+  }
+
+  const handleClearResolved = () => {
+    setAlerts(alerts.filter(a => !a.acknowledged || a.status !== 'resolved'))
+    alert('Cleared resolved alerts')
+  }
+
+  const handleAcknowledgeAlert = (alert: any) => {
+    setAlerts(alerts.map(a => a.id === alert.id ? { ...a, acknowledged: true } : a))
+  }
+
+  const handleViewAlertDetails = (alert: any) => {
+    setSelectedAlert(alert)
+  }
+
+  const handleAcknowledgeSingleAlert = (alert: any) => {
+    setAlerts(alerts.map(a => a.id === alert.id ? { ...a, acknowledged: true } : a))
+    setSelectedAlert(null)
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -97,19 +144,19 @@ export default function DashboardModule() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleSetToday}>
             <Calendar className="h-4 w-4 mr-2" />
             Today
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleShowFilters}>
             <Filter className="h-4 w-4 mr-2" />
             Filters
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={handleDownloadReport}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
@@ -813,8 +860,8 @@ export default function DashboardModule() {
               <div className="flex items-center justify-between">
                 <CardTitle>Alerts Center</CardTitle>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm">Acknowledge All</Button>
-                  <Button variant="outline" size="sm">Clear Resolved</Button>
+                  <Button variant="outline" size="sm" onClick={handleAcknowledgeAll}>Acknowledge All</Button>
+                  <Button variant="outline" size="sm" onClick={handleClearResolved}>Clear Resolved</Button>
                 </div>
               </div>
               <CardDescription>System notifications and operational alerts</CardDescription>
@@ -852,7 +899,9 @@ export default function DashboardModule() {
                         </div>
                         <div className="flex items-center gap-2">
                           {!alert.acknowledged && (
-                            <Button size="sm" variant="outline">Acknowledge</Button>
+                            <Button size="sm" variant="outline" onClick={() => handleAcknowledgeSingleAlert(alert)}>
+                              Acknowledge
+                            </Button>
                           )}
                           <Dialog>
                             <DialogTrigger asChild>

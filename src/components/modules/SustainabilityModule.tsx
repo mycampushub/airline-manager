@@ -422,6 +422,27 @@ export default function SustainabilityModule() {
     )
   }
 
+  // Additional handlers for Sustainability Module
+  const handleRefreshSustainabilityData = () => {
+    alert('Sustainability data refreshed')
+    console.log('Refreshing sustainability metrics...')
+  }
+
+  const handleExportESGReports = () => {
+    alert('ESG reports exported')
+    console.log('Exporting ESG reports:', esgReports)
+  }
+
+  const handleExportOffsetPortfolio = () => {
+    alert('Offset portfolio exported')
+    console.log('Exporting offset portfolio:', offsetPortfolio)
+  }
+
+  const handleExportSustainabilityData = () => {
+    alert('Sustainability data exported')
+    console.log('Exporting sustainability data...')
+  }
+
   // Utility functions
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -480,7 +501,7 @@ export default function SustainabilityModule() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh Data
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleExportESGReports}>
             <Download className="h-4 w-4 mr-2" />
             Export Reports
           </Button>
@@ -729,7 +750,7 @@ export default function SustainabilityModule() {
                   <CardTitle>Carbon Offset Portfolio</CardTitle>
                   <CardDescription>Manage carbon credit purchases and retirements</CardDescription>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleExportOffsetPortfolio}>
                   <Download className="h-4 w-4 mr-2" />
                   Export Portfolio
                 </Button>
@@ -1041,7 +1062,10 @@ export default function SustainabilityModule() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowReportDetails(false)}>Close</Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => {
+              alert(`Downloading ESG Report: ${selectedReport.period} ${selectedReport.year}\nESG Score: ${Math.round(selectedReport.esgScore * 100)}%`)
+              console.log('Downloading ESG report:', selectedReport)
+            }}>
               <Download className="h-4 w-4 mr-2" />
               Download Report
             </Button>

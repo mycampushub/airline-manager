@@ -158,6 +158,20 @@ export default function RevenueModule() {
     setPricingRules(pricingRules.map(r => r.id === ruleId ? { ...r, active: !r.active } : r))
   }
 
+  // Additional handlers
+  const handleExportReport = () => {
+    alert('Revenue report exported')
+    console.log('Exporting revenue report...')
+  }
+
+  const handleConfigurePricing = () => {
+    alert('Configure pricing settings - Feature to be implemented')
+  }
+
+  const handleRefreshRules = () => {
+    alert('Pricing rules refreshed')
+  }
+
   // Calculations
   const totalRevenue = revenueData.reduce((sum, r) => sum + r.totalRevenue, 0)
   const activeRules = pricingRules.filter(r => r.active).length
@@ -174,7 +188,7 @@ export default function RevenueModule() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportReport}>
             <Download className="h-4 w-4 mr-2" />
             Export Report
           </Button>
@@ -268,7 +282,7 @@ export default function RevenueModule() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Pricing Configuration</CardTitle>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleConfigurePricing}>
                     <Settings className="h-4 w-4 mr-2" />
                     Configure
                   </Button>
@@ -465,7 +479,7 @@ export default function RevenueModule() {
               <div className="flex items-center justify-between">
                 <CardTitle>Pricing Rules</CardTitle>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleRefreshRules}>
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
                   </Button>

@@ -694,6 +694,47 @@ export default function SecurityModule() {
     alert('Password policy updated successfully')
   }
 
+  // Additional handlers for Security Module
+  const handleExportRBACMatrix = () => {
+    alert('RBAC Matrix exported')
+    console.log('Exporting RBAC matrix...')
+  }
+
+  const handleViewUser = (userId: string) => {
+    alert(`View user: ${userId}`)
+  }
+
+  const handleDeleteUser = (userId: string) => {
+    if (confirm('Are you sure you want to delete this user?')) {
+      alert(`User ${userId} deleted`)
+    }
+  }
+
+  const handleCreateRole = () => {
+    alert('Create Role dialog - Feature to be implemented')
+  }
+
+  const handleViewAuditDetails = (auditId: string) => {
+    alert(`View audit details: ${auditId}`)
+  }
+
+  const handleExportAuditLog = () => {
+    alert('Audit log exported')
+  }
+
+  const handleRunComplianceCheck = () => {
+    alert('Running compliance check...')
+    console.log('Running compliance check...')
+  }
+
+  const handleViewComplianceDetails = (frameworkId: string) => {
+    alert(`View compliance details: ${frameworkId}`)
+  }
+
+  const handleExportComplianceReport = () => {
+    alert('Compliance report exported')
+  }
+
   const getSeverityBadge = (severity: string) => {
     const colors = {
       critical: 'bg-red-500',
@@ -858,7 +899,7 @@ export default function SecurityModule() {
                     <CardTitle>Role-Based Access Control</CardTitle>
                     <CardDescription>Manage user roles and permissions</CardDescription>
                   </div>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={handleExportRBACMatrix}>
                     <Download className="h-4 w-4 mr-2" />
                     Export RBAC Matrix
                   </Button>
@@ -905,10 +946,10 @@ export default function SecurityModule() {
                               </Badge>
                             </td>
                             <td>
-                              <Button variant="ghost" size="sm">
+                              <Button variant="ghost" size="sm" onClick={() => handleViewUser(user.id)}>
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                              <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleDeleteUser(user.id)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </td>
@@ -1491,7 +1532,7 @@ export default function SecurityModule() {
               </div>
               <div className="flex items-center gap-2">
                 <Download className="h-4 w-4 text-muted-foreground" />
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleExportAuditLog}>
                   Export Logs
                 </Button>
               </div>

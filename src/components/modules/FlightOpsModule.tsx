@@ -412,6 +412,41 @@ export default function FlightOpsModule() {
     console.log('Updating ATC restrictions')
   }
 
+  // Additional handlers for Edit buttons
+  const handleEditRoute = (routeId: string) => {
+    const route = routes.find(r => r.id === routeId)
+    if (route) {
+      alert(`Edit Route: ${route.origin} → ${route.destination}\nDistance: ${route.distance} km\nFlight Time: ${route.flightTime} min`)
+    }
+  }
+
+  const handleEditSchedule = (scheduleId: string) => {
+    const schedule = flightSchedules.find(s => s.id === scheduleId)
+    if (schedule) {
+      alert(`Edit Schedule: ${schedule.flightNumber}\nRoute: ${schedule.origin} → ${schedule.destination}`)
+    }
+  }
+
+  const handleEditSeasonalSchedule = (scheduleId: string) => {
+    const schedule = seasonalSchedules.find(s => s.id === scheduleId)
+    if (schedule) {
+      alert(`Edit Seasonal Schedule: ${schedule.season} Season\nPeriod: ${schedule.startDate} to ${schedule.endDate}`)
+    }
+  }
+
+  const handleEditFleetAssignment = (assignmentId: string) => {
+    const assignment = fleetAssignments.find(a => a.id === assignmentId)
+    if (assignment) {
+      alert(`Edit Fleet Assignment: ${assignment.registration}\nAircraft: ${assignment.aircraftType}\nBase: ${assignment.base}`)
+    }
+  }
+
+  const handleDownloadPDF = () => {
+    // Simulate PDF download
+    console.log('Downloading flight release PDF')
+    alert('Flight Release PDF downloaded')
+  }
+
   const totalFuel = fuelPlan.tripFuel + fuelPlan.reserve + fuelPlan.alternate + fuelPlan.taxi + fuelPlan.contingency
 
   return (
@@ -620,7 +655,7 @@ export default function FlightOpsModule() {
                         <td className="text-sm">{route.aircraftTypes.join(', ')}</td>
                         <td>{route.competition}</td>
                         <td>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => handleEditRoute(route.id)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                         </td>
@@ -703,12 +738,13 @@ export default function FlightOpsModule() {
                       <div>
                         <Label>Operating Days</Label>
                         <div className="flex flex-wrap gap-2">
-                          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
+                          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => {
+                            const dayNum = i + 1
+                            return (
                             <button
                               key={day}
                               type="button"
                               onClick={() => {
-                                const dayNum = i + 1
                                 setNewSchedule(prev => ({
                                   ...prev,
                                   daysOfWeek: prev.daysOfWeek.includes(dayNum)
@@ -724,7 +760,8 @@ export default function FlightOpsModule() {
                             >
                               {day}
                             </button>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     </div>
@@ -779,7 +816,7 @@ export default function FlightOpsModule() {
                           </Badge>
                         </td>
                         <td>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => handleEditSchedule(schedule.id)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                         </td>
@@ -896,7 +933,7 @@ export default function FlightOpsModule() {
                           <td className="text-sm font-medium text-green-600">{schedule.pricingMultiplier}x</td>
                           <td className="text-sm text-muted-foreground max-w-xs truncate">{schedule.notes}</td>
                           <td>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => handleEditSeasonalSchedule(schedule.id)}>
                               <Edit className="h-4 w-4" />
                             </Button>
                           </td>
@@ -1044,7 +1081,7 @@ export default function FlightOpsModule() {
                             </Badge>
                           </td>
                           <td>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => handleEditFleetAssignment(assignment.id)}>
                               <Edit className="h-4 w-4" />
                             </Button>
                           </td>
@@ -1318,7 +1355,7 @@ export default function FlightOpsModule() {
                     <FileText className="h-4 w-4 mr-2" />
                     Generate Flight Release
                   </Button>
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full" onClick={handleDownloadPDF}>
                     <Download className="h-4 w-4 mr-2" />
                     Download PDF
                   </Button>

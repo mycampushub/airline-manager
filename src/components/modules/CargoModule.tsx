@@ -901,6 +901,50 @@ export default function CargoModule() {
     )
   }
 
+  // Additional handlers for Cargo Module
+  const handleExportRevenue = () => {
+    alert('Revenue data exported')
+    console.log('Exporting revenue data:', revenues)
+  }
+
+  const handleViewBookingDetails = (bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId)
+    if (booking) {
+      alert(`Booking: ${booking.awbNumber}\nShipper: ${booking.shipper}\nRoute: ${booking.route}\nStatus: ${booking.status}`)
+    }
+  }
+
+  const handlePrintAWB = (bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId)
+    if (booking) {
+      alert(`Printing AWB: ${booking.awbNumber}`)
+      console.log('Printing AWB:', booking)
+    }
+  }
+
+  const handlePrintInvoice = (revenueId: string) => {
+    const revenue = revenues.find(r => r.id === revenueId)
+    if (revenue) {
+      alert(`Printing Invoice: ${revenue.invoiceNumber}\nAmount: $${revenue.totalAmount}`)
+      console.log('Printing invoice:', revenue)
+    }
+  }
+
+  const handleViewULD = (uldId: string) => {
+    const uld = uldTracking.find(u => u.id === uldId)
+    if (uld) {
+      alert(`ULD: ${uld.uldNumber}\nType: ${uld.type}\nStatus: ${uld.status}\nLocation: ${uld.location}`)
+    }
+  }
+
+  const handleViewBooking = (bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId)
+    if (booking) {
+      setSelectedBooking(booking)
+      setShowBookingDetailDialog(true)
+    }
+  }
+
   // Utility functions
   const getBookingStatusBadge = (status: string) => {
     const variants = {
@@ -1296,7 +1340,7 @@ export default function CargoModule() {
                       <SelectItem value="overdue">Overdue</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleExportRevenue}>
                     <Download className="h-4 w-4 mr-2" />
                     Export
                   </Button>
@@ -1359,7 +1403,7 @@ export default function CargoModule() {
                                 </Button>
                               )}
                               {revenue.status === 'invoiced' && (
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" onClick={() => handlePrintInvoice(revenue.id)}>
                                   <Printer className="h-4 w-4" />
                                 </Button>
                               )}
@@ -1635,7 +1679,7 @@ export default function CargoModule() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowBookingDetails(false)}>Close</Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => selectedBooking && handlePrintAWB(selectedBooking.id)}>
               <Printer className="h-4 w-4 mr-2" />
               Print AWB
             </Button>
@@ -1946,7 +1990,7 @@ export default function CargoModule() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowInvoiceDialog(false)}>Close</Button>
             {selectedRevenue?.status === 'invoiced' && (
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => handlePrintInvoice(selectedRevenue.id)}>
                 <Printer className="h-4 w-4 mr-2" />
                 Print Invoice
               </Button>

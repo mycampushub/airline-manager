@@ -121,23 +121,73 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
-  
+
   /* Enterprise Software Scrollbar Styling */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-  
+
   ::-webkit-scrollbar-track {
     @apply bg-secondary;
   }
-  
+
   ::-webkit-scrollbar-thumb {
     @apply bg-muted-foreground/30 rounded-sm;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground/50;
+  }
+
+  /* Sidebar scrollbar with better visibility */
+  aside ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  aside ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  aside ::-webkit-scrollbar-thumb {
+    @apply bg-sidebar-foreground/30 rounded-sm;
+  }
+
+  aside ::-webkit-scrollbar-thumb:hover {
+    @apply bg-sidebar-foreground/50;
+  }
+
+  /* Radix UI ScrollArea scrollbar override */
+  [data-slot="scroll-area-viewport"]::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  [data-slot="scroll-area-viewport"]::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  [data-slot="scroll-area-viewport"]::-webkit-scrollbar-thumb {
+    background: rgba(232, 230, 240, 0.3);
+    border-radius: 3px;
+  }
+
+  [data-slot="scroll-area-viewport"]::-webkit-scrollbar-thumb:hover {
+    background: rgba(232, 230, 240, 0.5);
+  }
+
+  /* ScrollArea ScrollBar component styling */
+  [data-slot="scroll-area-scrollbar"] {
+    background-color: transparent;
+  }
+
+  [data-slot="scroll-area-thumb"] {
+    background-color: rgba(232, 230, 240, 0.4) !important;
+    border-radius: 3px;
+  }
+
+  [data-slot="scroll-area-thumb"]:hover {
+    background-color: rgba(232, 230, 240, 0.6) !important;
   }
 }
 

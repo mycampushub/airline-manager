@@ -1469,6 +1469,57 @@ export default function DCSModule() {
     ))
   }
 
+  // Additional handlers for DCS Module
+  const handlePrintBoardingPass = (checkIn: CheckInRecord) => {
+    alert(`Printing boarding pass for ${checkIn.passengerName}\nSeat: ${checkIn.seatNumber}\nFlight: ${checkIn.flightNumber}`)
+    console.log('Printing boarding pass:', checkIn)
+  }
+
+  const handlePrintBaggageTag = (bag: BaggageTracking) => {
+    alert(`Printing baggage tag\nTag Number: ${bag.tagNumber}\nRoute: ${bag.route}\nWeight: ${bag.weight}kg`)
+    console.log('Printing baggage tag:', bag)
+  }
+
+  const handleExamineBag = (bag: BaggageTracking) => {
+    alert(`Examining baggage: ${bag.tagNumber}\nStatus: ${bag.status}\nLocation: ${bag.location}`)
+    console.log('Examining baggage:', bag)
+  }
+
+  const handleReconcileBag = (bag: BaggageTracking) => {
+    if (confirm(`Mark baggage ${bag.tagNumber} as reconciled?`)) {
+      setBaggageTracking(baggageTracking.map(b => b.id === bag.id ? { ...b, status: 'loaded' as const } : b))
+      alert(`Baggage ${bag.tagNumber} reconciled and marked as loaded`)
+    }
+  }
+
+  const handleViewFlightDetails = (flightNumber: string) => {
+    const flight = flightInstances.find(f => f.flightNumber === flightNumber)
+    if (flight) {
+      alert(`Flight: ${flight.flightNumber}\nRoute: ${flight.origin} → ${flight.destination}\nStatus: ${flight.status}\nGate: ${flight.gate || 'TBD'}`)
+    }
+  }
+
+  // Quick action handlers
+  const handleExportLoadSheet = () => {
+    alert('Load sheet exported successfully')
+    console.log('Exporting load sheet data:', loadSheetData)
+  }
+
+  const handlePrintLoadSheet = () => {
+    alert('Load sheet sent to printer')
+    console.log('Printing load sheet')
+  }
+
+  const handleBackToCalculator = () => {
+    alert('Returning to CG calculator...')
+    console.log('Back to CG calculator')
+  }
+
+  const handleAlternateAirport = () => {
+    alert('Alternate airport options:\n1. KJFK - New York (45 min)\n2. KEWR - Newark (50 min)\n3. KLGA - LaGuardia (55 min)')
+    console.log('Showing alternate airport options')
+  }
+
   // Dangerous Goods Management Handlers
   const getDGClassInfo = (dgClass: DGClass) => {
     const classes: Record<DGClass, { name: string; permitted: boolean; description: string }> = {
@@ -1912,7 +1963,7 @@ export default function DCSModule() {
                           </td>
                           <td>
                             <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="sm" title="Print Boarding Pass">
+                              <Button variant="ghost" size="sm" title="Print Boarding Pass" onClick={() => handlePrintBoardingPass(checkIn)}>
                                 <Printer className="h-4 w-4" />
                               </Button>
                               <Button variant="ghost" size="sm" title="View Documents" onClick={() => handleOpenDocumentDialog(checkIn)}>
@@ -2766,15 +2817,15 @@ export default function DCSModule() {
 
                   {/* Quick Actions */}
                   <div className="grid grid-cols-4 gap-2">
-                    <Button variant="outline" className="h-auto flex flex-col items-center justify-center gap-1">
+                    <Button variant="outline" className="h-auto flex flex-col items-center justify-center gap-1" onClick={handleExportLoadSheet}>
                       <Download className="h-4 w-4" />
                       <span className="text-xs">Export</span>
                     </Button>
-                    <Button variant="outline" className="h-auto flex flex-col items-center justify-center gap-1">
+                    <Button variant="outline" className="h-auto flex flex-col items-center justify-center gap-1" onClick={handlePrintLoadSheet}>
                       <Printer className="h-4 w-4" />
                       <span className="text-xs">Print</span>
                     </Button>
-                    <Button variant="outline" className="h-auto flex flex-col items-center justify-center gap-1">
+                    <Button variant="outline" className="h-auto flex flex-col items-center justify-center gap-1" onClick={handleBackToCalculator}>
                       <ArrowLeft className="h-4 w-4" />
                       <span className="text-xs">Back to Calculator</span>
                     </Button>
@@ -3175,7 +3226,7 @@ export default function DCSModule() {
                             </Badge>
                           </td>
                           <td>
-                            <Button variant="ghost" size="sm" title="Print Tag">
+                            <Button variant="ghost" size="sm" title="Print Tag" onClick={() => handlePrintBaggageTag(bag)}>
                               <Printer className="h-4 w-4" />
                             </Button>
                           </td>

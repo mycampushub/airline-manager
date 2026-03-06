@@ -368,6 +368,10 @@ export default function PSSModule() {
     preferredCabin: 'economy' as CabinClass
   })
 
+  // Dynamic Capacity Adjustment state
+  const [loadFactorThreshold, setLoadFactorThreshold] = useState(85)
+  const [autoAdjustCapacity, setAutoAdjustCapacity] = useState(true)
+
   // Dialog states
   const [showFareClassDialog, setShowFareClassDialog] = useState(false)
   const [showFareFamilyDialog, setShowFareFamilyDialog] = useState(false)
@@ -491,6 +495,55 @@ export default function PSSModule() {
 
   // In-memory ticket audit trail
   const [ticketAuditTrail, setTicketAuditTrail] = useState<any[]>([])
+
+  // Additional Form State for Fare Class Management
+  const [newFareClass, setNewFareClass] = useState({
+    code: '',
+    name: '',
+    hierarchy: 1,
+    capacity: 50,
+    price: 0,
+    restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }
+  })
+
+  // Additional Form State for Fare Family
+  const [newFareFamily, setNewFareFamily] = useState({
+    name: '',
+    cabin: 'economy' as CabinClass,
+    fareClasses: [] as string[],
+    features: '',
+    baseMarkup: 0,
+    demandMultiplier: 1
+  })
+
+  // Additional Form State for Block Inventory
+  const [newBlockInventory, setNewBlockInventory] = useState({
+    agentId: '',
+    route: '',
+    date: '',
+    seats: 0,
+    fareClass: '',
+    duration: 30
+  })
+
+  // Additional Form State for Group Allotment
+  const [newGroupAllotment, setNewGroupAllotment] = useState({
+    groupName: '',
+    route: '',
+    date: '',
+    seats: 0,
+    deadline: ''
+  })
+
+  // Additional Form State for Blackout Date
+  const [newBlackoutDate, setNewBlackoutDate] = useState({
+    route: '',
+    startDate: '',
+    endDate: '',
+    cabin: undefined as CabinClass | undefined,
+    fareClass: '',
+    reason: ''
+  })
 
   // Ticketing helper interfaces
   interface TaxRate {
@@ -1606,6 +1659,194 @@ export default function PSSModule() {
       }
     })
     alert(`Checked time limits. ${expiredCount} PNR(s) auto-cancelled due to expired time limits.`)
+  }
+
+  // Fare Class Management Handlers
+  const handleSaveFareClass = () => {
+    if (!newFareClass.code || !newFareClass.name) {
+      alert('Please enter fare class code and name')
+      return
+    }
+
+    const existing = fareClasses.find(fc => fc.code === newFareClass.code)
+    if (existing) {
+      alert('Fare class code already exists')
+      return
+    }
+
+    setFareClasses([...fareClasses, {
+      ...newFareClass,
+      sold: 0,
+      available: newFareClass.capacity,
+      isOpen: true,
+      parentCode: null
+    }])
+    setShowFareClassDialog(false)
+    setNewFareClass({
+      code: '',
+      name: '',
+      hierarchy: 1,
+      capacity: 50,
+      price: 0,
+      restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }
+    })
+  }
+
+  const handleEditFareClass = (code: string) => {
+    alert(`Edit fare class ${code} - Feature to be implemented`)
+  }
+
+  const handleViewFareClassDetails = (code: string) => {
+    const fareClass = fareClasses.find(fc => fc.code === code)
+    if (fareClass) {
+      alert(`Fare Class: ${code}\nName: ${fareClass.name}\nHierarchy: ${fareClass.hierarchy}\nCapacity: ${fareClass.capacity}\nPrice: $${fareClass.price}`)
+    }
+  }
+
+  // Block Inventory Handlers
+  const handleBlockInventory = () => {
+    if (!newBlockInventory.agentId || !newBlockInventory.route || !newBlockInventory.date || newBlockInventory.seats === 0) {
+      alert('Please fill all required fields')
+      return
+    }
+
+    const agent = blockedInventory.find(b => b.agentId === newBlockInventory.agentId && b.route === newBlockInventory.route && b.date === newBlockInventory.date)
+    if (agent) {
+      alert('Inventory already blocked for this agent on this route and date')
+      return
+    }
+
+    const expiresAt = new Date(newBlockInventory.date + 'T23:59:59').getTime() + newBlockInventory.duration * 60 * 1000
+
+    setBlockedInventory([...blockedInventory, {
+      id: `BLK-${Date.now()}`,
+      agentId: newBlockInventory.agentId,
+      agentName: newBlockInventory.agentId,
+      seats: newBlockInventory.seats,
+      route: newBlockInventory.route,
+      date: newBlockInventory.date,
+      expiresAt: new Date(expiresAt).toISOString(),
+      fareClass: newBlockInventory.fareClass,
+      status: 'active'
+    }])
+    setShowBlockInventoryDialog(false)
+    setNewBlockInventory({
+      agentId: '',
+      route: '',
+      date: '',
+      seats: 0,
+      fareClass: '',
+      duration: 30
+    })
+    alert(`${newBlockInventory.seats} seats blocked for ${newBlockInventory.agentId}`)
+  }
+
+  const handleUnblockInventory = (id: string) => {
+    setBlockedInventory(blockedInventory.filter(b => b.id !== id))
+    alert('Inventory block released')
+  }
+
+  // Group Allotment Handlers
+  const handleCreateAllotment = () => {
+    if (!newGroupAllotment.groupName || !newGroupAllotment.route || !newGroupAllotment.date || newGroupAllotment.seats === 0) {
+      alert('Please fill all required fields')
+      return
+    }
+
+    setGroupAllotments([...groupAllotments, {
+      id: `ALL-${Date.now()}`,
+      groupName: newGroupAllotment.groupName,
+      seats: newGroupAllotment.seats,
+      utilized: 0,
+      route: newGroupAllotment.route,
+      date: newGroupAllotment.date,
+      deadline: newGroupAllotment.deadline,
+      status: 'active'
+    }])
+    setShowGroupAllotmentDialog(false)
+    setNewGroupAllotment({
+      groupName: '',
+      route: '',
+      date: '',
+      seats: 0,
+      deadline: ''
+    })
+    alert(`Group allotment created for ${newGroupAllotment.groupName}`)
+  }
+
+  // Blackout Date Handlers
+  const handleAddBlackout = () => {
+    if (!newBlackoutDate.route || !newBlackoutDate.startDate || !newBlackoutDate.endDate) {
+      alert('Please fill all required fields')
+      return
+    }
+
+    setBlackoutDates([...blackoutDates, {
+      id: `BLKOUT-${Date.now()}`,
+      route: newBlackoutDate.route,
+      startDate: newBlackoutDate.startDate,
+      endDate: newBlackoutDate.endDate,
+      cabin: newBlackoutDate.cabin,
+      fareClass: newBlackoutDate.fareClass || undefined,
+      reason: newBlackoutDate.reason
+    }])
+    setShowBlackoutDialog(false)
+    setNewBlackoutDate({
+      route: '',
+      startDate: '',
+      endDate: '',
+      cabin: undefined,
+      fareClass: '',
+      reason: ''
+    })
+    alert('Blackout date added')
+  }
+
+  const handleDeleteBlackout = (id: string) => {
+    setBlackoutDates(blackoutDates.filter(b => b.id !== id))
+    alert('Blackout date removed')
+  }
+
+  // Fare Family Handlers
+  const handleSaveFareFamily = () => {
+    if (!newFareFamily.name || newFareFamily.fareClasses.length === 0) {
+      alert('Please enter family name and select at least one fare class')
+      return
+    }
+
+    setFareFamilies([...fareFamilies, {
+      id: `FF-${Date.now()}`,
+      name: newFareFamily.name,
+      cabin: newFareFamily.cabin,
+      fareClasses: newFareFamily.fareClasses,
+      features: newFareFamily.features.split(',').map(f => f.trim()),
+      isActive: true,
+      pricingRules: {
+        baseMarkup: newFareFamily.baseMarkup,
+        demandMultiplier: newFareFamily.demandMultiplier
+      }
+    }])
+    setShowFareFamilyDialog(false)
+    setNewFareFamily({
+      name: '',
+      cabin: 'economy',
+      fareClasses: [],
+      features: '',
+      baseMarkup: 0,
+      demandMultiplier: 1
+    })
+    alert(`Fare family "${newFareFamily.name}" created`)
+  }
+
+  const handleEditFareFamily = (id: string) => {
+    alert(`Edit fare family ${id} - Feature to be implemented`)
+  }
+
+  const handleViewFareFamily = (id: string) => {
+    const family = fareFamilies.find(f => f.id === id)
+    if (family) {
+      alert(`Fare Family: ${family.name}\nCabin: ${family.cabin}\nFare Classes: ${family.fareClasses.join(', ')}\nFeatures: ${family.features.join(', ')}`)
+    }
   }
 
   const resetForms = () => {
@@ -3912,45 +4153,45 @@ export default function PSSModule() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label>Fare Class Code</Label>
-                          <Input placeholder="e.g., Y, B, M" maxLength={1} />
+                          <Input value={newFareClass.code} onChange={(e) => setNewFareClass({...newFareClass, code: e.target.value.toUpperCase()})} placeholder="e.g., Y, B, M" maxLength={1} />
                         </div>
                         <div>
                           <Label>Name</Label>
-                          <Input placeholder="e.g., Economy Full" />
+                          <Input value={newFareClass.name} onChange={(e) => setNewFareClass({...newFareClass, name: e.target.value})} placeholder="e.g., Economy Full" />
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label>Hierarchy Level</Label>
-                          <Input type="number" placeholder="1-10" />
+                          <Input type="number" value={newFareClass.hierarchy} onChange={(e) => setNewFareClass({...newFareClass, hierarchy: Number(e.target.value)})} placeholder="1-10" />
                         </div>
                         <div>
                           <Label>Capacity</Label>
-                          <Input type="number" placeholder="Number of seats" />
+                          <Input type="number" value={newFareClass.capacity} onChange={(e) => setNewFareClass({...newFareClass, capacity: Number(e.target.value)})} placeholder="Number of seats" />
                         </div>
                       </div>
                       <div>
                         <Label>Price</Label>
-                        <Input type="number" placeholder="Base price" />
+                        <Input type="number" value={newFareClass.price} onChange={(e) => setNewFareClass({...newFareClass, price: Number(e.target.value)})} placeholder="Base price" />
                       </div>
                       <div className="grid grid-cols-3 gap-4">
                         <div>
                           <Label>Advance Purchase (days)</Label>
-                          <Input type="number" defaultValue={0} />
+                          <Input type="number" value={newFareClass.restrictions.advancePurchase} onChange={(e) => setNewFareClass({...newFareClass, restrictions: {...newFareClass.restrictions, advancePurchase: Number(e.target.value)}})} defaultValue={0} />
                         </div>
                         <div>
                           <Label>Min Stay (days)</Label>
-                          <Input type="number" defaultValue={0} />
+                          <Input type="number" value={newFareClass.restrictions.minStay} onChange={(e) => setNewFareClass({...newFareClass, restrictions: {...newFareClass.restrictions, minStay: Number(e.target.value)}})} defaultValue={0} />
                         </div>
                         <div>
                           <Label>Max Stay (days)</Label>
-                          <Input type="number" defaultValue={365} />
+                          <Input type="number" value={newFareClass.restrictions.maxStay} onChange={(e) => setNewFareClass({...newFareClass, restrictions: {...newFareClass.restrictions, maxStay: Number(e.target.value)}})} defaultValue={365} />
                         </div>
                       </div>
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setShowFareClassDialog(false)}>Cancel</Button>
-                      <Button>Save Fare Class</Button>
+                      <Button onClick={handleSaveFareClass}>Save Fare Class</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -3999,10 +4240,10 @@ export default function PSSModule() {
                             </td>
                             <td>
                               <div className="flex items-center gap-1">
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" onClick={() => handleEditFareClass(fc.code)}>
                                   <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" onClick={() => handleViewFareClassDetails(fc.code)}>
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               </div>
@@ -4267,23 +4508,23 @@ export default function PSSModule() {
                           <div className="space-y-4 py-4">
                             <div>
                               <Label>Agent ID</Label>
-                              <Input placeholder="e.g., AGT001" />
+                              <Input value={newBlockInventory.agentId} onChange={(e) => setNewBlockInventory({...newBlockInventory, agentId: e.target.value})} placeholder="e.g., AGT001" />
                             </div>
                             <div>
                               <Label>Route</Label>
-                              <Input placeholder="e.g., JFK-LHR" />
+                              <Input value={newBlockInventory.route} onChange={(e) => setNewBlockInventory({...newBlockInventory, route: e.target.value})} placeholder="e.g., JFK-LHR" />
                             </div>
                             <div>
                               <Label>Date</Label>
-                              <Input type="date" />
+                              <Input type="date" value={newBlockInventory.date} onChange={(e) => setNewBlockInventory({...newBlockInventory, date: e.target.value})} />
                             </div>
                             <div>
                               <Label>Number of Seats</Label>
-                              <Input type="number" placeholder="Number of seats to block" />
+                              <Input type="number" value={newBlockInventory.seats} onChange={(e) => setNewBlockInventory({...newBlockInventory, seats: Number(e.target.value)})} placeholder="Number of seats to block" />
                             </div>
                             <div>
                               <Label>Fare Class</Label>
-                              <Select>
+                              <Select value={newBlockInventory.fareClass} onValueChange={(v) => setNewBlockInventory({...newBlockInventory, fareClass: v})}>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select fare class" />
                                 </SelectTrigger>
@@ -4296,12 +4537,12 @@ export default function PSSModule() {
                             </div>
                             <div>
                               <Label>Block Duration (minutes)</Label>
-                              <Input type="number" defaultValue={30} />
+                              <Input type="number" value={newBlockInventory.duration} onChange={(e) => setNewBlockInventory({...newBlockInventory, duration: Number(e.target.value)})} defaultValue={30} />
                             </div>
                           </div>
                           <DialogFooter>
                             <Button variant="outline" onClick={() => setShowBlockInventoryDialog(false)}>Cancel</Button>
-                            <Button>Block Seats</Button>
+                            <Button onClick={handleBlockInventory}>Block Seats</Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
@@ -4326,7 +4567,7 @@ export default function PSSModule() {
                                 {block.status}
                               </Badge>
                               {block.status === 'active' && (
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" onClick={() => handleUnblockInventory(block.id)}>
                                   <Unlock className="h-4 w-4" />
                                 </Button>
                               )}
@@ -4357,28 +4598,28 @@ export default function PSSModule() {
                           <div className="space-y-4 py-4">
                             <div>
                               <Label>Group Name</Label>
-                              <Input placeholder="e.g., Corporate Summit 2024" />
+                              <Input value={newGroupAllotment.groupName} onChange={(e) => setNewGroupAllotment({...newGroupAllotment, groupName: e.target.value})} placeholder="e.g., Corporate Summit 2024" />
                             </div>
                             <div>
                               <Label>Route</Label>
-                              <Input placeholder="e.g., JFK-LHR" />
+                              <Input value={newGroupAllotment.route} onChange={(e) => setNewGroupAllotment({...newGroupAllotment, route: e.target.value})} placeholder="e.g., JFK-LHR" />
                             </div>
                             <div>
                               <Label>Travel Date</Label>
-                              <Input type="date" />
+                              <Input type="date" value={newGroupAllotment.date} onChange={(e) => setNewGroupAllotment({...newGroupAllotment, date: e.target.value})} />
                             </div>
                             <div>
                               <Label>Number of Seats</Label>
-                              <Input type="number" placeholder="Total seats for group" />
+                              <Input type="number" value={newGroupAllotment.seats} onChange={(e) => setNewGroupAllotment({...newGroupAllotment, seats: Number(e.target.value)})} placeholder="Total seats for group" />
                             </div>
                             <div>
                               <Label>Booking Deadline</Label>
-                              <Input type="date" />
+                              <Input type="date" value={newGroupAllotment.deadline} onChange={(e) => setNewGroupAllotment({...newGroupAllotment, deadline: e.target.value})} />
                             </div>
                           </div>
                           <DialogFooter>
                             <Button variant="outline" onClick={() => setShowGroupAllotmentDialog(false)}>Cancel</Button>
-                            <Button>Create Allotment</Button>
+                            <Button onClick={handleCreateAllotment}>Create Allotment</Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
@@ -4433,18 +4674,19 @@ export default function PSSModule() {
                       <Label>Load Factor Threshold (%)</Label>
                       <div className="flex items-center gap-4 mt-2">
                         <Slider
-                          defaultValue={[85]}
+                          value={[loadFactorThreshold]}
+                          onValueChange={(v) => setLoadFactorThreshold(v[0])}
                           max={100}
                           min={50}
                           step={5}
                           className="flex-1"
                         />
-                        <span className="w-12 text-right font-medium">85%</span>
+                        <span className="w-12 text-right font-medium">{loadFactorThreshold}%</span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
                       <Label>Auto-Adjust Based on Demand</Label>
-                      <Switch defaultChecked />
+                      <Switch checked={autoAdjustCapacity} onCheckedChange={setAutoAdjustCapacity} />
                     </div>
                     <Separator />
                     <div>
@@ -4484,21 +4726,21 @@ export default function PSSModule() {
                           <div className="space-y-4 py-4">
                             <div>
                               <Label>Route</Label>
-                              <Input placeholder="e.g., JFK-LHR or * for all routes" />
+                              <Input value={newBlackoutDate.route} onChange={(e) => setNewBlackoutDate({...newBlackoutDate, route: e.target.value})} placeholder="e.g., JFK-LHR or * for all routes" />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <Label>Start Date</Label>
-                                <Input type="date" />
+                                <Input type="date" value={newBlackoutDate.startDate} onChange={(e) => setNewBlackoutDate({...newBlackoutDate, startDate: e.target.value})} />
                               </div>
                               <div>
                                 <Label>End Date</Label>
-                                <Input type="date" />
+                                <Input type="date" value={newBlackoutDate.endDate} onChange={(e) => setNewBlackoutDate({...newBlackoutDate, endDate: e.target.value})} />
                               </div>
                             </div>
                             <div>
                               <Label>Cabin (Optional)</Label>
-                              <Select>
+                              <Select value={newBlackoutDate.cabin || ''} onValueChange={(v) => setNewBlackoutDate({...newBlackoutDate, cabin: v === 'all' ? undefined : v as CabinClass})}>
                                 <SelectTrigger>
                                   <SelectValue placeholder="All cabins" />
                                 </SelectTrigger>
@@ -4512,7 +4754,7 @@ export default function PSSModule() {
                             </div>
                             <div>
                               <Label>Fare Class (Optional)</Label>
-                              <Select>
+                              <Select value={newBlackoutDate.fareClass} onValueChange={(v) => setNewBlackoutDate({...newBlackoutDate, fareClass: v})}>
                                 <SelectTrigger>
                                   <SelectValue placeholder="All fare classes" />
                                 </SelectTrigger>
@@ -4526,12 +4768,12 @@ export default function PSSModule() {
                             </div>
                             <div>
                               <Label>Reason</Label>
-                              <Textarea placeholder="e.g., Holiday peak, maintenance, etc." />
+                              <Textarea value={newBlackoutDate.reason} onChange={(e) => setNewBlackoutDate({...newBlackoutDate, reason: e.target.value})} placeholder="e.g., Holiday peak, maintenance, etc." />
                             </div>
                           </div>
                           <DialogFooter>
                             <Button variant="outline" onClick={() => setShowBlackoutDialog(false)}>Cancel</Button>
-                            <Button>Add Blackout</Button>
+                            <Button onClick={handleAddBlackout}>Add Blackout</Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
@@ -4559,7 +4801,7 @@ export default function PSSModule() {
                                 {blackout.fareClass && ` | ${blackout.fareClass}`}
                               </div>
                             </div>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteBlackout(blackout.id)}>
                               <Trash2 className="h-4 w-4 text-red-600" />
                             </Button>
                           </div>
@@ -4590,11 +4832,11 @@ export default function PSSModule() {
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <Label>Family Name</Label>
-                              <Input placeholder="e.g., Premium Economy" />
+                              <Input value={newFareFamily.name} onChange={(e) => setNewFareFamily({...newFareFamily, name: e.target.value})} placeholder="e.g., Premium Economy" />
                             </div>
                             <div>
                               <Label>Cabin Class</Label>
-                              <Select>
+                              <Select value={newFareFamily.cabin} onValueChange={(v) => setNewFareFamily({...newFareFamily, cabin: v as CabinClass})}>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select cabin" />
                                 </SelectTrigger>
@@ -4610,8 +4852,18 @@ export default function PSSModule() {
                             <Label>Assigned Fare Classes</Label>
                             <div className="flex flex-wrap gap-2 mt-2">
                               {fareClasses.map(fc => (
-                                <Badge key={fc.code} variant="outline" className="cursor-pointer hover:bg-secondary">
-                                  <Checkbox className="mr-2" />
+                                <Badge 
+                                  key={fc.code} 
+                                  variant={newFareFamily.fareClasses.includes(fc.code) ? 'default' : 'outline'} 
+                                  className="cursor-pointer hover:bg-secondary"
+                                  onClick={() => {
+                                    const newClasses = newFareFamily.fareClasses.includes(fc.code)
+                                      ? newFareFamily.fareClasses.filter(c => c !== fc.code)
+                                      : [...newFareFamily.fareClasses, fc.code]
+                                    setNewFareFamily({...newFareFamily, fareClasses: newClasses})
+                                  }}
+                                >
+                                  <Checkbox className="mr-2" checked={newFareFamily.fareClasses.includes(fc.code)} readOnly />
                                   {fc.code}
                                 </Badge>
                               ))}
@@ -4619,22 +4871,22 @@ export default function PSSModule() {
                           </div>
                           <div>
                             <Label>Features & Benefits</Label>
-                            <Textarea placeholder="Enter features separated by commas..." />
+                            <Textarea value={newFareFamily.features} onChange={(e) => setNewFareFamily({...newFareFamily, features: e.target.value})} placeholder="Enter features separated by commas..." />
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <Label>Base Markup (%)</Label>
-                              <Input type="number" placeholder="0" />
+                              <Input type="number" value={newFareFamily.baseMarkup} onChange={(e) => setNewFareFamily({...newFareFamily, baseMarkup: Number(e.target.value)})} placeholder="0" />
                             </div>
                             <div>
                               <Label>Demand Multiplier</Label>
-                              <Input type="number" step="0.1" placeholder="1.0" />
+                              <Input type="number" step="0.1" value={newFareFamily.demandMultiplier} onChange={(e) => setNewFareFamily({...newFareFamily, demandMultiplier: Number(e.target.value)})} placeholder="1.0" />
                             </div>
                           </div>
                         </div>
                         <DialogFooter>
                           <Button variant="outline" onClick={() => setShowFareFamilyDialog(false)}>Cancel</Button>
-                          <Button>Save Family</Button>
+                          <Button onClick={handleSaveFareFamily}>Save Family</Button>
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
@@ -4683,11 +4935,11 @@ export default function PSSModule() {
                             <span className="font-medium">+{family.pricingRules.baseMarkup}%</span>
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="flex-1">
+                            <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEditFareFamily(family.id)}>
                               <Edit className="h-4 w-4 mr-1" />
                               Edit
                             </Button>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" onClick={() => handleViewFareFamily(family.id)}>
                               <Eye className="h-4 w-4" />
                             </Button>
                           </div>

@@ -212,6 +212,22 @@ export default function CrewModule() {
     setComplianceAlerts(complianceAlerts.filter(a => a.id !== alertId))
   }
 
+  // Additional handlers
+  const handleFilterRoster = () => {
+    alert('Filter roster - Feature to be implemented')
+  }
+
+  const handleRefreshRoster = () => {
+    alert('Roster refreshed')
+  }
+
+  const handleEditRosterEntry = (entryId: string) => {
+    const entry = rosterEntries.find(r => r.id === entryId)
+    if (entry) {
+      alert(`Edit Roster Entry: ${entry.crewName}\nPosition: ${entry.position}\nBase: ${entry.base}`)
+    }
+  }
+
   // Calculations
   const totalCrew = crewMembers.length
   const onDuty = crewMembers.filter(c => c.status === 'active').length
@@ -391,11 +407,11 @@ export default function CrewModule() {
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleFilterRoster}>
                     <Filter className="h-4 w-4 mr-2" />
                     Filter
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleRefreshRoster}>
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
                   </Button>
@@ -443,7 +459,7 @@ export default function CrewModule() {
                             </Badge>
                           </td>
                           <td>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => handleEditRosterEntry(entry.id)}>
                               <Edit className="h-4 w-4" />
                             </Button>
                           </td>

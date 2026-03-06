@@ -621,6 +621,24 @@ export default function AnalyticsModule() {
     setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, status: 'acknowledged' } : a))
   }
 
+  // Additional handlers
+  const handleCustomDashboard = () => {
+    alert('Custom dashboard configuration - Feature to be implemented')
+  }
+
+  const handleExportTopAgents = () => {
+    alert('Top agents data exported')
+  }
+
+  const handleRetrainModels = () => {
+    alert('Retraining AI models...')
+    console.log('Retraining models...')
+  }
+
+  const handleFilterAlerts = () => {
+    alert('Filter alerts - Feature to be implemented')
+  }
+
   // Auto-refresh effect
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -683,7 +701,7 @@ export default function AnalyticsModule() {
             <Download className="h-4 w-4 mr-2" />
             Export Report
           </Button>
-          <Button>
+          <Button onClick={handleCustomDashboard}>
             <Settings className="h-4 w-4 mr-2" />
             Custom Dashboard
           </Button>
@@ -895,7 +913,7 @@ export default function AnalyticsModule() {
                     <CardDescription>Detailed metrics by sales channel and agent</CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={handleExportTopAgents}>
                       <Download className="h-4 w-4 mr-2" />
                       Export
                     </Button>
@@ -1114,7 +1132,7 @@ export default function AnalyticsModule() {
                     </CardTitle>
                     <CardDescription>Machine learning models for predictive analytics</CardDescription>
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleRetrainModels}>
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Retrain Models
                   </Button>
@@ -2048,7 +2066,7 @@ export default function AnalyticsModule() {
                     <CardDescription>Real-time threshold alerts and notifications</CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={handleFilterAlerts}>
                       <Filter className="h-4 w-4 mr-2" />
                       Filter
                     </Button>

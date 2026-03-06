@@ -21,6 +21,20 @@ import { useAirlineStore } from '@/lib/store'
 export default function AncillaryModule() {
   const { ancillaryProducts, bundles, promoCodes } = useAirlineStore()
 
+  // Handlers for Ancillary Module
+  const handleConfigureProduct = (productName: string, price: number) => {
+    alert(`Configure product: ${productName}\nPrice: $${price}`)
+    console.log('Configuring product:', productName, price)
+  }
+
+  const handleSelectBundle = (bundleName: string) => {
+    const bundle = bundles.find(b => b.name === bundleName)
+    if (bundle) {
+      alert(`Selected bundle: ${bundle.name}\nPrice: $${bundle.price}\nSavings: $${bundle.savings}`)
+      console.log('Selected bundle:', bundle)
+    }
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -122,7 +136,9 @@ export default function AncillaryModule() {
                       <CardContent>
                         <div className="flex items-center justify-between">
                           <span className="text-2xl font-bold">${product.price}</span>
-                          <Button size="sm">Configure</Button>
+                          <Button size="sm" onClick={() => handleConfigureProduct(product.name, product.price)}>
+                            Configure
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>

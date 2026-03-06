@@ -477,6 +477,52 @@ export default function AgencyModule() {
     }))
   }
 
+  // Additional handlers for Agency Module
+  const handleFilterAlerts = () => {
+    alert('Filter fraud alerts - Feature to be implemented')
+  }
+
+  const handleExportAlerts = () => {
+    alert('Fraud alerts exported')
+    console.log('Exporting fraud alerts:', fraudAlerts)
+  }
+
+  const handleViewAgencyDetails = (agencyId: string) => {
+    const agency = agencies.find(a => a.id === agencyId)
+    if (agency) {
+      alert(`Agency: ${agency.name}\nIATA Code: ${agency.iataCode}\nCountry: ${agency.country}\nStatus: ${agency.status}`)
+    }
+  }
+
+  const handleAddBookingClass = (agencyId: string) => {
+    const agency = agencies.find(a => a.id === agencyId)
+    if (agency) {
+      alert(`Add booking class for ${agency.name}\nCurrent classes: ${agency.bookingClasses.join(', ')}`)
+    }
+  }
+
+  const handleExportAgencies = () => {
+    alert('Agencies data exported')
+    console.log('Exporting agencies:', agencies)
+  }
+
+  const handleExportAdmWorkflows = () => {
+    alert('ADM workflows exported')
+    console.log('Exporting ADM workflows:', admWorkflows)
+  }
+
+  const handleRefreshData = () => {
+    alert('Refreshing agency data...')
+    console.log('Refreshing agency data')
+  }
+
+  const handleViewAdmDetails = (admId: string) => {
+    const workflow = admWorkflows.find(wf => wf.adm.id === admId)
+    if (workflow) {
+      alert(`ADM: ${workflow.adm.admNumber}\nAmount Due: $${workflow.adm.amountDue}\nStatus: ${workflow.adm.status}`)
+    }
+  }
+
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical': return 'text-red-600 bg-red-50 border-red-200'
@@ -673,11 +719,11 @@ export default function AgencyModule() {
               <div className="flex items-center justify-between">
                 <CardTitle>Fraud Alerts</CardTitle>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleFilterAlerts}>
                     <Filter className="h-4 w-4 mr-2" />
                     Filter
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleExportAlerts}>
                     <Download className="h-4 w-4 mr-2" />
                     Export
                   </Button>

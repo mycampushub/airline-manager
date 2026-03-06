@@ -742,6 +742,21 @@ export default function IntegrationModule() {
     }
   }
 
+  // Additional handlers for Integration Module
+  const handleFilterDeliveries = () => {
+    alert('Filter webhook deliveries - Feature to be implemented')
+  }
+
+  const handleExportDeliveries = () => {
+    alert('Webhook deliveries exported')
+    console.log('Exporting delivery logs:', webhookDeliveries)
+  }
+
+  const handleRetryDelivery = (deliveryId: string) => {
+    alert(`Retrying delivery: ${deliveryId}`)
+    console.log('Retrying webhook delivery:', deliveryId)
+  }
+
   // Utility functions
   const getConnectionStatusBadge = (status: string) => {
     const variants = {
@@ -1182,11 +1197,11 @@ export default function IntegrationModule() {
                   <CardDescription>View webhook delivery attempts and status</CardDescription>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleFilterDeliveries}>
                     <Filter className="h-4 w-4 mr-2" />
                     Filter
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleExportDeliveries}>
                     <Download className="h-4 w-4 mr-2" />
                     Export
                   </Button>
@@ -1832,7 +1847,7 @@ export default function IntegrationModule() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeliveryDialog(false)}>Close</Button>
             {selectedDelivery && selectedDelivery.status === 'failed' && (
-              <Button>
+              <Button onClick={() => handleRetryDelivery(selectedDelivery.id)}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Retry Delivery
               </Button>

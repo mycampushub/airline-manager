@@ -1,24 +1,24 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  LayoutDashboard, 
-  Plane, 
+import { useState, useEffect, useRef } from 'react'
+import {
+  LayoutDashboard,
+  Plane,
   PlaneTakeoff,
-  Users, 
-  Wrench, 
-  DollarSign, 
-  ShoppingCart, 
-  Calculator, 
-  Building2, 
-  Heart, 
-  BarChart3, 
-  Shield, 
-  Plug, 
-  Package, 
-  Leaf, 
-  Cpu, 
-  ChevronRight, 
+  Users,
+  Wrench,
+  DollarSign,
+  ShoppingCart,
+  Calculator,
+  Building2,
+  Heart,
+  BarChart3,
+  Shield,
+  Plug,
+  Package,
+  Leaf,
+  Cpu,
+  ChevronRight,
   ChevronDown,
   Menu,
   X,
@@ -27,13 +27,22 @@ import {
   Settings,
   LogOut,
   User,
-  Clock
+  Clock,
+  AlertTriangle,
+  Info,
+  CheckCircle,
+  Download,
+  Printer,
+  FileText
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { ScrollBar } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { useToast } from '@/hooks/use-toast'
 import { useAirlineStore } from '@/lib/store'
 import { initializeAllMockData } from '@/lib/initialize-mock-data'
 import DashboardModule from '@/components/modules/DashboardModule'
@@ -60,6 +69,16 @@ interface MenuItem {
   icon: any
   children?: MenuItem[]
   badge?: string
+}
+
+interface Notification {
+  id: string
+  type: 'alert' | 'info' | 'success'
+  title: string
+  message: string
+  time: string
+  read: boolean
+  actionUrl?: string
 }
 
 const menuItems: MenuItem[] = [
@@ -153,8 +172,40 @@ const menuItems: MenuItem[] = [
 ]
 
 export default function Home() {
-  const { currentModule, currentView, setCurrentModule, setCurrentView, sidebarCollapsed, toggleSidebar, updateKPIDashboard } = useAirlineStore()
+  const { currentModule, currentView, setCurrentModule, setCurrentView, sidebarCollapsed, toggleSidebar, updateKPIDashboard, pnrs, tickets, flightInstances } = useAirlineStore()
+  const { toast } = useToast()
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([
+    {
+      id: '1',
+      type: 'alert',
+      title: 'Flight Delay Alert',
+      message: 'Flight AE202 to LAX is delayed by 2 hours due to weather conditions.',
+      time: '10 minutes ago',
+      read: false,
+      actionUrl: '#flightops'
+    },
+    {
+      id: '2',
+      type: 'info',
+      title: 'System Maintenance',
+      message: 'Scheduled maintenance will occur tonight at 2:00 AM UTC.',
+      time: '1 hour ago',
+      read: false
+    },
+    {
+      id: '3',
+      type: 'success',
+      title: 'Revenue Target Met',
+      message: 'Daily revenue target of $500,000 has been achieved.',
+      time: '2 hours ago',
+      read: true
+    }
+  ])
 
   useEffect(() => {
     // Initialize mock data on first load
@@ -167,6 +218,218 @@ export default function Home() {
   const handleMenuClick = (item: MenuItem) => {
     setCurrentModule(item.id)
     setCurrentView('overview')
+  }
+
+  // Ribbon button handlers
+  const handleNew = () => {
+    const moduleActions: Record<string, string> = {
+      'pss': 'Creating new PNR (Passenger Name Record)...',
+      'dcs': 'Opening new check-in session...',
+      'flightops': 'Creating new flight schedule...',
+      'crew': 'Adding new crew member...',
+      'mro': 'Creating new maintenance work order...',
+      'revenue': 'Setting up new fare basis...',
+      'ancillary': 'Adding new ancillary product...',
+      'agency': 'Registering new agency...',
+      'crm': 'Adding new customer profile...',
+      'analytics': 'Creating new dashboard...',
+      'security': 'Adding new user...',
+      'integration': 'Configuring new integration...',
+      'cargo': 'Creating new cargo booking...',
+      'sustainability': 'Adding new sustainability initiative...',
+      'ai': 'Creating new automation rule...',
+      'dashboard': 'Creating new widget...'
+    }
+    toast({
+      title: 'New Item',
+      description: moduleActions[currentModule] || 'Creating new item...'
+    })
+  }
+
+  const handleEdit = () => {
+    toast({
+      title: 'Edit Mode',
+      description: `Edit mode activated for ${getModuleTitle()}`
+    })
+  }
+
+  const handleDelete = () => {
+    toast({
+      title: 'Delete Item',
+      description: 'Select an item to delete',
+      variant: 'destructive'
+    })
+  }
+
+  const handlePrint = () => {
+    const moduleReports: Record<string, string> = {
+      'pss': 'Printing PNR report...',
+      'dcs': 'Printing boarding passes...',
+      'flightops': 'Printing flight schedule...',
+      'crew': 'Printing crew roster...',
+      'mro': 'Printing work order...',
+      'revenue': 'Printing revenue report...',
+      'ancillary': 'Printing product catalog...',
+      'agency': 'Printing agency statement...',
+      'crm': 'Printing customer report...',
+      'analytics': 'Printing analytics dashboard...',
+      'security': 'Printing audit log...',
+      'integration': 'Printing integration status...',
+      'cargo': 'Printing air waybill...',
+      'sustainability': 'Printing sustainability report...'
+    }
+    toast({
+      title: 'Print',
+      description: moduleReports[currentModule] || 'Preparing print view...'
+    })
+    setTimeout(() => window.print(), 500)
+  }
+
+  const handleExport = () => {
+    toast({
+      title: 'Export Data',
+      description: `Exporting ${getModuleTitle()} data to CSV...`
+    })
+    // Simulate export delay
+    setTimeout(() => {
+      toast({
+        title: 'Export Complete',
+        description: 'Data has been exported successfully'
+      })
+    }, 1500)
+  }
+
+  // Search handler
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+    if (query.length < 2) {
+      setSearchResults([])
+      return
+    }
+
+    // Search across PNRs, tickets, and flights
+    const results: any[] = []
+
+    // Search PNRs
+    pnrs.forEach(pnr => {
+      const matchesPNR = pnr.pnrNumber.toLowerCase().includes(query.toLowerCase())
+      const matchesPassenger = pnr.passengers.some(p =>
+        `${p.firstName} ${p.lastName}`.toLowerCase().includes(query.toLowerCase())
+      )
+      const matchesEmail = pnr.contactInfo.email.toLowerCase().includes(query.toLowerCase())
+
+      if (matchesPNR || matchesPassenger || matchesEmail) {
+        results.push({
+          type: 'PNR',
+          id: pnr.pnrNumber,
+          label: `${pnr.pnrNumber} - ${pnr.passengers.map(p => `${p.firstName} ${p.lastName}`).join(', ')}`,
+          status: pnr.status
+        })
+      }
+    })
+
+    // Search Tickets
+    tickets.forEach(ticket => {
+      const matchesTicket = ticket.ticketNumber.toLowerCase().includes(query.toLowerCase())
+      const matchesPassenger = ticket.passengerName.toLowerCase().includes(query.toLowerCase())
+
+      if (matchesTicket || matchesPassenger) {
+        results.push({
+          type: 'Ticket',
+          id: ticket.ticketNumber,
+          label: `${ticket.ticketNumber} - ${ticket.passengerName}`,
+          status: ticket.status
+        })
+      }
+    })
+
+    // Search Flights
+    flightInstances.forEach(flight => {
+      const matchesFlight = flight.flightNumber.toLowerCase().includes(query.toLowerCase())
+      const matchesRoute = `${flight.origin} ${flight.destination}`.toLowerCase().includes(query.toLowerCase())
+
+      if (matchesFlight || matchesRoute) {
+        results.push({
+          type: 'Flight',
+          id: flight.flightNumber,
+          label: `${flight.flightNumber} - ${flight.origin} → ${flight.destination}`,
+          status: flight.status,
+          date: flight.date
+        })
+      }
+    })
+
+    setSearchResults(results.slice(0, 10)) // Limit to 10 results
+  }
+
+  const handleSearchResultClick = (result: any) => {
+    toast({
+      title: 'Navigation',
+      description: `Navigating to ${result.type}: ${result.id}`
+    })
+    setSearchQuery('')
+    setSearchResults([])
+
+    // Navigate to appropriate module
+    if (result.type === 'PNR' || result.type === 'Ticket') {
+      setCurrentModule('pss')
+    } else if (result.type === 'Flight') {
+      setCurrentModule('flightops')
+    }
+  }
+
+  // Notification handlers
+  const unreadCount = notifications.filter(n => !n.read).length
+
+  const handleNotificationClick = (notification: Notification) => {
+    setNotifications(prev =>
+      prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+    )
+    toast({
+      title: notification.title,
+      description: notification.message
+    })
+
+    // Navigate if action URL is provided
+    if (notification.actionUrl) {
+      const targetModule = notification.actionUrl.replace('#', '')
+      if (targetModule) {
+        setCurrentModule(targetModule)
+      }
+    }
+  }
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    toast({
+      title: 'Notifications',
+      description: 'All notifications marked as read'
+    })
+  }
+
+  // Settings handler
+  const handleSettings = () => {
+    setShowSettings(true)
+  }
+
+  const handleSaveSettings = () => {
+    setShowSettings(false)
+    toast({
+      title: 'Settings Saved',
+      description: 'Your settings have been saved successfully'
+    })
+  }
+
+  // Logout handler
+  const handleLogout = () => {
+    toast({
+      title: 'Logging Out',
+      description: 'You are being logged out...'
+    })
+    // Simulate logout - in a real app, this would clear auth tokens and redirect
+    setTimeout(() => {
+      window.location.reload()
+    }, 1500)
   }
 
   const renderMenuItem = (item: MenuItem) => {
@@ -297,26 +560,29 @@ export default function Home() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Ribbon Header */}
-        <header className="enterprise-ribbon h-12 flex items-center justify-between px-4 flex-shrink-0">
+        <header className="enterprise-ribbon h-12 flex items-center justify-between px-4 flex-shrink-0 relative">
           <div className="flex items-center gap-4">
             <h1 className="text-base font-semibold text-primary-foreground">
               {getModuleTitle()}
             </h1>
             <Separator orientation="vertical" className="h-6 bg-primary-foreground/30" />
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
+              <Button variant="ghost" size="sm" onClick={handleNew} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
+                <FileText className="h-3.5 w-3.5 mr-1" />
                 New
               </Button>
-              <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
+              <Button variant="ghost" size="sm" onClick={handleEdit} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
                 Edit
               </Button>
-              <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
+              <Button variant="ghost" size="sm" onClick={handleDelete} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
                 Delete
               </Button>
-              <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
+              <Button variant="ghost" size="sm" onClick={handlePrint} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
+                <Printer className="h-3.5 w-3.5 mr-1" />
                 Print
               </Button>
-              <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
+              <Button variant="ghost" size="sm" onClick={handleExport} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
+                <Download className="h-3.5 w-3.5 mr-1" />
                 Export
               </Button>
             </div>
@@ -327,18 +593,103 @@ export default function Home() {
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search PNR, Ticket, Passenger..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
                 className="w-64 h-8 pl-8 bg-background/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 text-sm"
               />
+              {/* Search Results Dropdown */}
+              {searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+                  {searchResults.map((result, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSearchResultClick(result)}
+                      className="w-full text-left px-3 py-2 hover:bg-primary/10 border-b border-border/50 last:border-0"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-medium text-foreground">{result.type}: {result.id}</div>
+                          <div className="text-xs text-muted-foreground truncate">{result.label}</div>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {result.status}
+                        </Badge>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <Separator orientation="vertical" className="h-6 bg-primary-foreground/30" />
-            <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10 h-8">
-              <Bell className="h-4 w-4" />
-              <Badge className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-red-500">3</Badge>
-            </Button>
-            <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10 h-8">
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="text-primary-foreground hover:bg-primary-foreground/10 h-8 relative"
+              >
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <Badge className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-red-500 absolute -top-1 -right-1">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </Button>
+              {/* Notifications Dropdown */}
+              {showNotifications && (
+                <div className="absolute top-full right-0 mt-1 w-80 bg-background border border-border rounded-md shadow-lg z-50">
+                  <div className="p-3 border-b border-border flex items-center justify-between">
+                    <h3 className="font-semibold text-sm">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        No notifications
+                      </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <button
+                          key={notification.id}
+                          onClick={() => handleNotificationClick(notification)}
+                          className={`w-full text-left p-3 border-b border-border/50 hover:bg-primary/5 ${
+                            !notification.read ? 'bg-primary/5' : ''
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            {notification.type === 'alert' && (
+                              <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                            )}
+                            {notification.type === 'info' && (
+                              <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                            )}
+                            {notification.type === 'success' && (
+                              <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-foreground">{notification.title}</div>
+                              <div className="text-xs text-muted-foreground truncate">{notification.message}</div>
+                              <div className="text-xs text-muted-foreground mt-1">{notification.time}</div>
+                            </div>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <Button variant="ghost" size="sm" onClick={handleSettings} className="text-primary-foreground hover:bg-primary-foreground/10 h-8">
               <Settings className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10 h-8">
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-primary-foreground hover:bg-primary-foreground/10 h-8">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
@@ -380,6 +731,61 @@ export default function Home() {
           </div>
         </footer>
       </div>
+
+      {/* Settings Dialog */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Settings</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Appearance</h3>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Sidebar State</span>
+                <span className="text-sm">{sidebarCollapsed ? 'Collapsed' : 'Expanded'}</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Notifications</h3>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Email Notifications</span>
+                <span className="text-sm text-primary">Enabled</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Push Notifications</span>
+                <span className="text-sm text-primary">Enabled</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Data Refresh</h3>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Auto-refresh Interval</span>
+                <span className="text-sm">30 seconds</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">System</h3>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Version</span>
+                <span className="text-sm">v2.5.1</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Environment</span>
+                <span className="text-sm">Production</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSettings(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveSettings}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
