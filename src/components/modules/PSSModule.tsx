@@ -61,7 +61,8 @@ import {
   XCircle,
   RefreshCw,
   Printer,
-  Share2
+  Share2,
+  Building
 } from 'lucide-react'
 import { useAirlineStore, type PNR, type Passenger, type FlightSegment, type Ticket, type TaxBreakdown } from '@/lib/store'
 
@@ -466,6 +467,27 @@ export default function PSSModule() {
   const [calculatedRefundFee, setCalculatedRefundFee] = useState(0)
   const [bspReportPeriod, setBSPReportPeriod] = useState('daily' as 'daily' | 'weekly' | 'monthly')
   const [bspReportType, setBSPReportType] = useState('settlement' as 'settlement' | 'billing' | 'refunds')
+
+  // Additional PSS Features State
+  const [selectedCorporateAccount, setSelectedCorporateAccount] = useState<string>('')
+  const [isGroupBooking, setIsGroupBooking] = useState(false)
+  const [groupName, setGroupName] = useState('')
+  const [groupBookingDiscount, setGroupBookingDiscount] = useState(0)
+  const [fareRuleViolations, setFareRuleViolations] = useState<string[]>([])
+  const [showFareRulesDialog, setShowFareRulesDialog] = useState(false)
+  const [showSSRDialog, setShowSSRDialog] = useState(false)
+  const [selectedPassengerSSR, setSelectedPassengerSSR] = useState<number | null>(null)
+  const [showTimeLimitDialog, setShowTimeLimitDialog] = useState(false)
+  const [newTimeLimit, setNewTimeLimit] = useState('')
+  const [showMarriedSegmentsDialog, setShowMarriedSegmentsDialog] = useState(false)
+  const [marriedSegmentKey, setMarriedSegmentKey] = useState('')
+  const [showRemarksDialog, setShowRemarksDialog] = useState(false)
+  const [newRemark, setNewRemark] = useState('')
+  const [remarkCategory, setRemarkCategory] = useState('internal')
+  const [showCorporateDialog, setShowCorporateDialog] = useState(false)
+  const [showGroupDialog, setShowGroupDialog] = useState(false)
+  const [showEMDDialog, setShowEMDDialog] = useState(false)
+  const [selectedEMD, setSelectedEMD] = useState<any>(null)
 
   // In-memory ticket audit trail
   const [ticketAuditTrail, setTicketAuditTrail] = useState<any[]>([])
@@ -1366,6 +1388,226 @@ export default function PSSModule() {
     setPassengers(updatedPassengers)
   }
 
+  // ==================== NEW HANDLERS FOR MISSING FUNCTIONALITY ====================
+
+  // Corporate Booking Handler
+  const handleSelectCorporateAccount = (accountId: string) => {
+    setSelectedCorporateAccount(accountId)
+    // Apply corporate fare rules
+    if (accountId) {
+      setGroupBookingDiscount(10) // 10% corporate discount
+      alert(`Corporate account ${accountId} selected. 10% discount applied.`)
+    } else {
+      setGroupBookingDiscount(0)
+    }
+  }
+
+  // Group Booking Handler
+  const handleToggleGroupBooking = () => {
+    setIsGroupBooking(!isGroupBooking)
+    if (!isGroupBooking) {
+      // Enable group booking mode
+      setGroupBookingDiscount(passengers.length >= 10 ? 15 : 0)
+    } else {
+      setGroupBookingDiscount(0)
+      setGroupName('')
+    }
+  }
+
+  const handleValidateFareRules = () => {
+    const violations: string[] = []
+    
+    // Validate advance purchase requirement
+    const fareClass = fareClasses.find(fc => fc.code === segments[0]?.fareClass)
+    if (fareClass?.restrictions?.advancePurchase && fareClass.restrictions.advancePurchase > 0) {
+      const departureDate = new Date(segments[0]?.departureDate || '')
+      const today = new Date()
+      const daysBeforeDeparture = Math.floor((departureDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      if (daysBeforeDeparture < fareClass.restrictions.advancePurchase) {
+        violations.push(`Fare requires ${fareClass.restrictions.advancePurchase} days advance purchase`)
+      }
+    }
+
+    // Validate min/max stay
+    if (fareClass?.restrictions?.minStay && fareClass.restrictions.minStay > 0) {
+      if (segments.length < 2) {
+        violations.push(`Fare requires minimum stay of ${fareClass.restrictions.minStay} days`)
+      }
+    }
+
+    // Validate same fare class for multi-segment
+    if (segments.length > 1) {
+      const firstClass = segments[0].fareClass
+      const differentClass = segments.find(s => s.fareClass !== firstClass)
+      if (differentClass) {
+        violations.push('All segments must have same fare class for married segment booking')
+      }
+    }
+
+    setFareRuleViolations(violations)
+    setShowFareRulesDialog(true)
+  }
+
+  // SSR Management Handler
+  const handleOpenSSRDialog = (passengerIndex: number) => {
+    setSelectedPassengerSSR(passengerIndex)
+    setShowSSRDialog(true)
+  }
+
+  const handleAddSSR = (ssrCode: string, ssrName: string, price: number) => {
+    if (selectedPassengerSSR !== null) {
+      const updatedPassengers = [...passengers]
+      const currentSSR = updatedPassengers[selectedPassengerSSR].ssr || []
+      if (!currentSSR.find(s => s.code === ssrCode)) {
+        updatedPassengers[selectedPassengerSSR] = {
+          ...updatedPassengers[selectedPassengerSSR],
+          ssr: [...currentSSR, { code: ssrCode, name: ssrName, price, status: 'requested' }]
+        }
+        setPassengers(updatedPassengers)
+        alert(`SSR ${ssrName} added for passenger`)
+      } else {
+        alert('SSR already exists for this passenger')
+      }
+    }
+  }
+
+  const handleRemoveSSR = (ssrCode: string) => {
+    if (selectedPassengerSSR !== null) {
+      const updatedPassengers = [...passengers]
+      updatedPassengers[selectedPassengerSSR] = {
+        ...updatedPassengers[selectedPassengerSSR],
+        ssr: updatedPassengers[selectedPassengerSSR].ssr?.filter(s => s.code !== ssrCode) || []
+      }
+      setPassengers(updatedPassengers)
+    }
+  }
+
+  // Time Limit Management Handler
+  const handleExtendTimeLimit = () => {
+    if (selectedPNR && newTimeLimit) {
+      updatePNR(selectedPNR.pnrNumber, {
+        timeLimit: newTimeLimit,
+        remarks: [
+          ...selectedPNR.remarks,
+          `Time limit extended to ${newTimeLimit}`
+        ]
+      })
+      setShowTimeLimitDialog(false)
+      setNewTimeLimit('')
+      alert(`Time limit extended to ${newTimeLimit}`)
+    }
+  }
+
+  // Married Segment Handler
+  const handleValidateMarriedSegments = () => {
+    if (segments.length < 2) {
+      alert('Married segments require at least 2 segments')
+      return
+    }
+
+    // Validate segment connectivity
+    for (let i = 0; i < segments.length - 1; i++) {
+      if (segments[i].destination !== segments[i + 1].origin) {
+        alert(`Segment ${i + 1} destination (${segments[i].destination}) must match segment ${i + 2} origin (${segments[i + 1].origin})`)
+        return
+      }
+    }
+
+    // Validate fare class consistency
+    const firstFareClass = segments[0].fareClass
+    const hasDifferentClass = segments.some(s => s.fareClass !== firstFareClass)
+    if (hasDifferentClass) {
+      alert('All married segments must have same fare class')
+      return
+    }
+
+    // Generate married segment key
+    const key = segments.map(s => s.flightNumber).join('-')
+    setMarriedSegmentKey(key)
+    setShowMarriedSegmentsDialog(true)
+  }
+
+  // Booking Remarks Handler
+  const handleAddRemark = () => {
+    if (selectedPNR && newRemark.trim()) {
+      const fullRemark = `${remarkCategory.toUpperCase()}: ${newRemark}`
+      updatePNR(selectedPNR.pnrNumber, {
+        remarks: [...selectedPNR.remarks, fullRemark]
+      })
+      setNewRemark('')
+      setShowRemarksDialog(false)
+      alert('Remark added successfully')
+    }
+  }
+
+  // EMD Management Handler
+  const handleIssueEMD = () => {
+    if (selectedTicket) {
+      const emdNumber = `EMD-${Date.now()}`
+      issueEMD({
+        emdNumber,
+        pnrNumber: selectedTicket.pnrNumber,
+        passengerId: selectedTicket.passengerId,
+        passengerName: selectedTicket.passengerName,
+        type: 'ancillary',
+        amount: 50, // Example EMD amount
+        currency: 'USD',
+        reason: 'Baggage fee',
+        status: 'open',
+        createdAt: new Date().toISOString()
+      })
+      alert(`EMD ${emdNumber} issued for ${selectedTicket.passengerName}`)
+    }
+  }
+
+  // Ticket Reprint Handler
+  const handleReprintTicket = () => {
+    if (selectedTicket) {
+      alert(`Reprinting ticket ${selectedTicket.ticketNumber}...\n(PDF generation would be triggered here)`)
+    }
+  }
+
+  // Email Ticket Handler
+  const handleEmailTicket = () => {
+    if (selectedTicket && selectedPNR) {
+      const email = selectedPNR.contactInfo.email
+      if (email) {
+        alert(`Ticket ${selectedTicket.ticketNumber} sent to ${email}`)
+      } else {
+        alert('No email address in PNR contact information')
+      }
+    }
+  }
+
+  // SMS Ticket Handler
+  const handleSMSTicket = () => {
+    if (selectedTicket && selectedPNR) {
+      const phone = selectedPNR.contactInfo.phone
+      if (phone) {
+        alert(`Mobile ticket sent to ${phone}\nQR Code: ${selectedTicket.ticketNumber}`)
+      } else {
+        alert('No phone number in PNR contact information')
+      }
+    }
+  }
+
+  // Check PNR Time Limits
+  const handleCheckTimeLimits = () => {
+    const now = new Date()
+    let expiredCount = 0
+    pnrs.forEach(pnr => {
+      if (pnr.timeLimit) {
+        const limitTime = new Date(pnr.timeLimit)
+        if (limitTime < now && pnr.status !== 'ticketed' && pnr.status !== 'cancelled') {
+          expiredCount++
+          // Auto-cancel would go here
+          updatePNR(pnr.pnrNumber, { status: 'cancelled', remarks: [...pnr.remarks, 'Auto-cancelled: Time limit expired'] })
+        }
+      }
+    })
+    alert(`Checked time limits. ${expiredCount} PNR(s) auto-cancelled due to expired time limits.`)
+  }
+
   const resetForms = () => {
     // Reset multi-passenger and multi-segment arrays
     setPassengers([{
@@ -1460,6 +1702,18 @@ export default function PSSModule() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleCheckTimeLimits}>
+            <Clock className="h-4 w-4 mr-2" />
+            Check Time Limits
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowWaitlistDialog(true)}>
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Process Waitlist
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowMergeDialog(true)}>
+            <Merge className="h-4 w-4 mr-2" />
+            Merge PNRs
+          </Button>
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
               <Button>
@@ -1675,17 +1929,31 @@ export default function PSSModule() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Booking Type</Label>
-                    <Select defaultValue="standard">
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="group">Group Booking</SelectItem>
-                        <SelectItem value="corporate">Corporate</SelectItem>
-                        <SelectItem value="government">Government</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2 mt-1">
+                      <Select defaultValue="standard">
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standard">Standard</SelectItem>
+                          <SelectItem value="group">Group Booking</SelectItem>
+                          <SelectItem value="corporate">Corporate</SelectItem>
+                          <SelectItem value="government">Government</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button variant="outline" size="icon" onClick={() => setShowCorporateDialog(true)} title="Corporate Profiles">
+                        <Building className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => setShowGroupDialog(true)} title="Group Settings">
+                        <Users2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {selectedCorporateAccount && (
+                      <p className="text-xs text-muted-foreground mt-1">Corporate: {selectedCorporateAccount}</p>
+                    )}
+                    {isGroupBooking && (
+                      <p className="text-xs text-muted-foreground mt-1">Group: {groupName || 'Unnamed'} ({passengers.length} pax)</p>
+                    )}
                   </div>
                   <div>
                     <Label>Remarks</Label>
@@ -1695,6 +1963,20 @@ export default function PSSModule() {
                       onChange={(e) => setNewPNR({...newPNR, remarks: [e.target.value]})} 
                     />
                   </div>
+                </div>
+                
+                {/* Quick Actions */}
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleValidateFareRules}>
+                    <FileCheck className="h-4 w-4 mr-2" />
+                    Validate Fare Rules
+                  </Button>
+                  {segments.length > 1 && (
+                    <Button variant="outline" size="sm" onClick={handleValidateMarriedSegments}>
+                      <Layers className="h-4 w-4 mr-2" />
+                      Validate Married Segments
+                    </Button>
+                  )}
                 </div>
               </div>
               <DialogFooter>
@@ -1791,27 +2073,41 @@ export default function PSSModule() {
                           </td>
                           <td className="text-sm">${pnr.fareQuote.total}</td>
                           <td>
-                            <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="sm" onClick={() => setSelectedPNR(pnr)}>
-                                <Edit className="h-4 w-4" />
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <Button variant="ghost" size="sm" onClick={() => setSelectedPNR(pnr)} title="View Details">
+                                <Eye className="h-4 w-4" />
                               </Button>
                               {pnr.passengers.length > 1 && (
-                                <Button variant="ghost" size="sm" onClick={() => { setSelectedPNR(pnr); setShowSplitDialog(true); }}>
+                                <Button variant="ghost" size="sm" onClick={() => { setSelectedPNR(pnr); setShowSplitDialog(true); }} title="Split PNR">
                                   <Split className="h-4 w-4" />
                                 </Button>
                               )}
-                              <Button variant="ghost" size="sm" onClick={() => { setSelectedPNR(pnr); setShowRequoteDialog(true); }}>
+                              <Button variant="ghost" size="sm" onClick={() => { setSelectedPNR(pnr); setShowRequoteDialog(true); }} title="Re-quote Fare">
                                 <DollarSign className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="sm" onClick={() => { setSelectedPNR(pnr); setShowQueueDialog(true); }}>
+                              <Button variant="ghost" size="sm" onClick={() => { setSelectedPNR(pnr); setShowQueueDialog(true); }} title="Assign Queue">
                                 <Clock className="h-4 w-4" />
                               </Button>
+                              <Button variant="ghost" size="sm" onClick={() => { setSelectedPNR(pnr); setShowTimeLimitDialog(true); }} title="Extend Time Limit">
+                                <CalendarDays className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => { setSelectedPNR(pnr); setShowRemarksDialog(true); }} title="Add Remark">
+                                <FileEdit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => { setSelectedPNR(pnr); setShowFareRulesDialog(true); handleValidateFareRules(); }} title="Validate Fare Rules">
+                                <FileCheck className="h-4 w-4" />
+                              </Button>
+                              {pnr.segments.length > 1 && (
+                                <Button variant="ghost" size="sm" onClick={() => { setSelectedPNR(pnr); setShowMarriedSegmentsDialog(true); handleValidateMarriedSegments(); }} title="Validate Married Segments">
+                                  <Layers className="h-4 w-4" />
+                                </Button>
+                              )}
                               {pnr.status !== 'ticketed' && (
-                                <Button variant="ghost" size="sm" onClick={() => handleIssueTicket(pnr)}>
+                                <Button variant="ghost" size="sm" onClick={() => handleIssueTicket(pnr)} title="Issue Ticket">
                                   <TicketIcon className="h-4 w-4" />
                                 </Button>
                               )}
-                              <Button variant="ghost" size="sm" onClick={() => deletePNR(pnr.pnrNumber)}>
+                              <Button variant="ghost" size="sm" onClick={() => deletePNR(pnr.pnrNumber)} title="Delete PNR">
                                 <Trash2 className="h-4 w-4 text-red-600" />
                               </Button>
                             </div>
@@ -1859,10 +2155,32 @@ export default function PSSModule() {
                   <div className="space-y-2">
                     {selectedPNR.passengers.map((p, i) => (
                       <div key={i} className="p-3 bg-secondary/30 rounded-sm">
-                        <div className="font-medium">{p.title} {p.firstName} {p.lastName}</div>
-                        <div className="text-sm text-muted-foreground">
-                          DOB: {p.dateOfBirth} | Passport: {p.passportNumber} | {p.nationality}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium">{p.title} {p.firstName} {p.lastName}</div>
+                            <div className="text-sm text-muted-foreground">
+                              DOB: {p.dateOfBirth} | Passport: {p.passportNumber} | {p.nationality}
+                            </div>
+                          </div>
+                          <Button variant="outline" size="sm" onClick={() => { 
+                            setSelectedPNR(selectedPNR);
+                            // Temporarily set passenger data for SSR
+                            setPassengers(selectedPNR.passengers);
+                            handleOpenSSRDialog(i);
+                          }}>
+                            <Users className="h-4 w-4 mr-1" />
+                            SSR
+                          </Button>
                         </div>
+                        {p.ssr && p.ssr.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {p.ssr.map((ssr, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {ssr.code}: {ssr.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -2924,6 +3242,43 @@ export default function PSSModule() {
                         <span>Voidable until: {new Date(selectedTicket.voidableUntil).toLocaleString()}</span>
                       </li>
                     </ul>
+                  </Card>
+
+                  {/* Ticketing Actions */}
+                  <Card className="p-4">
+                    <h4 className="font-medium mb-3">Ticket Actions</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <Button variant="outline" size="sm" onClick={handleReprintTicket} className="justify-start">
+                        <Printer className="h-4 w-4 mr-2" />
+                        Reprint
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleEmailTicket} className="justify-start">
+                        <Share2 className="h-4 w-4 mr-2" />
+                        Email
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleSMSTicket} className="justify-start">
+                        <Zap className="h-4 w-4 mr-2" />
+                        SMS
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => { 
+                          setSelectedEMD(null); 
+                          setShowEMDDialog(true); 
+                        }} 
+                        className="justify-start"
+                      >
+                        <Receipt className="h-4 w-4 mr-2" />
+                        EMD
+                      </Button>
+                    </div>
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-sm text-blue-900">
+                        <Info className="h-4 w-4" />
+                        <span>Mobile ticket includes QR code for boarding</span>
+                      </div>
+                    </div>
                   </Card>
 
                   <DialogFooter>
@@ -4743,6 +5098,416 @@ export default function PSSModule() {
               <TrendingUp className="h-4 w-4 mr-2" />
               Process Waitlist
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* SSR Management Dialog */}
+      <Dialog open={showSSRDialog} onOpenChange={setShowSSRDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>SSR Management - {passengers[selectedPassengerSSR || 0]?.firstName} {passengers[selectedPassengerSSR || 0]?.lastName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <h4 className="font-medium mb-2">Available SSRs</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { code: 'VGML', name: 'Vegetarian Meal', price: 0 },
+                  { code: 'MLML', name: 'Muslim Meal', price: 0 },
+                  { code: 'SFML', name: 'Seafood Meal', price: 0 },
+                  { code: 'KSML', name: 'Kosher Meal', price: 0 },
+                  { code: 'BLND', name: 'Blind Passenger', price: 0 },
+                  { code: 'DEAF', name: 'Deaf Passenger', price: 0 },
+                  { code: 'WCHR', name: 'Wheelchair', price: 0 },
+                  { code: 'EXST', name: 'Extra Seat', price: 150 },
+                  { code: 'PETC', name: 'Pet in Cabin', price: 75 },
+                  { code: 'UMNR', name: 'Unaccompanied Minor', price: 100 }
+                ].map(ssr => (
+                  <Button
+                    key={ssr.code}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAddSSR(ssr.code, ssr.name, ssr.price)}
+                    className="justify-start"
+                  >
+                    <span className="font-mono font-bold mr-2">{ssr.code}</span>
+                    {ssr.name}
+                    {ssr.price > 0 && <span className="ml-auto text-sm">+${ssr.price}</span>}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            
+            {selectedPassengerSSR !== null && passengers[selectedPassengerSSR].ssr && passengers[selectedPassengerSSR].ssr!.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Current SSRs</h4>
+                <div className="space-y-2">
+                  {passengers[selectedPassengerSSR].ssr!.map(ssr => (
+                    <div key={ssr.code} className="flex items-center justify-between p-2 bg-secondary/20 rounded">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="font-mono">{ssr.code}</Badge>
+                        <span className="text-sm">{ssr.name}</span>
+                        {ssr.price > 0 && <span className="text-sm text-muted-foreground">(${ssr.price})</span>}
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => handleRemoveSSR(ssr.code)}>
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowSSRDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fare Rules Dialog */}
+      <Dialog open={showFareRulesDialog} onOpenChange={setShowFareRulesDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Fare Rule Validation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {fareRuleViolations.length === 0 ? (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 text-green-900">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="font-medium">All fare rules validated successfully!</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-red-900 mb-2">
+                    <XCircle className="h-5 w-5" />
+                    <span className="font-medium">{fareRuleViolations.length} fare rule violation(s) found</span>
+                  </div>
+                  <ul className="list-disc list-inside text-sm text-red-800 space-y-1">
+                    {fareRuleViolations.map((violation, idx) => (
+                      <li key={idx}>{violation}</li>
+                    ))}
+                  </ul>
+                </div>
+              </>
+            )}
+
+            <div>
+              <h4 className="font-medium mb-2">Applicable Fare Rules</h4>
+              <div className="space-y-2 text-sm">
+                <div className="p-2 bg-secondary/20 rounded">
+                  <span className="font-medium">Advance Purchase:</span> {fareClasses.find(fc => fc.code === segments[0]?.fareClass)?.restrictions?.advancePurchase || 0} days
+                </div>
+                <div className="p-2 bg-secondary/20 rounded">
+                  <span className="font-medium">Minimum Stay:</span> {fareClasses.find(fc => fc.code === segments[0]?.fareClass)?.restrictions?.minStay || 0} days
+                </div>
+                <div className="p-2 bg-secondary/20 rounded">
+                  <span className="font-medium">Maximum Stay:</span> {fareClasses.find(fc => fc.code === segments[0]?.fareClass)?.restrictions?.maxStay || 0} days
+                </div>
+                <div className="p-2 bg-secondary/20 rounded">
+                  <span className="font-medium">Refundable:</span> {segments[0]?.fareClass === 'Y' || segments[0]?.fareClass === 'F' ? 'Yes' : 'No'}
+                </div>
+                <div className="p-2 bg-secondary/20 rounded">
+                  <span className="font-medium">Changes Allowed:</span> {segments[0]?.fareClass === 'Y' || segments[0]?.fareClass === 'B' ? 'Yes' : 'No'}
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowFareRulesDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Time Limit Dialog */}
+      <Dialog open={showTimeLimitDialog} onOpenChange={setShowTimeLimitDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Extend Time Limit - {selectedPNR?.pnrNumber}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Current Time Limit</Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                {selectedPNR?.timeLimit || 'No time limit set'}
+              </p>
+            </div>
+            <div>
+              <Label>New Time Limit</Label>
+              <Input
+                type="datetime-local"
+                value={newTimeLimit}
+                onChange={(e) => setNewTimeLimit(e.target.value)}
+              />
+            </div>
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-900 flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Extending time limit gives customer more time to complete payment
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTimeLimitDialog(false)}>Cancel</Button>
+            <Button onClick={handleExtendTimeLimit} disabled={!newTimeLimit}>Extend Time Limit</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Married Segments Dialog */}
+      <Dialog open={showMarriedSegmentsDialog} onOpenChange={setShowMarriedSegmentsDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Married Segment Validation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2 text-green-900">
+                <CheckCircle className="h-5 w-5" />
+                <span className="font-medium">Segments validated as married segments!</span>
+              </div>
+            </div>
+            
+            <div>
+              <Label>Married Segment Key</Label>
+              <Input value={marriedSegmentKey} readOnly className="mt-1 font-mono" />
+            </div>
+
+            <div>
+              <h4 className="font-medium mb-2">Segment Details</h4>
+              <div className="space-y-2">
+                {segments.map((seg, idx) => (
+                  <div key={seg.id || idx} className="p-2 bg-secondary/20 rounded text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Segment {idx + 1}: {seg.flightNumber}</span>
+                      <Badge variant="outline">{seg.fareClass}</Badge>
+                    </div>
+                    <div className="text-muted-foreground mt-1">
+                      {seg.origin} → {seg.destination} | {seg.departureDate}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-900">
+                <Layers className="h-4 w-4 inline mr-1" />
+                Married segments must be booked, cancelled, and modified together
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowMarriedSegmentsDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Remarks Dialog */}
+      <Dialog open={showRemarksDialog} onOpenChange={setShowRemarksDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Booking Remark - {selectedPNR?.pnrNumber}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Remark Category</Label>
+              <Select value={remarkCategory} onValueChange={setRemarkCategory}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="internal">Internal (Airline Only)</SelectItem>
+                  <SelectItem value="external">External (Visible to Customer)</SelectItem>
+                  <SelectItem value="os">Other Service Info</SelectItem>
+                  <SelectItem value="rm">Remark</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Remark Text</Label>
+              <Textarea
+                value={newRemark}
+                onChange={(e) => setNewRemark(e.target.value)}
+                placeholder="Enter remark..."
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+
+            {selectedPNR && selectedPNR.remarks.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Existing Remarks</h4>
+                <ScrollArea className="h-32 border rounded-lg p-2">
+                  {selectedPNR.remarks.map((remark, idx) => (
+                    <div key={idx} className="p-2 border-b last:border-0 text-sm">
+                      {remark}
+                    </div>
+                  ))}
+                </ScrollArea>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRemarksDialog(false)}>Cancel</Button>
+            <Button onClick={handleAddRemark} disabled={!newRemark.trim()}>Add Remark</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Corporate Booking Dialog */}
+      <Dialog open={showCorporateDialog} onOpenChange={setShowCorporateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Corporate Booking Profile</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Select Corporate Account</Label>
+              <Select value={selectedCorporateAccount} onValueChange={handleSelectCorporateAccount}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select account..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CORP001">Acme Corp (15% discount)</SelectItem>
+                  <SelectItem value="CORP002">Tech Global (12% discount)</SelectItem>
+                  <SelectItem value="CORP003">Travel Solutions (10% discount)</SelectItem>
+                  <SelectItem value="CORP004">Global Enterprises (20% discount)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedCorporateAccount && (
+              <div className="space-y-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-medium text-blue-900">Corporate Benefits</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• 10-20% fare discount</li>
+                  <li>• No advance purchase required</li>
+                  <li>• Full refundable tickets</li>
+                  <li>• Free seat selection</li>
+                  <li>• Priority boarding</li>
+                </ul>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCorporateDialog(false)}>Cancel</Button>
+            <Button onClick={() => setShowCorporateDialog(false)}>Apply</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Group Booking Dialog */}
+      <Dialog open={showGroupDialog} onOpenChange={setShowGroupDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Group Booking Management</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <Label>Enable Group Booking</Label>
+              <Switch checked={isGroupBooking} onCheckedChange={handleToggleGroupBooking} />
+            </div>
+
+            {isGroupBooking && (
+              <>
+                <div>
+                  <Label>Group Name</Label>
+                  <Input
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    placeholder="e.g., Company Retreat 2024"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label>Number of Passengers</Label>
+                  <p className="text-sm text-muted-foreground mt-1">{passengers.length} passengers</p>
+                </div>
+
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-green-900">Group Discount Applied</span>
+                    <Badge variant="default">{groupBookingDiscount}% OFF</Badge>
+                  </div>
+                  <p className="text-sm text-green-800">
+                    {passengers.length >= 50 ? '50+ passengers: 20% discount' :
+                      passengers.length >= 20 ? '20-49 passengers: 15% discount' :
+                      passengers.length >= 10 ? '10-19 passengers: 10% discount' :
+                      'Minimum 10 passengers for group discount'}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-medium">Group Fare Rules</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Name changes allowed until 7 days before departure</li>
+                    <li>• 25% deposit required at booking</li>
+                    <li>• Full payment due 30 days before departure</li>
+                    <li>• Cancellation fees apply after deposit</li>
+                  </ul>
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowGroupDialog(false)}>Cancel</Button>
+            <Button onClick={() => setShowGroupDialog(false)}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* EMD Management Dialog */}
+      <Dialog open={showEMDDialog} onOpenChange={setShowEMDDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>EMD (Electronic Miscellaneous Document)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {selectedEMD ? (
+              <div className="space-y-3">
+                <div>
+                  <Label>EMD Number</Label>
+                  <Input value={selectedEMD.emdNumber} readOnly className="mt-1 font-mono" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Passenger</Label>
+                    <p className="text-sm mt-1">{selectedEMD.passengerName}</p>
+                  </div>
+                  <div>
+                    <Label>Amount</Label>
+                    <p className="text-sm mt-1 font-medium">${selectedEMD.amount} {selectedEMD.currency}</p>
+                  </div>
+                </div>
+                <div>
+                  <Label>Reason</Label>
+                  <p className="text-sm mt-1">{selectedEMD.reason}</p>
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <Badge variant={selectedEMD.status === 'open' ? 'default' : 'secondary'} className="mt-1 capitalize">
+                    {selectedEMD.status}
+                  </Badge>
+                </div>
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">No EMD selected</p>
+            )}
+
+            {selectedTicket && (
+              <Button onClick={handleIssueEMD} className="w-full">
+                <Receipt className="h-4 w-4 mr-2" />
+                Issue New EMD for {selectedTicket.passengerName}
+              </Button>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowEMDDialog(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

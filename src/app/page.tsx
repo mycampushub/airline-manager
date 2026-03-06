@@ -35,6 +35,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useAirlineStore } from '@/lib/store'
+import { initializeAllMockData } from '@/lib/initialize-mock-data'
 import DashboardModule from '@/components/modules/DashboardModule'
 import PSSModule from '@/components/modules/PSSModule'
 import DCSModule from '@/components/modules/DCSModule'
@@ -156,6 +157,8 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
 
   useEffect(() => {
+    // Initialize mock data on first load
+    initializeAllMockData()
     updateKPIDashboard('today')
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)

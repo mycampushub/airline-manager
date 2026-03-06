@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -54,7 +54,15 @@ import {
   Timer,
   ShieldAlert,
   AlertTriangle,
-  Radio
+  Radio,
+  Bell,
+  BellRing,
+  X,
+  FileText,
+  ArrowLeft,
+  ArrowRight,
+  Filter,
+  XCircle
 } from 'lucide-react'
 import { useAirlineStore, AIModel, AIPrediction } from '@/lib/store'
 
@@ -65,6 +73,21 @@ export default function AnalyticsModule() {
   const [selectedRoute, setSelectedRoute] = useState<string>('JFK-LHR')
   const [predictionPeriod, setPredictionPeriod] = useState<'7d' | '30d' | '90d'>('30d')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [autoRefresh, setAutoRefresh] = useState(false)
+  
+  // KPI Alerts Data
+  const kpiAlerts = [
+    { id: 'alert-1', type: 'warning', kpi: 'On-Time Performance', currentValue: 92.8, threshold: 95, message: 'On-time performance fell below 95% threshold on LAX-TYO route', time: '10 min ago', status: 'active', route: 'LAX-TYO', trend: 'declining' },
+    { id: 'alert-2', type: 'critical', kpi: 'Load Factor', currentValue: 75.2, threshold: 80, message: 'Load factor below 80% threshold on SFO-HKG route', time: '25 min ago', status: 'active', route: 'SFO-HKG', trend: 'declining' },
+    { id: 'alert-3', type: 'info', kpi: 'Revenue', currentValue: 4250000, threshold: 4000000, message: 'Revenue target exceeded by 6.25%', time: '1 hour ago', status: 'acknowledged', route: 'All', trend: 'increasing' },
+    { id: 'alert-4', type: 'warning', kpi: 'Cancellation Rate', currentValue: 3.79, threshold: 3.0, message: 'OTA cancellation rate above 3% threshold', time: '2 hours ago', status: 'active', route: 'All Channels', trend: 'increasing' },
+    { id: 'alert-5', type: 'critical', kpi: 'Crew Fatigue', currentValue: 6.8, threshold: 5.0, message: 'Flight Attendant fatigue risk above 5% threshold', time: '3 hours ago', status: 'resolved', route: 'All Bases', trend: 'stable' },
+    { id: 'alert-6', type: 'info', kpi: 'Fuel Efficiency', currentValue: 2.75, threshold: 2.90, message: 'A320 fleet fuel efficiency improved by 5.2%', time: '4 hours ago', status: 'acknowledged', route: 'A320 Fleet', trend: 'improving' }
+  ]
+  
+  const [alerts, setAlerts] = useState(kpiAlerts)
+  const [selectedAlert, setSelectedAlert] = useState<any>(null)
 
   // Sample AI Models data
   const sampleAIModels: AIModel[] = [
@@ -445,6 +468,79 @@ export default function AnalyticsModule() {
     ]
   }
 
+  // Cancellation Analysis Data
+  const cancellationAnalysis = {
+    summary: {
+      totalBookings: 29835,
+      totalCancellations: 842,
+      cancellationRate: 2.8,
+      totalRefunds: 2840000,
+      avgRefund: 3373,
+      trends: [
+        { period: 'Jan', bookings: 28500, cancellations: 780, rate: 2.74 },
+        { period: 'Feb', bookings: 29200, cancellations: 815, rate: 2.79 },
+        { period: 'Mar', bookings: 29835, cancellations: 842, rate: 2.82 }
+      ]
+    },
+    byReason: [
+      { reason: 'Schedule Change', count: 245, percentage: 29.1, avgRefundAmount: 3200, trend: 'increasing' },
+      { reason: 'Personal Reasons', count: 285, percentage: 33.8, avgRefundAmount: 2800, trend: 'stable' },
+      { reason: 'Health Emergency', count: 78, percentage: 9.3, avgRefundAmount: 3500, trend: 'stable' },
+      { reason: 'Price Found Lower', count: 134, percentage: 15.9, avgRefundAmount: 3100, trend: 'increasing' },
+      { reason: 'Work Conflict', count: 100, percentage: 11.9, avgRefundAmount: 3400, trend: 'decreasing' }
+    ],
+    byRoute: [
+      { route: 'JFK-LHR', bookings: 5420, cancellations: 142, rate: 2.62, revenue: 425000, reason: 'Schedule Change' },
+      { route: 'LAX-TYO', bookings: 3850, cancellations: 128, rate: 3.32, revenue: 398000, reason: 'Price Found Lower' },
+      { route: 'JFK-PAR', bookings: 4100, cancellations: 115, rate: 2.80, revenue: 345000, reason: 'Personal Reasons' },
+      { route: 'SIN-SYD', bookings: 4600, cancellations: 135, rate: 2.93, revenue: 425000, reason: 'Schedule Change' },
+      { route: 'DXB-LHR', bookings: 4450, cancellations: 120, rate: 2.70, revenue: 385000, reason: 'Health Emergency' },
+      { route: 'SFO-HKG', bookings: 3700, cancellations: 115, rate: 3.11, revenue: 358000, reason: 'Work Conflict' },
+      { route: 'FRA-JFK', bookings: 3715, cancellations: 87, rate: 2.34, revenue: 282000, reason: 'Personal Reasons' }
+    ],
+    byChannel: [
+      { channel: 'Direct', bookings: 12543, cancellations: 420, rate: 3.35, avgRefund: 3100 },
+      { channel: 'Agencies', bookings: 5936, cancellations: 145, rate: 2.44, avgRefund: 3600 },
+      { channel: 'OTA', bookings: 3296, cancellations: 125, rate: 3.79, avgRefund: 2900 },
+      { channel: 'Corporate', bookings: 1584, cancellations: 85, rate: 5.37, avgRefund: 4200 },
+      { channel: 'GDS', bookings: 576, cancellations: 67, rate: 11.63, avgRefund: 3800 }
+    ],
+    predictions: [
+      { route: 'LAX-TYO', currentRate: 3.32, predictedRate: 3.85, confidence: 87, driver: 'Competition Pricing', recommendedAction: 'Monitor competitive pricing, consider price matching' },
+      { route: 'SFO-HKG', currentRate: 3.11, predictedRate: 3.45, confidence: 82, driver: 'Seasonal Demand Drop', recommendedAction: 'Add flexible fare options, enhance cancellation policies' },
+      { route: 'GDS Channel', currentRate: 11.63, predictedRate: 12.50, confidence: 79, driver: 'B2B Booking Patterns', recommendedAction: 'Review GDS contract terms, consider bulk booking incentives' }
+    ]
+  }
+
+  // Demand Trend Analysis Data
+  const demandTrends = {
+    overall: {
+      totalDemand: 29835,
+      growthRate: 12.5,
+      demandIndex: 112.5,
+      trend: 'increasing'
+    },
+    byRoute: [
+      { route: 'JFK-LHR', current: 21500, previous: 19100, growth: 12.6, trend: 'up', seasonality: 'peak', next30d: '+15.2%', confidence: 94 },
+      { route: 'LAX-TYO', current: 14200, previous: 14500, growth: -2.1, trend: 'down', seasonality: 'off-peak', next30d: '-1.5%', confidence: 89 },
+      { route: 'SIN-SYD', current: 18900, previous: 17880, growth: 5.7, trend: 'up', seasonality: 'normal', next30d: '+8.3%', confidence: 91 },
+      { route: 'DXB-LHR', current: 17800, previous: 16150, growth: 10.2, trend: 'up', seasonality: 'peak', next30d: '+12.0%', confidence: 93 },
+      { route: 'JFK-PAR', current: 16800, previous: 15520, growth: 8.3, trend: 'up', seasonality: 'normal', next30d: '+9.5%', confidence: 92 },
+      { route: 'SFO-HKG', current: 12500, previous: 12090, growth: 3.4, trend: 'up', seasonality: 'off-peak', next30d: '+4.2%', confidence: 87 },
+      { route: 'FRA-JFK', current: 15600, previous: 14610, growth: 6.8, trend: 'up', seasonality: 'normal', next30d: '+7.8%', confidence: 90 }
+    ],
+    byCabin: [
+      { cabin: 'Business', demand: 12543, growth: 15.2, utilization: 89.5, forecast: '+12.0%' },
+      { cabin: 'Economy', demand: 14287, growth: 10.8, utilization: 87.2, forecast: '+8.5%' },
+      { cabin: 'First', demand: 1856, growth: 18.5, utilization: 92.3, forecast: '+15.0%' }
+    ],
+    upcomingEvents: [
+      { event: 'Summer Holidays', startDate: '2024-06-15', endDate: '2024-08-31', impact: 'high', affectedRoutes: ['JFK-LHR', 'DXB-LHR', 'SIN-SYD'], demandIncrease: '+25%' },
+      { event: 'Olympic Games', startDate: '2024-07-26', endDate: '2024-08-11', impact: 'very-high', affectedRoutes: ['FRA-JFK', 'JFK-PAR'], demandIncrease: '+40%' },
+      { event: 'Business Conference', startDate: '2024-03-25', endDate: '2024-03-28', impact: 'medium', affectedRoutes: ['JFK-LHR', 'SFO-HKG'], demandIncrease: '+15%' }
+    ]
+  }
+
   // Operational KPIs Data
   const operationalKPIs = {
     onTimePerformance: {
@@ -490,6 +586,52 @@ export default function AnalyticsModule() {
     setPredictionDialogOpen(false)
   }
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    setIsRefreshing(false)
+  }
+
+  const handleExportReport = () => {
+    const reportData = {
+      timestamp: new Date().toISOString(),
+      kpiDashboard,
+      routeProfitability: routeProfitabilityData,
+      agentPerformance: agentPerformanceData,
+      operationalKPIs,
+      cancellationAnalysis,
+      demandTrends
+    }
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `analytics-report-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const handleDismissAlert = (alertId: string) => {
+    setAlerts(prev => prev.filter(a => a.id !== alertId))
+  }
+
+  const handleAcknowledgeAlert = (alertId: string) => {
+    setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, status: 'acknowledged' } : a))
+  }
+
+  // Auto-refresh effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (autoRefresh) {
+      interval = setInterval(() => {
+        handleRefresh()
+      }, 30000) // Refresh every 30 seconds
+    }
+    return () => clearInterval(interval)
+  }, [autoRefresh])
+
   const getTierIcon = (tier: string) => {
     switch (tier) {
       case 'platinum': return <Crown className="h-4 w-4 text-purple-500" />
@@ -523,7 +665,21 @@ export default function AnalyticsModule() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
+          <div className="flex items-center gap-2 mr-4">
+            <div className="flex items-center gap-2 bg-secondary/50 px-3 py-1.5 rounded-sm">
+              <Bell className={`h-4 w-4 ${alerts.filter(a => a.status === 'active').length > 0 ? 'text-red-500' : 'text-muted-foreground'}`} />
+              <span className="text-sm font-medium">{alerts.filter(a => a.status === 'active').length} Alerts</span>
+            </div>
+            <Button variant={autoRefresh ? 'default' : 'outline'} size="sm" onClick={() => setAutoRefresh(!autoRefresh)}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
+              {autoRefresh ? 'Auto' : 'Auto-Refresh'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+          <Button variant="outline" onClick={handleExportReport}>
             <Download className="h-4 w-4 mr-2" />
             Export Report
           </Button>
@@ -593,7 +749,7 @@ export default function AnalyticsModule() {
       </div>
 
       <Tabs defaultValue="kpi" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="kpi">KPI Dashboard</TabsTrigger>
           <TabsTrigger value="routes">Route Analytics</TabsTrigger>
           <TabsTrigger value="agents">Agent Performance</TabsTrigger>
@@ -602,6 +758,8 @@ export default function AnalyticsModule() {
           <TabsTrigger value="aircraft">Aircraft Utilization</TabsTrigger>
           <TabsTrigger value="crew">Crew Utilization</TabsTrigger>
           <TabsTrigger value="operations">Operational KPIs</TabsTrigger>
+          <TabsTrigger value="alerts">Alerts & Notifications</TabsTrigger>
+          <TabsTrigger value="cancellations">Cancellation & Trends</TabsTrigger>
         </TabsList>
 
         <TabsContent value="kpi">
@@ -1825,6 +1983,514 @@ export default function AnalyticsModule() {
                 </CardContent>
               </Card>
             </div>
+          </div>
+        </TabsContent>
+
+        {/* Alerts & Notifications Tab */}
+        <TabsContent value="alerts">
+          <div className="space-y-6">
+            {/* Alerts Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card className="enterprise-card">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Total Alerts</CardTitle>
+                  <Bell className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{alerts.length}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{alerts.filter(a => a.status === 'active').length} active</div>
+                </CardContent>
+              </Card>
+
+              <Card className="enterprise-card border-red-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Critical</CardTitle>
+                  <XCircle className="h-4 w-4 text-red-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">{alerts.filter(a => a.type === 'critical' && a.status === 'active').length}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Requires action</div>
+                </CardContent>
+              </Card>
+
+              <Card className="enterprise-card border-yellow-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Warnings</CardTitle>
+                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-yellow-600">{alerts.filter(a => a.type === 'warning' && a.status === 'active').length}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Monitor closely</div>
+                </CardContent>
+              </Card>
+
+              <Card className="enterprise-card border-blue-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Resolved</CardTitle>
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">{alerts.filter(a => a.status === 'resolved' || a.status === 'acknowledged').length}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Action taken</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Alerts List */}
+            <Card className="enterprise-card">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <BellRing className="h-5 w-5" />
+                      KPI Alerts
+                    </CardTitle>
+                    <CardDescription>Real-time threshold alerts and notifications</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm">
+                      <Filter className="h-4 w-4 mr-2" />
+                      Filter
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleRefresh}>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Refresh
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-96">
+                  <div className="space-y-3">
+                    {alerts.map((alert) => (
+                      <div key={alert.id} className={`p-4 border rounded-sm ${
+                        alert.type === 'critical' ? 'bg-red-50 border-red-200' :
+                        alert.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
+                        alert.status === 'resolved' ? 'bg-green-50 border-green-200 opacity-60' :
+                        'bg-blue-50 border-blue-200'
+                      }`}>
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-start gap-3">
+                            <div className={`p-2 rounded-full ${
+                              alert.type === 'critical' ? 'bg-red-100' :
+                              alert.type === 'warning' ? 'bg-yellow-100' :
+                              'bg-blue-100'
+                            }`}>
+                              {alert.type === 'critical' ? (
+                                <XCircle className="h-4 w-4 text-red-600" />
+                              ) : alert.type === 'warning' ? (
+                                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                              ) : (
+                                <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-medium">{alert.kpi}</div>
+                              <div className="text-sm text-muted-foreground mt-1">{alert.message}</div>
+                              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                <span>{alert.route}</span>
+                                <span>•</span>
+                                <span className={`flex items-center gap-1 ${
+                                  alert.trend === 'increasing' ? 'text-red-600' :
+                                  alert.trend === 'decreasing' ? 'text-green-600' :
+                                  'text-blue-600'
+                                }`}>
+                                  {alert.trend === 'increasing' ? <TrendingUp className="h-3 w-3" /> :
+                                   alert.trend === 'decreasing' ? <TrendingDown className="h-3 w-3" /> :
+                                   <Activity className="h-3 w-3" />}
+                                  {alert.trend}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-muted-foreground mb-1">{alert.time}</div>
+                            <Badge variant={
+                              alert.status === 'active' ? 'default' :
+                              alert.status === 'acknowledged' ? 'secondary' :
+                              'outline'
+                            } className="text-xs">
+                              {alert.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t mt-2">
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">Value: </span>
+                            <span className="font-medium">{alert.currentValue}</span>
+                            <span className="text-muted-foreground mx-2">|</span>
+                            <span className="text-muted-foreground">Threshold: </span>
+                            <span className="font-medium">{alert.threshold}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            {alert.status === 'active' && (
+                              <>
+                                <Button variant="outline" size="sm" onClick={() => handleAcknowledgeAlert(alert.id)}>
+                                  Acknowledge
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => handleDismissAlert(alert.id)}>
+                                  <X className="h-3 w-3 mr-1" />
+                                  Dismiss
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Cancellation & Trends Tab */}
+        <TabsContent value="cancellations">
+          <div className="space-y-6">
+            {/* Cancellation Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card className="enterprise-card">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Total Bookings</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{cancellationAnalysis.summary.totalBookings.toLocaleString()}</div>
+                  <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                    <ArrowUpRight className="h-3 w-3" />
+                    +12.5%
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="enterprise-card">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Cancellations</CardTitle>
+                  <XCircle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{cancellationAnalysis.summary.totalCancellations.toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{cancellationAnalysis.summary.cancellationRate}% rate</div>
+                </CardContent>
+              </Card>
+
+              <Card className="enterprise-card">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Total Refunds</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">${(cancellationAnalysis.summary.totalRefunds / 1000000).toFixed(2)}M</div>
+                  <div className="text-xs text-muted-foreground mt-1">Avg: ${cancellationAnalysis.summary.avgRefund}</div>
+                </CardContent>
+              </Card>
+
+              <Card className="enterprise-card">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Trend</CardTitle>
+                  <TrendUpIcon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">+2.9%</div>
+                  <div className="text-xs text-muted-foreground mt-1">Rate change</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Cancellation by Reason */}
+              <Card className="enterprise-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Cancellation by Reason
+                  </CardTitle>
+                  <CardDescription>Primary reasons for booking cancellations</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-72">
+                    <div className="space-y-3">
+                      {cancellationAnalysis.byReason.map((item, i) => (
+                        <div key={i} className="p-3 border rounded-sm">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{item.reason}</span>
+                              <Badge variant={
+                                item.trend === 'increasing' ? 'destructive' :
+                                item.trend === 'decreasing' ? 'default' :
+                                'secondary'
+                              } className="text-xs">
+                                {item.trend}
+                              </Badge>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold">{item.percentage}%</div>
+                              <div className="text-xs text-muted-foreground">{item.count} bookings</div>
+                            </div>
+                          </div>
+                          <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary transition-all"
+                              style={{ width: `${item.percentage}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                            <span>Avg Refund: ${item.avgRefundAmount}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
+              {/* Cancellation by Route */}
+              <Card className="enterprise-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Cancellation by Route
+                  </CardTitle>
+                  <CardDescription>Route-specific cancellation rates</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-72">
+                    <table className="enterprise-table">
+                      <thead>
+                        <tr>
+                          <th>Route</th>
+                          <th>Bookings</th>
+                          <th>Cancellations</th>
+                          <th>Rate</th>
+                          <th>Top Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cancellationAnalysis.byRoute.map((route, i) => (
+                          <tr key={i}>
+                            <td className="font-medium">{route.route}</td>
+                            <td>{route.bookings.toLocaleString()}</td>
+                            <td>{route.cancellations}</td>
+                            <td className={route.rate > 3 ? 'text-red-600 font-medium' : 'text-green-600'}>
+                              {route.rate}%
+                            </td>
+                            <td className="text-sm">{route.reason}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
+              {/* Cancellation by Channel */}
+              <Card className="enterprise-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Store className="h-5 w-5" />
+                    Cancellation by Channel
+                  </CardTitle>
+                  <CardDescription>Channel breakdown and refund amounts</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-72">
+                    <table className="enterprise-table">
+                      <thead>
+                        <tr>
+                          <th>Channel</th>
+                          <th>Bookings</th>
+                          <th>Cancellations</th>
+                          <th>Rate</th>
+                          <th>Avg Refund</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cancellationAnalysis.byChannel.map((channel, i) => (
+                          <tr key={i}>
+                            <td className="font-medium capitalize">{channel.channel}</td>
+                            <td>{channel.bookings.toLocaleString()}</td>
+                            <td>{channel.cancellations}</td>
+                            <td className={channel.rate > 3 ? 'text-red-600 font-medium' : 'text-green-600'}>
+                              {channel.rate}%
+                            </td>
+                            <td>${channel.avgRefund}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
+              {/* AI Predictions for Cancellations */}
+              <Card className="enterprise-card border-purple-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-purple-600" />
+                    AI Cancellation Predictions
+                  </CardTitle>
+                  <CardDescription>ML-powered cancellation risk forecasts</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {cancellationAnalysis.predictions.map((pred, i) => (
+                      <div key={i} className="p-4 border border-purple-200 bg-purple-50 rounded-sm">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <div className="font-medium">{pred.route}</div>
+                            <div className="text-sm text-muted-foreground">Driver: {pred.driver}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-purple-700">{pred.predictedRate}%</div>
+                            <div className="text-xs text-muted-foreground">vs {pred.currentRate}%</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 mb-2">
+                          <div className="flex-1">
+                            <div className="text-xs text-muted-foreground mb-1">Confidence</div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-purple-600"
+                                  style={{ width: `${pred.confidence}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium">{pred.confidence}%</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-2 bg-white rounded-sm text-sm">
+                          <span className="font-medium">Recommendation:</span> {pred.recommendedAction}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Demand Trends Section */}
+            <Card className="enterprise-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <LineChart className="h-5 w-5" />
+                  Demand Trend Analysis
+                </CardTitle>
+                <CardDescription>AI-powered demand forecasting and upcoming events</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Demand by Route */}
+                  <div className="lg:col-span-2">
+                    <h4 className="font-semibold mb-4">Demand by Route</h4>
+                    <ScrollArea className="h-64">
+                      <table className="enterprise-table">
+                        <thead>
+                          <tr>
+                            <th>Route</th>
+                            <th>Current</th>
+                            <th>Previous</th>
+                            <th>Growth</th>
+                            <th>Next 30d</th>
+                            <th>Confidence</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {demandTrends.byRoute.map((route, i) => (
+                            <tr key={i}>
+                              <td className="font-medium">
+                                <div className="flex items-center gap-2">
+                                  {route.route}
+                                  <Badge variant="outline" className="text-xs">{route.seasonality}</Badge>
+                                </div>
+                              </td>
+                              <td>{route.current.toLocaleString()}</td>
+                              <td>{route.previous.toLocaleString()}</td>
+                              <td className={route.growth >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                {route.growth >= 0 ? '+' : ''}{route.growth}%
+                              </td>
+                              <td className="text-sm font-medium text-blue-600">{route.next30d}</td>
+                              <td>{route.confidence}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </ScrollArea>
+                  </div>
+
+                  {/* Demand by Cabin */}
+                  <div>
+                    <h4 className="font-semibold mb-4">Demand by Cabin</h4>
+                    <div className="space-y-3">
+                      {demandTrends.byCabin.map((cabin, i) => (
+                        <div key={i} className="p-3 border rounded-sm">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium">{cabin.cabin}</span>
+                            <Badge variant="outline" className="text-xs">{cabin.forecast}</Badge>
+                          </div>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Demand</span>
+                              <span className="font-medium">{cabin.demand.toLocaleString()}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Growth</span>
+                              <span className={cabin.growth >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                {cabin.growth >= 0 ? '+' : ''}{cabin.growth}%
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Utilization</span>
+                              <span className="font-medium">{cabin.utilization}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Upcoming Events */}
+                <div className="mt-6">
+                  <h4 className="font-semibold mb-4">Upcoming Events Impact</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {demandTrends.upcomingEvents.map((event, i) => (
+                      <div key={i} className={`p-4 border rounded-sm ${
+                        event.impact === 'very-high' ? 'bg-red-50 border-red-200' :
+                        event.impact === 'high' ? 'bg-orange-50 border-orange-200' :
+                        'bg-blue-50 border-blue-200'
+                      }`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-medium">{event.event}</div>
+                          <Badge variant={
+                            event.impact === 'very-high' ? 'destructive' :
+                            event.impact === 'high' ? 'default' :
+                            'secondary'
+                          } className="text-xs">
+                            {event.impact}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          {event.startDate} - {event.endDate}
+                        </div>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-3 w-3" />
+                            <span className="truncate">{event.affectedRoutes.join(', ')}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <TrendUpIcon className="h-3 w-3 text-green-600" />
+                            <span className="font-medium text-green-600">{event.demandIncrease}</span>
+                            <span className="text-muted-foreground">demand increase</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
       </Tabs>
