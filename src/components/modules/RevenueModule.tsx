@@ -20,7 +20,9 @@ import {
   Calendar,
   Plane,
   Activity,
-  Zap
+  Zap,
+  CheckCircle,
+  XCircle
 } from 'lucide-react'
 import { useAirlineStore, type FareBasis } from '@/lib/store'
 

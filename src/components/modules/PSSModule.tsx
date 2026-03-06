@@ -8,9 +8,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Slider } from '@/components/ui/slider'
 import { 
   Plus, 
   Search, 
@@ -26,9 +30,141 @@ import {
   Clock,
   FileText,
   ArrowRight,
-  CheckCircle
+  CheckCircle,
+  Armchair,
+  ArrowLeft,
+  ArrowDown,
+  ArrowUp,
+  Settings,
+  MapPin,
+  CalendarDays,
+  Lock,
+  Unlock,
+  TrendingUp,
+  User,
+  Users2,
+  LayoutGrid,
+  Eye,
+  EyeOff,
+  AlertTriangle,
+  Layers,
+  Zap,
+  FileEdit,
+  Receipt,
+  Calculator,
+  FileCheck,
+  History,
+  Download,
+  BarChart3,
+  Percent,
+  Info,
+  XCircle,
+  RefreshCw,
+  Printer,
+  Share2
 } from 'lucide-react'
-import { useAirlineStore, type PNR, type Passenger, type FlightSegment } from '@/lib/store'
+import { useAirlineStore, type PNR, type Passenger, type FlightSegment, type Ticket, type TaxBreakdown } from '@/lib/store'
+
+type SeatStatus = 'available' | 'occupied' | 'blocked' | 'selected' | 'premium'
+type CabinClass = 'economy' | 'business' | 'first'
+
+interface Seat {
+  id: string
+  row: number
+  column: string
+  status: SeatStatus
+  price?: number
+  isExitRow?: boolean
+  isWing?: boolean
+  isWindow?: boolean
+  isAisle?: boolean
+  cabin: CabinClass
+  legroom?: number
+  recline?: number
+}
+
+interface FareClass {
+  code: string
+  name: string
+  hierarchy: number
+  capacity: number
+  sold: number
+  available: number
+  isOpen: boolean
+  price: number
+  parentCode?: string | null
+  children?: string[]
+  restrictions?: {
+    advancePurchase?: number
+    minStay?: number
+    maxStay?: number
+  }
+}
+
+interface FareFamily {
+  id: string
+  name: string
+  cabin: CabinClass
+  fareClasses: string[]
+  features: string[]
+  isActive: boolean
+  pricingRules: {
+    baseMarkup: number
+    demandMultiplier: number
+  }
+}
+
+interface ODRoute {
+  id: string
+  origin: string
+  destination: string
+  stops: number
+  segments: {
+    flightNumber: string
+    origin: string
+    destination: string
+    departureTime: string
+    arrivalTime: string
+    aircraft: string
+    duration: number
+  }[]
+  totalPrice: number
+  totalDuration: number
+  availableFareClasses: string[]
+}
+
+interface BlockedInventory {
+  id: string
+  agentId: string
+  agentName: string
+  seats: number
+  route: string
+  date: string
+  expiresAt: string
+  fareClass: string
+  status: 'active' | 'expired' | 'released'
+}
+
+interface GroupAllotment {
+  id: string
+  groupName: string
+  seats: number
+  utilized: number
+  route: string
+  date: string
+  deadline: string
+  status: 'active' | 'expired' | 'cancelled'
+}
+
+interface BlackoutDate {
+  id: string
+  route: string
+  startDate: string
+  endDate: string
+  cabin?: CabinClass
+  fareClass?: string
+  reason: string
+}
 
 export default function PSSModule() {
   const { pnrs, tickets, emds, createPNR, updatePNR, deletePNR, searchPNRs, issueTicket, voidTicket, refundTicket, issueEMD } = useAirlineStore()
@@ -38,6 +174,216 @@ export default function PSSModule() {
   const [showTicketDialog, setShowTicketDialog] = useState(false)
   const [activeTab, setActiveTab] = useState('reservations')
 
+  // Inventory Tab State
+  const [inventorySubTab, setInventorySubTab] = useState('overview')
+  const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null)
+  const [selectedAircraft, setSelectedAircraft] = useState('B737-800')
+  const [selectedCabin, setSelectedCabin] = useState<CabinClass>('economy')
+  const [odOrigin, setOdOrigin] = useState('JFK')
+  const [odDestination, setOdDestination] = useState('LHR')
+  const [odDate, setOdDate] = useState('')
+  const [odRoutes, setOdRoutes] = useState<ODRoute[]>([])
+  
+  // Fare Classes with hierarchy support
+  const [fareClasses, setFareClasses] = useState<FareClass[]>([
+    { code: 'F', name: 'First Full', hierarchy: 1, capacity: 10, sold: 4, available: 6, isOpen: true, price: 1500, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }, parentCode: null },
+    { code: 'A', name: 'First Discount', hierarchy: 2, capacity: 8, sold: 5, available: 3, isOpen: true, price: 1200, restrictions: { advancePurchase: 7, minStay: 0, maxStay: 180 }, parentCode: 'F' },
+    { code: 'J', name: 'Business Full', hierarchy: 3, capacity: 20, sold: 12, available: 8, isOpen: true, price: 800, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }, parentCode: null },
+    { code: 'C', name: 'Business Flex', hierarchy: 4, capacity: 15, sold: 10, available: 5, isOpen: true, price: 700, restrictions: { advancePurchase: 3, minStay: 0, maxStay: 180 }, parentCode: 'J' },
+    { code: 'D', name: 'Business Promo', hierarchy: 5, capacity: 10, sold: 7, available: 3, isOpen: true, price: 600, restrictions: { advancePurchase: 14, minStay: 3, maxStay: 90 }, parentCode: 'J' },
+    { code: 'Y', name: 'Economy Full', hierarchy: 6, capacity: 50, sold: 32, available: 18, isOpen: true, price: 350, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }, parentCode: null },
+    { code: 'B', name: 'Economy Flex', hierarchy: 7, capacity: 40, sold: 28, available: 12, isOpen: true, price: 380, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }, parentCode: 'Y' },
+    { code: 'M', name: 'Economy Semi-Flex', hierarchy: 8, capacity: 35, sold: 30, available: 5, isOpen: true, price: 320, restrictions: { advancePurchase: 7, minStay: 3, maxStay: 180 }, parentCode: 'Y' },
+    { code: 'Q', name: 'Economy Saver', hierarchy: 9, capacity: 30, sold: 25, available: 5, isOpen: true, price: 280, restrictions: { advancePurchase: 14, minStay: 7, maxStay: 90 }, parentCode: 'B' },
+    { code: 'K', name: 'Economy Promo', hierarchy: 10, capacity: 25, sold: 20, available: 5, isOpen: true, price: 240, restrictions: { advancePurchase: 21, minStay: 14, maxStay: 30 }, parentCode: 'B' },
+    { code: 'L', name: 'Economy Deep Discount', hierarchy: 11, capacity: 20, sold: 15, available: 5, isOpen: true, price: 200, restrictions: { advancePurchase: 30, minStay: 0, maxStay: 30 }, parentCode: 'M' },
+    { code: 'T', name: 'Economy Flash Sale', hierarchy: 12, capacity: 15, sold: 12, available: 3, isOpen: true, price: 150, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 7 }, parentCode: 'Q' },
+    { code: 'E', name: 'Economy Basic', hierarchy: 13, capacity: 10, sold: 8, available: 2, isOpen: true, price: 120, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 0 }, parentCode: 'L' },
+  ])
+  
+  // Fare class bucket status history
+  const [bucketStatusHistory, setBucketStatusHistory] = useState<Record<string, { timestamp: string, status: boolean, reason: string }[]>>({})
+  
+  // Route-specific inventory
+  const [routeInventory, setRouteInventory] = useState<Record<string, {
+    capacity: number
+    sold: number
+    fareClasses: Record<string, { capacity: number, sold: number, isOpen: boolean }>
+    overbooking: { economy: number, business: number, first: number }
+    blackoutDates: BlackoutDate[]
+  }>>({
+    'JFK-LHR': {
+      capacity: 200,
+      sold: 176,
+      fareClasses: {
+        'Y': { capacity: 50, sold: 42, isOpen: true },
+        'B': { capacity: 40, sold: 35, isOpen: true },
+        'J': { capacity: 20, sold: 16, isOpen: true },
+        'F': { capacity: 10, sold: 8, isOpen: true },
+      },
+      overbooking: { economy: 5, business: 2, first: 0 },
+      blackoutDates: [{ id: '1', route: 'JFK-LHR', startDate: '2024-12-20', endDate: '2024-12-26', cabin: 'economy', reason: 'Holiday peak' }]
+    },
+    'JFK-LAX': {
+      capacity: 180,
+      sold: 135,
+      fareClasses: {
+        'Y': { capacity: 45, sold: 38, isOpen: true },
+        'B': { capacity: 35, sold: 28, isOpen: true },
+        'J': { capacity: 18, sold: 12, isOpen: true },
+      },
+      overbooking: { economy: 4, business: 1, first: 0 },
+      blackoutDates: []
+    },
+    'LHR-CDG': {
+      capacity: 150,
+      sold: 120,
+      fareClasses: {
+        'Y': { capacity: 40, sold: 32, isOpen: true },
+        'B': { capacity: 30, sold: 24, isOpen: true },
+        'J': { capacity: 15, sold: 12, isOpen: true },
+      },
+      overbooking: { economy: 3, business: 1, first: 0 },
+      blackoutDates: []
+    },
+  })
+  
+  // Dynamic capacity adjustments
+  const [capacityAdjustments, setCapacityAdjustments] = useState<Record<string, {
+    route: string
+    date: string
+    originalCapacity: number
+    adjustedCapacity: number
+    reason: string
+    timestamp: string
+  }>>({
+    '1': { route: 'JFK-LHR', date: '2024-12-15', originalCapacity: 200, adjustedCapacity: 205, reason: 'High demand', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+    '2': { route: 'LAX-SFO', date: '2024-12-15', originalCapacity: 180, adjustedCapacity: 177, reason: 'Low demand forecast', timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
+  })
+  
+  const [fareFamilies, setFareFamilies] = useState<FareFamily[]>([
+    { id: '1', name: 'Basic Economy', cabin: 'economy', fareClasses: ['E', 'T'], features: ['Personal item only', 'No changes', 'No seat selection', 'Last boarding'], isActive: true, pricingRules: { baseMarkup: 0, demandMultiplier: 1 } },
+    { id: '2', name: 'Standard', cabin: 'economy', fareClasses: ['L', 'K', 'Q'], features: ['Carry-on included', 'Seat selection', '10kg baggage', 'Priority boarding'], isActive: true, pricingRules: { baseMarkup: 15, demandMultiplier: 1.1 } },
+    { id: '3', name: 'Flex', cabin: 'economy', fareClasses: ['M', 'B'], features: ['Full baggage', 'Free changes', 'Seat selection', 'Priority boarding', 'Lounge access'], isActive: true, pricingRules: { baseMarkup: 30, demandMultiplier: 1.2 } },
+    { id: '4', name: 'Premium', cabin: 'business', fareClasses: ['J', 'C', 'D'], features: ['Full flat bed', 'Lounge access', 'Priority everything', 'Full service', 'Spa access'], isActive: true, pricingRules: { baseMarkup: 150, demandMultiplier: 1.5 } },
+    { id: '5', name: 'First Class', cabin: 'first', fareClasses: ['F', 'A'], features: ['Private suites', 'Private terminal', 'Personal chef', 'Butler service', 'Chauffeur'], isActive: true, pricingRules: { baseMarkup: 400, demandMultiplier: 2 } },
+  ])
+  
+  const [overbookingSettings, setOverbookingSettings] = useState({
+    economy: 5,
+    business: 2,
+    first: 0,
+    autoAdjust: true,
+    loadFactorThreshold: 85,
+  })
+  
+  const [blockedInventory, setBlockedInventory] = useState<BlockedInventory[]>([
+    { id: '1', agentId: 'AGT001', agentName: 'Travel Corp', seats: 10, route: 'JFK-LHR', date: '2024-02-15', expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), fareClass: 'Y', status: 'active' },
+    { id: '2', agentId: 'AGT002', agentName: 'Global Travel', seats: 5, route: 'JFK-LAX', date: '2024-02-16', expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(), fareClass: 'B', status: 'active' },
+  ])
+  
+  const [groupAllotments, setGroupAllotments] = useState<GroupAllotment[]>([
+    { id: '1', groupName: 'Corporate Summit', seats: 25, utilized: 18, route: 'JFK-LHR', date: '2024-03-01', deadline: '2024-02-15', status: 'active' },
+    { id: '2', groupName: 'Sports Team', seats: 30, utilized: 0, route: 'JFK-LAX', date: '2024-03-15', deadline: '2024-02-28', status: 'active' },
+    { id: '3', groupName: 'Wedding Party', seats: 15, utilized: 15, route: 'LHR-CDG', date: '2024-02-20', deadline: '2024-02-01', status: 'active' },
+  ])
+  
+  const [blackoutDates, setBlackoutDates] = useState<BlackoutDate[]>([
+    { id: '1', route: 'JFK-LHR', startDate: '2024-12-20', endDate: '2024-12-26', cabin: 'economy', reason: 'Holiday peak' },
+    { id: '2', route: 'JFK-LAX', startDate: '2024-12-24', endDate: '2024-12-31', cabin: undefined, reason: 'New Year' },
+    { id: '3', route: '*', startDate: '2024-07-01', endDate: '2024-08-31', cabin: 'economy', reason: 'Summer peak season' },
+  ])
+  
+  // Seat map state with selection support
+  const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set())
+  const [blockedSeats, setBlockedSeats] = useState<Set<string>>(new Set(['10A', '10B', '11A', '11B']))
+  
+  // Seat configurations per aircraft type
+  const [seatConfigurations, setSeatConfigurations] = useState<Record<string, {
+    economy: { rows: number, columns: string[], exitRows: number[], wingRows: number[], premiumRows: number }
+    business: { rows: number, columns: string[], exitRows: number[], wingRows: number[], premiumRows: number }
+    first: { rows: number, columns: string[], exitRows: number[], wingRows: number[], premiumRows: number }
+  }>>({
+    'B737-800': {
+      economy: { rows: 24, columns: ['A', 'B', 'C', 'D', 'E', 'F'], exitRows: [11, 12], wingRows: [18, 19, 20, 21], premiumRows: 4 },
+      business: { rows: 9, columns: ['A', 'C', 'D', 'F'], exitRows: [], wingRows: [5, 6], premiumRows: 9 },
+      first: { rows: 4, columns: ['A', 'D'], exitRows: [], wingRows: [], premiumRows: 4 }
+    },
+    'A320-200': {
+      economy: { rows: 25, columns: ['A', 'B', 'C', 'D', 'E', 'F'], exitRows: [12, 13], wingRows: [19, 20, 21, 22], premiumRows: 4 },
+      business: { rows: 10, columns: ['A', 'C', 'D', 'F'], exitRows: [], wingRows: [5, 6], premiumRows: 10 },
+      first: { rows: 4, columns: ['A', 'D'], exitRows: [], wingRows: [], premiumRows: 4 }
+    },
+    'B777-300ER': {
+      economy: { rows: 35, columns: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K'], exitRows: [31, 32, 33], wingRows: [25, 26, 27, 28], premiumRows: 6 },
+      business: { rows: 12, columns: ['A', 'D', 'G', 'K'], exitRows: [], wingRows: [6, 7], premiumRows: 12 },
+      first: { rows: 6, columns: ['A', 'K'], exitRows: [], wingRows: [], premiumRows: 6 }
+    },
+    'A350-900': {
+      economy: { rows: 32, columns: ['A', 'C', 'D', 'G', 'H', 'K', 'L'], exitRows: [30, 31], wingRows: [22, 23, 24, 25], premiumRows: 5 },
+      business: { rows: 14, columns: ['A', 'D', 'G', 'K'], exitRows: [], wingRows: [7, 8], premiumRows: 14 },
+      first: { rows: 6, columns: ['A', 'K'], exitRows: [], wingRows: [], premiumRows: 6 }
+    }
+  })
+  
+  // Fare class restrictions
+  const [fareClassRestrictions, setFareClassRestrictions] = useState<Record<string, {
+    route?: string
+    cabin?: CabinClass
+    seasonalRestrictions?: { period: string, startDate: string, endDate: string }[]
+    bookingClassRestrictions?: string[]
+    corporateFareRules?: { corporateId: string, discount: number, restrictions: string[] }[]
+    groupBookingRules?: { minPax: number, maxPax: number, depositRequired: boolean }[]
+    nestedRestrictions?: { canBookInto: string[], cannotBookInto: string[] }
+  }>>({
+    'Y': {
+      cabin: 'economy',
+      seasonalRestrictions: [
+        { period: 'Peak Holiday', startDate: '2024-12-20', endDate: '2024-12-26' },
+        { period: 'Summer Peak', startDate: '2024-07-01', endDate: '2024-08-31' }
+      ],
+      groupBookingRules: [{ minPax: 10, maxPax: 50, depositRequired: true }]
+    },
+    'F': {
+      cabin: 'first',
+      corporateFareRules: [{ corporateId: 'CORP001', discount: 15, restrictions: ['No advance purchase required', 'Full refundable'] }],
+      nestedRestrictions: { canBookInto: ['A', 'J', 'C', 'Y', 'B', 'M', 'Q'], cannotBookInto: [] }
+    }
+  })
+  
+  // Confirmation dialog state
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
+  
+  // O&D search options
+  const [odOptions, setOdOptions] = useState({
+    maxStops: 2,
+    includeMarriedSegments: true,
+    allowOpenJaw: true,
+    preferredCabin: 'economy' as CabinClass
+  })
+
+  // Dialog states
+  const [showFareClassDialog, setShowFareClassDialog] = useState(false)
+  const [showFareFamilyDialog, setShowFareFamilyDialog] = useState(false)
+  const [showOverbookingDialog, setShowOverbookingDialog] = useState(false)
+  const [showBlockInventoryDialog, setShowBlockInventoryDialog] = useState(false)
+  const [showGroupAllotmentDialog, setShowGroupAllotmentDialog] = useState(false)
+  const [showBlackoutDialog, setShowBlackoutDialog] = useState(false)
+  const [showSeatConfigDialog, setShowSeatConfigDialog] = useState(false)
+
+  // PNR Management Dialogs
+  const [showSplitDialog, setShowSplitDialog] = useState(false)
+  const [showMergeDialog, setShowMergeDialog] = useState(false)
+  const [showRequoteDialog, setShowRequoteDialog] = useState(false)
+  const [showQueueDialog, setShowQueueDialog] = useState(false)
+  const [showWaitlistDialog, setShowWaitlistDialog] = useState(false)
+
+  // Single passenger/segment state (for legacy compatibility)
   const [newPassenger, setNewPassenger] = useState<Passenger>({
     id: '',
     title: 'Mr',
@@ -76,23 +422,471 @@ export default function PSSModule() {
     remarks: ['']
   })
 
+  // Multi-segment booking state
+  const [segments, setSegments] = useState<FlightSegment[]>([{ ...newSegment, id: `SEG-${Date.now()}` }])
+  const [passengers, setPassengers] = useState<Passenger[]>([{ ...newPassenger, id: `PAX-${Date.now()}` }])
+
+  // PNR operation state
+  const [selectedPNRsForMerge, setSelectedPNRsForMerge] = useState<string[]>([])
+  const [splitPassengerGroups, setSplitPassengerGroups] = useState<number[][]>([])
+  const [requoteResult, setRequoteResult] = useState<any>(null)
+  const [queuePriority, setQueuePriority] = useState(5)
+  const [waitlistFlight, setWaitlistFlight] = useState({ flightNumber: '', date: '' })
+
+  // Ticketing Dialog States
+  const [showPartialExchangeDialog, setShowPartialExchangeDialog] = useState(false)
+  const [showInvoluntaryRefundDialog, setShowInvoluntaryRefundDialog] = useState(false)
+  const [showTaxCalculatorDialog, setShowTaxCalculatorDialog] = useState(false)
+  const [showRefundFeeCalculator, setShowRefundFeeCalculator] = useState(false)
+  const [showCommissionDialog, setShowCommissionDialog] = useState(false)
+  const [showAuditTrailDialog, setShowAuditTrailDialog] = useState(false)
+  const [showBSPReportingDialog, setShowBSPReportingDialog] = useState(false)
+  const [showTicketDetailDialog, setShowTicketDetailDialog] = useState(false)
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
+
+  // Ticketing operation state
+  const [selectedSegmentsForExchange, setSelectedSegmentsForExchange] = useState<string[]>([])
+  const [exchangeNewFare, setExchangeNewFare] = useState(0)
+  const [involuntaryRefundReason, setInvoluntaryRefundReason] = useState('')
+  const [involuntaryRefundApprover, setInvoluntaryRefundApprover] = useState('')
+  const [taxCalculatorParams, setTaxCalculatorParams] = useState({
+    origin: '',
+    destination: '',
+    fare: 0,
+    passengerType: 'adult' as 'adult' | 'child' | 'infant',
+    routeType: 'domestic' as 'domestic' | 'international'
+  })
+  const [calculatedTaxes, setCalculatedTaxes] = useState<TaxBreakdown[]>([])
+  const [refundFeeParams, setRefundFeeParams] = useState({
+    timeToDeparture: 0,
+    fareClass: 'economy' as 'first' | 'business' | 'economy',
+    refundReason: 'voluntary' as 'voluntary' | 'involuntary',
+    fareType: 'regular' as 'regular' | 'promotional'
+  })
+  const [calculatedRefundFee, setCalculatedRefundFee] = useState(0)
+  const [bspReportPeriod, setBSPReportPeriod] = useState('daily' as 'daily' | 'weekly' | 'monthly')
+  const [bspReportType, setBSPReportType] = useState('settlement' as 'settlement' | 'billing' | 'refunds')
+
+  // In-memory ticket audit trail
+  const [ticketAuditTrail, setTicketAuditTrail] = useState<any[]>([])
+
+  // Ticketing helper interfaces
+  interface TaxRate {
+    code: string
+    name: string
+    rate: number
+    refundable: boolean
+    appliesTo: 'domestic' | 'international' | 'both'
+  }
+
+  const taxRates: TaxRate[] = [
+    { code: 'US', name: 'US Transportation Tax', rate: 0.075, refundable: true, appliesTo: 'domestic' },
+    { code: 'AY', name: 'US Flight Segment Tax', rate: 4.50, refundable: true, appliesTo: 'domestic' },
+    { code: 'XF', name: 'Passenger Facility Charge', rate: 4.50, refundable: true, appliesTo: 'domestic' },
+    { code: 'XA', name: 'Animal and Plant Health Inspection', rate: 3.96, refundable: true, appliesTo: 'international' },
+    { code: 'YC', name: 'Immigration User Fee', rate: 7.00, refundable: true, appliesTo: 'international' },
+    { code: 'XY', name: 'Customs User Fee', rate: 5.50, refundable: true, appliesTo: 'international' },
+    { code: 'YM', name: 'Passenger Security Service Fee', rate: 5.60, refundable: true, appliesTo: 'international' },
+    { code: 'XT', name: 'Foreign Government Tax', rate: 0.15, refundable: false, appliesTo: 'international' },
+    { code: 'QX', name: 'Ticket Service Charge', rate: 0.05, refundable: true, appliesTo: 'both' },
+  ]
+
+  // Generate seat map based on aircraft type
+  const generateSeatMap = (aircraft: string, cabin: CabinClass): Seat[] => {
+    const seats: Seat[] = []
+    const config = getAircraftConfig(aircraft, cabin)
+    
+    for (let row = config.startRow; row <= config.endRow; row++) {
+      config.columns.forEach((col) => {
+        const isExitRow = config.exitRows?.includes(row)
+        const isWing = config.wingRows?.includes(row)
+        const isWindow = col === config.columns[0] || col === config.columns[config.columns.length - 1]
+        const isAisle = config.aisleIndices?.includes(config.columns.indexOf(col))
+        const isPremium = row <= config.premiumRows
+        
+        const status: SeatStatus = Math.random() > 0.7 ? 'occupied' : 
+                                    Math.random() > 0.9 ? 'blocked' : 
+                                    isPremium ? 'premium' : 'available'
+        
+        seats.push({
+          id: `${row}${col}`,
+          row,
+          column: col,
+          status,
+          price: isPremium ? 450 : 350,
+          isExitRow,
+          isWing,
+          isWindow,
+          isAisle,
+          cabin,
+          legroom: isPremium ? 38 : 32,
+          recline: isPremium ? 8 : 5
+        })
+      })
+    }
+    
+    return seats
+  }
+
+  const getAircraftConfig = (aircraft: string, cabin: CabinClass) => {
+    const configs: Record<string, any> = {
+      'B737-800': {
+        economy: { startRow: 10, endRow: 33, columns: ['A', 'B', 'C', 'D', 'E', 'F'], exitRows: [11, 12], wingRows: [18, 19, 20, 21], premiumRows: 11, aisleIndices: [2, 3] },
+        business: { startRow: 1, endRow: 9, columns: ['A', 'C', 'D', 'F'], exitRows: [], wingRows: [5, 6], premiumRows: 9, aisleIndices: [1, 2] },
+        first: { startRow: 1, endRow: 4, columns: ['A', 'D'], exitRows: [], wingRows: [], premiumRows: 4, aisleIndices: [1] }
+      },
+      'A320-200': {
+        economy: { startRow: 11, endRow: 35, columns: ['A', 'B', 'C', 'D', 'E', 'F'], exitRows: [12, 13], wingRows: [19, 20, 21, 22], premiumRows: 12, aisleIndices: [2, 3] },
+        business: { startRow: 1, endRow: 10, columns: ['A', 'C', 'D', 'F'], exitRows: [], wingRows: [5, 6], premiumRows: 10, aisleIndices: [1, 2] },
+        first: { startRow: 1, endRow: 4, columns: ['A', 'D'], exitRows: [], wingRows: [], premiumRows: 4, aisleIndices: [1] }
+      }
+    }
+    return configs[aircraft]?.[cabin] || configs['B737-800'][cabin]
+  }
+
+  const seats = generateSeatMap(selectedAircraft, selectedCabin)
+
+  // ENHANCED SEAT MAP with selection, blocking, and pricing
+  const handleSeatClick = (seat: Seat) => {
+    if (seat.status === 'occupied') return
+    
+    if (seat.status === 'blocked') {
+      // Offer to unblock seat
+      setConfirmationDialog({
+        isOpen: true,
+        title: `Unblock Seat ${seat.id}?`,
+        message: `This seat is currently blocked. Do you want to unblock it?`,
+        onConfirm: () => {
+          setBlockedSeats(prev => {
+            const newBlocked = new Set(prev)
+            newBlocked.delete(seat.id)
+            return newBlocked
+          })
+          setConfirmationDialog({ isOpen: false, title: '', message: '', onConfirm: () => {} })
+        }
+      })
+      return
+    }
+    
+    // Toggle seat selection
+    setSelectedSeats(prev => {
+      const newSelected = new Set(prev)
+      if (newSelected.has(seat.id)) {
+        newSelected.delete(seat.id)
+      } else {
+        newSelected.add(seat.id)
+      }
+      return newSelected
+    })
+    
+    setSelectedSeat(seat)
+  }
+  
+  const handleBlockSeat = (seatId: string) => {
+    setBlockedSeats(prev => {
+      const newBlocked = new Set(prev)
+      if (newBlocked.has(seatId)) {
+        newBlocked.delete(seatId)
+      } else {
+        newBlocked.add(seatId)
+      }
+      // Also remove from selection if blocked
+      setSelectedSeats(prev => {
+        const newSelected = new Set(prev)
+        newSelected.delete(seatId)
+        return newSelected
+      })
+      return newBlocked
+    })
+  }
+  
+  const handleBulkBlockSeats = (row: number) => {
+    const rowSeats = seats.filter(s => s.row === row)
+    const areAllBlocked = rowSeats.every(s => blockedSeats.has(s.id))
+    
+    if (areAllBlocked) {
+      // Unblock all seats in row
+      setBlockedSeats(prev => {
+        const newBlocked = new Set(prev)
+        rowSeats.forEach(s => newBlocked.delete(s.id))
+        return newBlocked
+      })
+    } else {
+      // Block all available seats in row
+      setBlockedSeats(prev => {
+        const newBlocked = new Set(prev)
+        rowSeats.forEach(s => {
+          if (s.status === 'available' || s.status === 'premium') {
+            newBlocked.add(s.id)
+            setSelectedSeats(prev => {
+              const newSelected = new Set(prev)
+              newSelected.delete(s.id)
+              return newSelected
+            })
+          }
+        })
+        return newBlocked
+      })
+    }
+  }
+  
+  const handleSaveSeatSelection = () => {
+    if (selectedSeats.size === 0) {
+      alert('Please select at least one seat')
+      return
+    }
+    
+    // Calculate total price
+    const totalPrice = Array.from(selectedSeats).reduce((sum, seatId) => {
+      const seat = seats.find(s => s.id === seatId)
+      return sum + (seat?.price || 0)
+    }, 0)
+    
+    // Here you would save to PNR (in-memory)
+    alert(`Saved ${selectedSeats.size} seat(s) to PNR. Total: $${totalPrice}`)
+    setSelectedSeats(new Set())
+    setSelectedSeat(null)
+  }
+
+  // REAL-TIME FARE CLASS CONTROL with confirmation and history
+  const handleToggleFareBucket = (code: string) => {
+    const fareClass = fareClasses.find(fc => fc.code === code)
+    if (!fareClass) return
+    
+    const newStatus = !fareClass.isOpen
+    const action = newStatus ? 'open' : 'close'
+    
+    // Show confirmation for closing buckets
+    if (!newStatus) {
+      setConfirmationDialog({
+        isOpen: true,
+        title: `Close Fare Bucket ${code}?`,
+        message: `You are about to close the ${code} (${fareClass.name}) fare bucket. This will prevent new bookings in this class. Are you sure?`,
+        onConfirm: () => {
+          updateFareBucketStatus(code, newStatus)
+          setConfirmationDialog({ isOpen: false, title: '', message: '', onConfirm: () => {} })
+        }
+      })
+    } else {
+      updateFareBucketStatus(code, newStatus)
+    }
+  }
+  
+  const updateFareBucketStatus = (code: string, isOpen: boolean) => {
+    const now = new Date().toISOString()
+    const reason = isOpen ? 'Manual open' : 'Manual close'
+    
+    // Update fare class status
+    setFareClasses(fareClasses.map(fc => 
+      fc.code === code ? { ...fc, isOpen } : fc
+    ))
+    
+    // Record history
+    setBucketStatusHistory(prev => ({
+      ...prev,
+      [code]: [
+        ...(prev[code] || []),
+        { timestamp: now, status: isOpen, reason }
+      ].slice(-20) // Keep last 20 entries
+    }))
+    
+    // Handle nested fare classes - if parent closes, children close
+    if (!isOpen) {
+      const children = fareClasses.filter(fc => fc.parentCode === code)
+      children.forEach(child => {
+        setFareClasses(prev => prev.map(fc => 
+          fc.code === child.code ? { ...fc, isOpen: false } : fc
+        ))
+        setBucketStatusHistory(prev => ({
+          ...prev,
+          [child.code]: [
+            ...(prev[child.code] || []),
+            { timestamp: now, status: false, reason: `Parent ${code} closed` }
+          ].slice(-20)
+        }))
+      })
+    }
+  }
+
+  // O&D CONTROL - Enhanced with in-memory calculation
+  const handleSearchOD = () => {
+    const routes = calculateODAvailability(
+      odOrigin,
+      odDestination,
+      odDate || new Date().toISOString().split('T')[0],
+      odOptions.maxStops
+    )
+    setOdRoutes(routes)
+  }
+  
+  const calculateODAvailability = (origin: string, destination: string, date: string, maxStops: number): ODRoute[] => {
+    // Simulated connecting routes database
+    const connectingRoutes = [
+      { flightNumber: 'AA100', origin: 'JFK', destination: 'LHR', departureTime: '18:30', arrivalTime: '06:30+1', aircraft: 'B777-300ER', duration: 420 },
+      { flightNumber: 'AA106', origin: 'JFK', destination: 'LAX', departureTime: '09:00', arrivalTime: '12:15', aircraft: 'B777-300ER', duration: 375 },
+      { flightNumber: 'AA287', origin: 'LAX', destination: 'LHR', departureTime: '16:45', arrivalTime: '10:30+1', aircraft: 'A350-900', duration: 645 },
+      { flightNumber: 'AA156', origin: 'JFK', destination: 'ORD', departureTime: '11:00', arrivalTime: '13:00', aircraft: 'B737-800', duration: 120 },
+      { flightNumber: 'AA98', origin: 'ORD', destination: 'LHR', departureTime: '17:30', arrivalTime: '07:00+1', aircraft: 'B777-300ER', duration: 510 },
+      { flightNumber: 'BA117', origin: 'JFK', destination: 'LHR', departureTime: '19:00', arrivalTime: '07:00+1', aircraft: 'A350-900', duration: 420 },
+      { flightNumber: 'VS4', origin: 'JFK', destination: 'LHR', departureTime: '20:30', arrivalTime: '08:30+1', aircraft: 'A350-1000', duration: 420 },
+      { flightNumber: 'DL1', origin: 'JFK', destination: 'CDG', departureTime: '17:25', arrivalTime: '07:25+1', aircraft: 'A330-900', duration: 420 },
+      { flightNumber: 'AF7', origin: 'CDG', destination: 'LHR', departureTime: '09:00', arrivalTime: '09:45', aircraft: 'A320-200', duration: 45 },
+      { flightNumber: 'LH400', origin: 'JFK', destination: 'FRA', departureTime: '16:00', arrivalTime: '06:00+1', aircraft: 'B747-8', duration: 480 },
+      { flightNumber: 'LH450', origin: 'FRA', destination: 'LHR', departureTime: '08:30', arrivalTime: '09:20', aircraft: 'A320neo', duration: 50 },
+    ]
+    
+    const routes: ODRoute[] = []
+    
+    // Find direct flights
+    const directFlights = connectingRoutes.filter(r => r.origin === origin && r.destination === destination)
+    directFlights.forEach(flight => {
+      const price = calculateRoutePrice([flight], 'economy')
+      routes.push({
+        id: `direct-${flight.flightNumber}`,
+        origin,
+        destination,
+        stops: 0,
+        segments: [flight],
+        totalPrice: price,
+        totalDuration: flight.duration,
+        availableFareClasses: getAvailableFareClassesForRoute(flight.origin, flight.destination)
+      })
+    })
+    
+    // Find 1-stop connections if allowed
+    if (maxStops >= 1) {
+      const firstLegs = connectingRoutes.filter(r => r.origin === origin)
+      firstLegs.forEach(firstLeg => {
+        const secondLegs = connectingRoutes.filter(r => 
+          r.origin === firstLeg.destination && 
+          r.destination === destination &&
+          isValidConnection(firstLeg.arrivalTime, r.departureTime)
+        )
+        secondLegs.forEach(secondLeg => {
+          const price = calculateRoutePrice([firstLeg, secondLeg], 'economy')
+          routes.push({
+            id: `1stop-${firstLeg.flightNumber}-${secondLeg.flightNumber}`,
+            origin,
+            destination,
+            stops: 1,
+            segments: [firstLeg, secondLeg],
+            totalPrice: price * 0.9, // Discount for connecting flights
+            totalDuration: firstLeg.duration + secondLeg.duration + 120, // Include 2h connection
+            availableFareClasses: mergeFareClasses([
+              getAvailableFareClassesForRoute(firstLeg.origin, firstLeg.destination),
+              getAvailableFareClassesForRoute(secondLeg.origin, secondLeg.destination)
+            ])
+          })
+        })
+      })
+    }
+    
+    // Find 2-stop connections if allowed
+    if (maxStops >= 2) {
+      const firstLegs = connectingRoutes.filter(r => r.origin === origin)
+      firstLegs.forEach(firstLeg => {
+        const secondLegs = connectingRoutes.filter(r => 
+          r.origin === firstLeg.destination && 
+          isValidConnection(firstLeg.arrivalTime, r.departureTime)
+        )
+        secondLegs.forEach(secondLeg => {
+          const thirdLegs = connectingRoutes.filter(r => 
+            r.origin === secondLeg.destination && 
+            r.destination === destination &&
+            isValidConnection(secondLeg.arrivalTime, r.departureTime)
+          )
+          thirdLegs.forEach(thirdLeg => {
+            const price = calculateRoutePrice([firstLeg, secondLeg, thirdLeg], 'economy')
+            routes.push({
+              id: `2stop-${firstLeg.flightNumber}-${secondLeg.flightNumber}-${thirdLeg.flightNumber}`,
+              origin,
+              destination,
+              stops: 2,
+              segments: [firstLeg, secondLeg, thirdLeg],
+              totalPrice: price * 0.85,
+              totalDuration: firstLeg.duration + secondLeg.duration + thirdLeg.duration + 240,
+              availableFareClasses: mergeFareClasses([
+                getAvailableFareClassesForRoute(firstLeg.origin, firstLeg.destination),
+                getAvailableFareClassesForRoute(secondLeg.origin, secondLeg.destination),
+                getAvailableFareClassesForRoute(thirdLeg.origin, thirdLeg.destination)
+              ])
+            })
+          })
+        })
+      })
+    }
+    
+    // Sort by price and return top options
+    return routes.sort((a, b) => a.totalPrice - b.totalPrice).slice(0, 10)
+  }
+  
+  const calculateRoutePrice = (segments: any[], cabin: string): number => {
+    const basePrice = segments.length * 250
+    const cabinMultiplier = cabin === 'first' ? 4 : cabin === 'business' ? 2.5 : 1
+    return Math.round(basePrice * cabinMultiplier)
+  }
+  
+  const isValidConnection = (arrivalTime: string, departureTime: string): boolean => {
+    // Parse arrival and departure times (simplified)
+    const arrival = parseInt(arrivalTime.split(':')[0])
+    const departure = parseInt(departureTime.split(':')[0])
+    const minConnectionTime = 1 // hour
+    const maxConnectionTime = 6 // hours
+    
+    const connectionTime = departure - arrival
+    return connectionTime >= minConnectionTime && connectionTime <= maxConnectionTime
+  }
+  
+  const getAvailableFareClassesForRoute = (origin: string, destination: string): string[] => {
+    const route = `${origin}-${destination}`
+    const inventory = routeInventory[route]
+    if (!inventory) return ['Y', 'B', 'M']
+    
+    return Object.entries(inventory.fareClasses)
+      .filter(([_, data]) => data.isOpen && data.sold < data.capacity)
+      .map(([code]) => code)
+  }
+  
+  const mergeFareClasses = (fareClassLists: string[][]): string[] => {
+    const allClasses = fareClassLists.flat()
+    return Array.from(new Set(allClasses)).sort()
+  }
+
   const handleCreatePNR = () => {
+    // Validate that we have at least one passenger and one segment
+    if (passengers.length === 0 || segments.length === 0) return
+
+    // Calculate fare based on segments and passengers
+    const baseFarePerSegment = 250
+    const totalBaseFare = baseFarePerSegment * segments.length * passengers.length
+    const taxes = Math.round(totalBaseFare * 0.2) // 20% taxes
+    const fees = Math.round(totalBaseFare * 0.1) // 10% fees
+    const total = totalBaseFare + taxes + fees
+
     createPNR({
-      passengers: [newPassenger],
-      segments: [newSegment],
+      passengers: passengers.map(p => ({
+        ...p,
+        id: p.id || `PAX-${Date.now()}-${Math.random().toString(36).substring(7)}`
+      })),
+      segments: segments.map(s => ({
+        ...s,
+        id: s.id || `SEG-${Date.now()}-${Math.random().toString(36).substring(7)}`
+      })),
       contactInfo: newPNR.contactInfo,
       remarks: newPNR.remarks.filter(r => r.trim()),
       fareQuote: {
-        baseFare: 250,
-        taxes: 50,
-        fees: 25,
-        total: 325,
+        baseFare: totalBaseFare,
+        taxes,
+        fees,
+        total,
         currency: 'USD',
-        fareRules: ['Non-refundable', 'No changes allowed']
+        fareRules: segments.length > 1 
+          ? ['Multi-city booking', 'Same fare class required for all segments']
+          : ['Non-refundable', 'No changes allowed']
       },
       paymentInfo: {
         paymentMethod: 'credit_card',
-        amount: 325,
+        amount: total,
         currency: 'USD'
       }
     })
@@ -117,7 +911,492 @@ export default function PSSModule() {
     voidTicket(ticketNumber)
   }
 
+  // PNR Split Handler
+  const handleSplitPNR = () => {
+    if (!selectedPNR || splitPassengerGroups.length === 0) return
+
+    // In-memory split logic
+    const newPNRs: PNR[] = []
+    const originalPNR = selectedPNR
+
+    splitPassengerGroups.forEach((group, index) => {
+      const groupPassengers = group.map(idx => originalPNR.passengers[idx])
+      const newPNRNumber = `SPL${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+
+      const newPNR: PNR = {
+        ...originalPNR,
+        pnrNumber: newPNRNumber,
+        passengers: groupPassengers,
+        createdAt: new Date().toISOString(),
+        remarks: [
+          ...originalPNR.remarks,
+          `Split from ${originalPNR.pnrNumber} - Group ${index + 1}`
+        ]
+      }
+
+      newPNRs.push(newPNR)
+    })
+
+    // Update original PNR to remove split passengers
+    const splitPassengerIndices = splitPassengerGroups.flat()
+    const remainingPassengers = originalPNR.passengers.filter((_, idx) => !splitPassengerIndices.includes(idx))
+
+    if (remainingPassengers.length === 0) {
+      deletePNR(originalPNR.pnrNumber)
+    } else {
+      updatePNR(originalPNR.pnrNumber, {
+        passengers: remainingPassengers,
+        remarks: [
+          ...originalPNR.remarks,
+          `Split - Passengers moved to ${newPNRs.map(p => p.pnrNumber).join(', ')}`
+        ]
+      })
+    }
+
+    // Create new PNRs
+    newPNRs.forEach(pnr => {
+      createPNR(pnr)
+    })
+
+    setShowSplitDialog(false)
+    setSelectedPNR(null)
+    setSplitPassengerGroups([])
+  }
+
+  // PNR Merge Handler
+  const handleMergePNRs = () => {
+    if (selectedPNRsForMerge.length < 2) return
+
+    const pnersToMerge = pnrs.filter(p => selectedPNRsForMerge.includes(p.pnrNumber))
+    if (pnersToMerge.length < 2) return
+
+    // Create merged PNR
+    const mergedPNRNumber = `MRG${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+    const allPassengers = pnersToMerge.flatMap(p => p.passengers)
+    const allSegments = pnersToMerge.flatMap(p => p.segments)
+    const totalFare = pnersToMerge.reduce((sum, p) => sum + p.fareQuote.total, 0)
+    const totalBaseFare = pnersToMerge.reduce((sum, p) => sum + p.fareQuote.baseFare, 0)
+    const totalTaxes = pnersToMerge.reduce((sum, p) => sum + p.fareQuote.taxes, 0)
+    const totalFees = pnersToMerge.reduce((sum, p) => sum + p.fareQuote.fees, 0)
+
+    const mergedPNR: PNR = {
+      pnrNumber: mergedPNRNumber,
+      passengers: allPassengers,
+      segments: allSegments,
+      contactInfo: pnersToMerge[0].contactInfo,
+      remarks: [
+        `Merged from: ${selectedPNRsForMerge.join(', ')}`,
+        ...pnersToMerge.flatMap(p => p.remarks)
+      ],
+      fareQuote: {
+        baseFare: totalBaseFare,
+        taxes: totalTaxes,
+        fees: totalFees,
+        total: totalFare,
+        currency: 'USD',
+        fareRules: ['Merged booking', ...pnersToMerge.flatMap(p => p.fareQuote.fareRules)]
+      },
+      status: 'confirmed',
+      agencyCode: pnersToMerge[0].agencyCode,
+      createdAt: new Date().toISOString(),
+      queuePosition: pnersToMerge[0].queuePosition,
+      timeLimit: pnersToMerge[0].timeLimit
+    }
+
+    // Delete original PNRs and create merged one
+    selectedPNRsForMerge.forEach(pnrNumber => deletePNR(pnrNumber))
+    createPNR(mergedPNR)
+
+    setShowMergeDialog(false)
+    setSelectedPNRsForMerge([])
+  }
+
+  // Fare Re-quote Handler
+  const handleRequoteFare = () => {
+    if (!selectedPNR) return
+
+    const timeToDeparture = Math.random() * 30 // Simulated days to departure
+    const demandFactor = 1 + (Math.random() * 0.3 - 0.15) // +/- 15%
+    const baseFare = selectedPNR.fareQuote.baseFare
+    const newBaseFare = Math.round(baseFare * demandFactor)
+    const newTaxes = Math.round(selectedPNR.fareQuote.taxes * (1 + Math.random() * 0.1))
+    const newFees = selectedPNR.fareQuote.fees
+    const newTotal = newBaseFare + newTaxes + newFees
+
+    const fareDifference = newTotal - selectedPNR.fareQuote.total
+
+    setRequoteResult({
+      originalFare: selectedPNR.fareQuote.total,
+      newFare: newTotal,
+      fareDifference,
+      breakdown: {
+        originalBaseFare: selectedPNR.fareQuote.baseFare,
+        newBaseFare,
+        originalTaxes: selectedPNR.fareQuote.taxes,
+        newTaxes,
+        fees: newFees
+      },
+      reason: fareDifference > 0 ? 'Price increased due to demand' : 'Price decreased due to availability',
+      timeToDeparture,
+      demandFactor: (demandFactor - 1) * 100
+    })
+  }
+
+  // Queue Assignment Handler
+  const handleAssignQueue = () => {
+    if (!selectedPNR) return
+
+    updatePNR(selectedPNR.pnrNumber, {
+      queuePosition: queuePriority,
+      remarks: [
+        ...selectedPNR.remarks,
+        `Assigned queue position: ${queuePriority}`
+      ]
+    })
+
+    setShowQueueDialog(false)
+  }
+
+  // Waitlist Processing Handler
+  const handleProcessWaitlist = () => {
+    const waitlistedPNRs = pnrs.filter(p => p.status === 'waitlist')
+    const flightDate = waitlistFlight.date || new Date().toISOString().split('T')[0]
+
+    // Simulate promoting some waitlisted PNRs
+    const promotedCount = Math.min(waitlistedPNRs.length, Math.floor(Math.random() * 3) + 1)
+    const promotedPNRs = waitlistedPNRs.slice(0, promotedCount)
+
+    promotedPNRs.forEach(pnr => {
+      updatePNR(pnr.pnrNumber, {
+        status: 'confirmed',
+        remarks: [
+          ...pnr.remarks,
+          `Promoted from waitlist on ${new Date().toLocaleString()}`
+        ]
+      })
+    })
+
+    setShowWaitlistDialog(false)
+    setWaitlistFlight({ flightNumber: '', date: '' })
+  }
+
+  // ============ TICKETING HANDLERS ============
+
+  // Partial Exchange Handler
+  const handlePartialExchange = () => {
+    if (!selectedTicket || selectedSegmentsForExchange.length === 0) return
+
+    // Calculate exchange details
+    const originalFare = selectedTicket.fare.total
+    const selectedFare = exchangeNewFare || Math.round(originalFare * 1.2)
+    const fareDifference = selectedFare - originalFare
+    const changeFee = selectedTicket.changePenalty || 200
+    const totalDue = fareDifference > 0 ? fareDifference + changeFee : changeFee
+
+    // Create audit trail entry
+    const auditEntry = {
+      id: `AUD-${Date.now()}`,
+      ticketNumber: selectedTicket.ticketNumber,
+      action: 'partial_exchange',
+      timestamp: new Date().toISOString(),
+      user: 'system',
+      reason: 'Voluntary exchange of selected segments',
+      before: {
+        fare: originalFare,
+        segments: selectedTicket.segments.map(s => `${s.origin}-${s.destination}`).join(', ')
+      },
+      after: {
+        fare: selectedFare,
+        exchangedSegments: selectedSegmentsForExchange.join(', ')
+      },
+      changeFee,
+      fareDifference,
+      totalDue
+    }
+
+    setTicketAuditTrail([...ticketAuditTrail, auditEntry])
+
+    // Perform exchange in store
+    exchangeTicket(selectedTicket.ticketNumber, {
+      ...selectedTicket.fare,
+      total: selectedFare
+    })
+
+    setShowPartialExchangeDialog(false)
+    setSelectedSegmentsForExchange([])
+    setExchangeNewFare(0)
+  }
+
+  // Involuntary Refund Handler
+  const handleInvoluntaryRefund = () => {
+    if (!selectedTicket || !involuntaryRefundReason || !involuntaryRefundApprover) return
+
+    // Calculate refund amount (full fare + taxes for involuntary refunds)
+    const refundableAmount = selectedTicket.fare.total
+
+    // Create audit trail entry
+    const auditEntry = {
+      id: `AUD-${Date.now()}`,
+      ticketNumber: selectedTicket.ticketNumber,
+      action: 'involuntary_refund',
+      timestamp: new Date().toISOString(),
+      user: 'system',
+      reason: involuntaryRefundReason,
+      approver: involuntaryRefundApprover,
+      before: {
+        status: selectedTicket.status,
+        fare: selectedTicket.fare.total
+      },
+      after: {
+        status: 'refunded',
+        refundAmount: refundableAmount
+      },
+      refundBreakdown: {
+        baseFare: selectedTicket.fare.baseFare,
+        taxes: selectedTicket.fare.taxes,
+        fees: selectedTicket.fare.fees,
+        total: refundableAmount
+      }
+    }
+
+    setTicketAuditTrail([...ticketAuditTrail, auditEntry])
+
+    // Process refund
+    refundTicket(selectedTicket.ticketNumber, `Involuntary: ${involuntaryRefundReason}`)
+
+    setShowInvoluntaryRefundDialog(false)
+    setInvoluntaryRefundReason('')
+    setInvoluntaryRefundApprover('')
+    setSelectedTicket(null)
+  }
+
+  // Tax Calculator Handler
+  const handleCalculateTaxes = () => {
+    const { fare, passengerType, routeType } = taxCalculatorParams
+    const passengerMultiplier = passengerType === 'adult' ? 1 : passengerType === 'child' ? 0.75 : 0.1
+
+    const applicableTaxes = taxRates.filter(tax =>
+      tax.appliesTo === routeType || tax.appliesTo === 'both'
+    )
+
+    const calculated: TaxBreakdown[] = applicableTaxes.map(tax => {
+      let amount = 0
+      if (tax.rate > 1) {
+        // Fixed amount
+        amount = tax.rate * passengerMultiplier
+      } else {
+        // Percentage
+        amount = fare * tax.rate * passengerMultiplier
+      }
+
+      return {
+        code: tax.code,
+        name: tax.name,
+        amount: Math.round(amount * 100) / 100,
+        currency: 'USD'
+      }
+    })
+
+    setCalculatedTaxes(calculated)
+  }
+
+  // Refund Fee Calculator Handler
+  const handleCalculateRefundFee = () => {
+    const { timeToDeparture, fareClass, refundReason, fareType } = refundFeeParams
+
+    let baseFee = 0
+
+    // Time-based penalty
+    if (refundReason === 'voluntary') {
+      if (timeToDeparture < 24) {
+        baseFee = fareClass === 'economy' ? 200 : fareClass === 'business' ? 400 : 600
+      } else if (timeToDeparture < 72) {
+        baseFee = fareClass === 'economy' ? 150 : fareClass === 'business' ? 300 : 500
+      } else {
+        baseFee = fareClass === 'economy' ? 100 : fareClass === 'business' ? 200 : 350
+      }
+    } else {
+      // Involuntary refunds have no fee
+      baseFee = 0
+    }
+
+    // Fare type modifier
+    const fareTypeModifier = fareType === 'promotional' ? 1.5 : 1
+
+    const finalFee = Math.round(baseFee * fareTypeModifier)
+    setCalculatedRefundFee(finalFee)
+  }
+
+  // BSP Report Generator Handler
+  const handleGenerateBSPReport = () => {
+    // Generate in-memory BSP report
+    const now = new Date()
+    let startDate: Date
+
+    switch (bspReportPeriod) {
+      case 'daily':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        break
+      case 'weekly':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        break
+      case 'monthly':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+        break
+    }
+
+    const reportTickets = tickets.filter(t => {
+      const issuedDate = new Date(t.issuedAt)
+      return issuedDate >= startDate && issuedDate <= now
+    })
+
+    const report = {
+      period: bspReportPeriod,
+      type: bspReportType,
+      generatedAt: now.toISOString(),
+      startDate: startDate.toISOString(),
+      endDate: now.toISOString(),
+      summary: {
+        totalTickets: reportTickets.length,
+        totalFare: reportTickets.reduce((sum, t) => sum + t.fare.baseFare, 0),
+        totalTaxes: reportTickets.reduce((sum, t) => sum + t.fare.taxes, 0),
+        totalFees: reportTickets.reduce((sum, t) => sum + t.fare.fees, 0),
+        totalAmount: reportTickets.reduce((sum, t) => sum + t.fare.total, 0),
+        totalCommission: reportTickets.reduce((sum, t) => sum + t.commission.amount, 0)
+      },
+      byType: {
+        issued: reportTickets.filter(t => t.status === 'open').length,
+        voided: reportTickets.filter(t => t.status === 'void').length,
+        refunded: reportTickets.filter(t => t.status === 'refunded').length,
+        exchanged: reportTickets.filter(t => t.status === 'exchanged').length
+      },
+      transactions: reportTickets.map(t => ({
+        ticketNumber: t.ticketNumber,
+        pnrNumber: t.pnrNumber,
+        passengerName: t.passengerName,
+        fare: t.fare.total,
+        commission: t.commission.amount,
+        status: t.status,
+        issuedAt: t.issuedAt
+      }))
+    }
+
+    // In a real application, this would trigger a file download
+    console.log('BSP Report Generated:', report)
+    alert(`BSP ${bspReportType} report generated for ${bspReportPeriod} period.\n\nTotal Tickets: ${report.summary.totalTickets}\nTotal Amount: $${report.summary.totalAmount.toFixed(2)}\n\nCheck console for full report data.`)
+
+    setShowBSPReportingDialog(false)
+  }
+
+  // View Ticket Details Handler
+  const handleViewTicketDetails = (ticket: Ticket) => {
+    setSelectedTicket(ticket)
+    setShowTicketDetailDialog(true)
+  }
+
+  // View Audit Trail Handler
+  const handleViewAuditTrail = (ticketNumber: string) => {
+    const trail = ticketAuditTrail.filter(a => a.ticketNumber === ticketNumber)
+    setSelectedTicket(tickets.find(t => t.ticketNumber === ticketNumber) || null)
+    setShowAuditTrailDialog(true)
+  }
+
+  // Add Segment Handler
+  const handleAddSegment = () => {
+    const newSegmentData: FlightSegment = {
+      id: `SEG-${Date.now()}`,
+      flightNumber: '',
+      airlineCode: 'AA',
+      origin: '',
+      destination: '',
+      departureDate: '',
+      departureTime: '',
+      arrivalDate: '',
+      arrivalTime: '',
+      aircraftType: 'B737-800',
+      fareClass: 'Y',
+      fareBasis: 'YEUR',
+      status: 'confirmed',
+      boardingClass: 'economy'
+    }
+    setSegments([...segments, newSegmentData])
+  }
+
+  // Remove Segment Handler
+  const handleRemoveSegment = (index: number) => {
+    if (segments.length > 1) {
+      setSegments(segments.filter((_, i) => i !== index))
+    }
+  }
+
+  // Update Segment Handler
+  const handleUpdateSegment = (index: number, field: string, value: any) => {
+    const updatedSegments = [...segments]
+    updatedSegments[index] = { ...updatedSegments[index], [field]: value }
+    setSegments(updatedSegments)
+  }
+
+  // Add Passenger Handler
+  const handleAddPassenger = () => {
+    const newPassengerData: Passenger = {
+      id: `PAX-${Date.now()}`,
+      title: 'Mr',
+      firstName: '',
+      lastName: '',
+      dateOfBirth: '',
+      passportNumber: '',
+      passportExpiry: '',
+      nationality: '',
+      ssr: []
+    }
+    setPassengers([...passengers, newPassengerData])
+  }
+
+  // Remove Passenger Handler
+  const handleRemovePassenger = (index: number) => {
+    if (passengers.length > 1) {
+      setPassengers(passengers.filter((_, i) => i !== index))
+    }
+  }
+
+  // Update Passenger Handler
+  const handleUpdatePassenger = (index: number, field: string, value: any) => {
+    const updatedPassengers = [...passengers]
+    updatedPassengers[index] = { ...updatedPassengers[index], [field]: value }
+    setPassengers(updatedPassengers)
+  }
+
   const resetForms = () => {
+    // Reset multi-passenger and multi-segment arrays
+    setPassengers([{
+      id: '',
+      title: 'Mr',
+      firstName: '',
+      lastName: '',
+      dateOfBirth: '',
+      passportNumber: '',
+      passportExpiry: '',
+      nationality: '',
+      ssr: []
+    }])
+    setSegments([{
+      id: '',
+      flightNumber: '',
+      airlineCode: 'AA',
+      origin: '',
+      destination: '',
+      departureDate: '',
+      departureTime: '',
+      arrivalDate: '',
+      arrivalTime: '',
+      aircraftType: 'B737-800',
+      fareClass: 'Y',
+      fareBasis: 'YEUR',
+      status: 'confirmed',
+      boardingClass: 'economy'
+    }])
+    
+    // Reset single passenger/segment (legacy, kept for compatibility)
     setNewPassenger({
       id: '',
       title: 'Mr',
@@ -153,6 +1432,23 @@ export default function PSSModule() {
 
   const filteredPNRs = searchQuery ? searchPNRs(searchQuery) : pnrs
 
+  const getSeatColor = (status: SeatStatus) => {
+    switch (status) {
+      case 'available': return 'bg-green-100 hover:bg-green-200 text-green-800 border-green-300'
+      case 'occupied': return 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
+      case 'blocked': return 'bg-red-100 text-red-600 border-red-300 cursor-not-allowed'
+      case 'selected': return 'bg-blue-500 text-white border-blue-600'
+      case 'premium': return 'bg-amber-100 hover:bg-amber-200 text-amber-800 border-amber-400'
+      default: return 'bg-gray-100'
+    }
+  }
+
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    return `${hours}h ${mins}m`
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -171,91 +1467,189 @@ export default function PSSModule() {
                 New PNR
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New PNR</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                {/* Passenger Details */}
+              <div className="space-y-6 py-4">
+                {/* Flight Segments */}
                 <div>
-                  <h3 className="text-sm font-medium mb-2">Passenger Details</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Title</Label>
-                      <Select value={newPassenger.title} onValueChange={(v) => setNewPassenger({...newPassenger, title: v})}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Mr">Mr</SelectItem>
-                          <SelectItem value="Mrs">Mrs</SelectItem>
-                          <SelectItem value="Ms">Ms</SelectItem>
-                          <SelectItem value="Dr">Dr</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Date of Birth</Label>
-                      <Input type="date" value={newPassenger.dateOfBirth} onChange={(e) => setNewPassenger({...newPassenger, dateOfBirth: e.target.value})} />
-                    </div>
-                    <div>
-                      <Label>First Name</Label>
-                      <Input value={newPassenger.firstName} onChange={(e) => setNewPassenger({...newPassenger, firstName: e.target.value})} />
-                    </div>
-                    <div>
-                      <Label>Last Name</Label>
-                      <Input value={newPassenger.lastName} onChange={(e) => setNewPassenger({...newPassenger, lastName: e.target.value})} />
-                    </div>
-                    <div>
-                      <Label>Passport Number</Label>
-                      <Input value={newPassenger.passportNumber} onChange={(e) => setNewPassenger({...newPassenger, passportNumber: e.target.value})} />
-                    </div>
-                    <div>
-                      <Label>Passport Expiry</Label>
-                      <Input type="date" value={newPassenger.passportExpiry} onChange={(e) => setNewPassenger({...newPassenger, passportExpiry: e.target.value})} />
-                    </div>
-                    <div>
-                      <Label>Nationality</Label>
-                      <Input value={newPassenger.nationality} onChange={(e) => setNewPassenger({...newPassenger, nationality: e.target.value})} />
-                    </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium">Flight Segments</h3>
+                    <Button type="button" variant="outline" size="sm" onClick={handleAddSegment}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Segment
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    {segments.map((segment, index) => (
+                      <Card key={segment.id || index} className="p-4 bg-secondary/30">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-medium">Segment {index + 1}</span>
+                          {segments.length > 1 && (
+                            <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveSegment(index)}>
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <Label className="text-xs">Flight Number</Label>
+                            <Input 
+                              value={segment.flightNumber} 
+                              onChange={(e) => handleUpdateSegment(index, 'flightNumber', e.target.value)} 
+                              placeholder="AA123" 
+                              className="text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Origin</Label>
+                            <Input 
+                              value={segment.origin} 
+                              onChange={(e) => handleUpdateSegment(index, 'origin', e.target.value)} 
+                              placeholder="JFK" 
+                              className="text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Destination</Label>
+                            <Input 
+                              value={segment.destination} 
+                              onChange={(e) => handleUpdateSegment(index, 'destination', e.target.value)} 
+                              placeholder="LHR" 
+                              className="text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Departure Date</Label>
+                            <Input 
+                              type="date" 
+                              value={segment.departureDate} 
+                              onChange={(e) => handleUpdateSegment(index, 'departureDate', e.target.value)} 
+                              className="text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Departure Time</Label>
+                            <Input 
+                              type="time" 
+                              value={segment.departureTime} 
+                              onChange={(e) => handleUpdateSegment(index, 'departureTime', e.target.value)} 
+                              className="text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Fare Class</Label>
+                            <Select value={segment.fareClass} onValueChange={(v) => handleUpdateSegment(index, 'fareClass', v)}>
+                              <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Y">Y - Economy</SelectItem>
+                                <SelectItem value="B">B - Economy Flex</SelectItem>
+                                <SelectItem value="M">M - Semi-Flex</SelectItem>
+                                <SelectItem value="Q">Q - Saver</SelectItem>
+                                <SelectItem value="J">J - Business</SelectItem>
+                                <SelectItem value="F">F - First</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
                   </div>
                 </div>
 
-                {/* Flight Segment */}
+                {/* Passengers */}
                 <div>
-                  <h3 className="text-sm font-medium mb-2">Flight Segment</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label>Flight Number</Label>
-                      <Input value={newSegment.flightNumber} onChange={(e) => setNewSegment({...newSegment, flightNumber: e.target.value})} placeholder="AA123" />
-                    </div>
-                    <div>
-                      <Label>Origin</Label>
-                      <Input value={newSegment.origin} onChange={(e) => setNewSegment({...newSegment, origin: e.target.value})} placeholder="JFK" />
-                    </div>
-                    <div>
-                      <Label>Destination</Label>
-                      <Input value={newSegment.destination} onChange={(e) => setNewSegment({...newSegment, destination: e.target.value})} placeholder="LHR" />
-                    </div>
-                    <div>
-                      <Label>Departure Date</Label>
-                      <Input type="date" value={newSegment.departureDate} onChange={(e) => setNewSegment({...newSegment, departureDate: e.target.value})} />
-                    </div>
-                    <div>
-                      <Label>Departure Time</Label>
-                      <Input type="time" value={newSegment.departureTime} onChange={(e) => setNewSegment({...newSegment, departureTime: e.target.value})} />
-                    </div>
-                    <div>
-                      <Label>Fare Class</Label>
-                      <Select value={newSegment.fareClass} onValueChange={(v) => setNewSegment({...newSegment, fareClass: v})}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Y">Y - Economy</SelectItem>
-                          <SelectItem value="B">B - Economy Flex</SelectItem>
-                          <SelectItem value="J">J - Business</SelectItem>
-                          <SelectItem value="F">F - First</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium">Passengers</h3>
+                    <Button type="button" variant="outline" size="sm" onClick={handleAddPassenger}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Passenger
+                    </Button>
                   </div>
+                  <ScrollArea className="max-h-64">
+                    <div className="space-y-3">
+                      {passengers.map((passenger, index) => (
+                        <Card key={passenger.id || index} className="p-4 bg-secondary/30">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-medium">Passenger {index + 1}</span>
+                            {passengers.length > 1 && (
+                              <Button type="button" variant="ghost" size="sm" onClick={() => handleRemovePassenger(index)}>
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-xs">Title</Label>
+                              <Select value={passenger.title} onValueChange={(v) => handleUpdatePassenger(index, 'title', v)}>
+                                <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Mr">Mr</SelectItem>
+                                  <SelectItem value="Mrs">Mrs</SelectItem>
+                                  <SelectItem value="Ms">Ms</SelectItem>
+                                  <SelectItem value="Dr">Dr</SelectItem>
+                                  <SelectItem value="Inf">Infant</SelectItem>
+                                  <SelectItem value="Chd">Child</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label className="text-xs">Date of Birth</Label>
+                              <Input 
+                                type="date" 
+                                value={passenger.dateOfBirth} 
+                                onChange={(e) => handleUpdatePassenger(index, 'dateOfBirth', e.target.value)} 
+                                className="text-sm"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">First Name</Label>
+                              <Input 
+                                value={passenger.firstName} 
+                                onChange={(e) => handleUpdatePassenger(index, 'firstName', e.target.value)} 
+                                className="text-sm"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Last Name</Label>
+                              <Input 
+                                value={passenger.lastName} 
+                                onChange={(e) => handleUpdatePassenger(index, 'lastName', e.target.value)} 
+                                className="text-sm"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Passport Number</Label>
+                              <Input 
+                                value={passenger.passportNumber} 
+                                onChange={(e) => handleUpdatePassenger(index, 'passportNumber', e.target.value)} 
+                                className="text-sm"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Passport Expiry</Label>
+                              <Input 
+                                type="date" 
+                                value={passenger.passportExpiry} 
+                                onChange={(e) => handleUpdatePassenger(index, 'passportExpiry', e.target.value)} 
+                                className="text-sm"
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <Label className="text-xs">Nationality</Label>
+                              <Input 
+                                value={passenger.nationality} 
+                                onChange={(e) => handleUpdatePassenger(index, 'nationality', e.target.value)} 
+                                placeholder="e.g., US, UK, CA" 
+                                className="text-sm"
+                              />
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </div>
 
                 {/* Contact Info */}
@@ -277,10 +1671,30 @@ export default function PSSModule() {
                   </div>
                 </div>
 
-                {/* Remarks */}
-                <div>
-                  <Label>Remarks</Label>
-                  <Textarea placeholder="Add booking remarks..." value={newPNR.remarks[0]} onChange={(e) => setNewPNR({...newPNR, remarks: [e.target.value]})} />
+                {/* Booking Type & Remarks */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Booking Type</Label>
+                    <Select defaultValue="standard">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="group">Group Booking</SelectItem>
+                        <SelectItem value="corporate">Corporate</SelectItem>
+                        <SelectItem value="government">Government</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Remarks</Label>
+                    <Textarea 
+                      placeholder="Add booking remarks..." 
+                      value={newPNR.remarks[0]} 
+                      onChange={(e) => setNewPNR({...newPNR, remarks: [e.target.value]})} 
+                    />
+                  </div>
                 </div>
               </div>
               <DialogFooter>
@@ -305,22 +1719,32 @@ export default function PSSModule() {
           <Card className="enterprise-card">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>PNR Management</CardTitle>
+                <div>
+                  <CardTitle>PNR Management</CardTitle>
+                  <CardDescription>
+                    Create, modify, split, merge, and manage passenger name records
+                  </CardDescription>
+                </div>
                 <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setShowMergeDialog(true)}>
+                    <Merge className="h-4 w-4 mr-2" />
+                    Merge PNRs
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setShowWaitlistDialog(true)}>
+                    <Users className="h-4 w-4 mr-2" />
+                    Process Waitlist
+                  </Button>
                   <div className="relative">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
                       placeholder="Search PNR, passenger..." 
-                      className="pl-8 w-64"
+                      className="pl-8 w-48"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
                 </div>
               </div>
-              <CardDescription>
-                Create, modify, split, merge, and manage passenger name records
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-96">
@@ -370,6 +1794,17 @@ export default function PSSModule() {
                             <div className="flex items-center gap-1">
                               <Button variant="ghost" size="sm" onClick={() => setSelectedPNR(pnr)}>
                                 <Edit className="h-4 w-4" />
+                              </Button>
+                              {pnr.passengers.length > 1 && (
+                                <Button variant="ghost" size="sm" onClick={() => { setSelectedPNR(pnr); setShowSplitDialog(true); }}>
+                                  <Split className="h-4 w-4" />
+                                </Button>
+                              )}
+                              <Button variant="ghost" size="sm" onClick={() => { setSelectedPNR(pnr); setShowRequoteDialog(true); }}>
+                                <DollarSign className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => { setSelectedPNR(pnr); setShowQueueDialog(true); }}>
+                                <Clock className="h-4 w-4" />
                               </Button>
                               {pnr.status !== 'ticketed' && (
                                 <Button variant="ghost" size="sm" onClick={() => handleIssueTicket(pnr)}>
@@ -482,11 +1917,306 @@ export default function PSSModule() {
 
         {/* Ticketing Tab */}
         <TabsContent value="ticketing" className="space-y-4">
+          {/* Ticketing Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Dialog open={showTaxCalculatorDialog} onOpenChange={setShowTaxCalculatorDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Calculator className="h-4 w-4 mr-2" />
+                  Tax Calculator
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Tax Breakdown Calculator</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Origin Airport</Label>
+                      <Input 
+                        placeholder="e.g., JFK" 
+                        value={taxCalculatorParams.origin}
+                        onChange={(e) => setTaxCalculatorParams({...taxCalculatorParams, origin: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label>Destination Airport</Label>
+                      <Input 
+                        placeholder="e.g., LHR" 
+                        value={taxCalculatorParams.destination}
+                        onChange={(e) => setTaxCalculatorParams({...taxCalculatorParams, destination: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Base Fare ($)</Label>
+                    <Input 
+                      type="number" 
+                      value={taxCalculatorParams.fare || ''}
+                      onChange={(e) => setTaxCalculatorParams({...taxCalculatorParams, fare: parseFloat(e.target.value) || 0})}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Route Type</Label>
+                      <Select 
+                        value={taxCalculatorParams.routeType} 
+                        onValueChange={(v: 'domestic' | 'international') => setTaxCalculatorParams({...taxCalculatorParams, routeType: v})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="domestic">Domestic</SelectItem>
+                          <SelectItem value="international">International</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Passenger Type</Label>
+                      <Select 
+                        value={taxCalculatorParams.passengerType} 
+                        onValueChange={(v: 'adult' | 'child' | 'infant') => setTaxCalculatorParams({...taxCalculatorParams, passengerType: v})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="adult">Adult (100%)</SelectItem>
+                          <SelectItem value="child">Child (75%)</SelectItem>
+                          <SelectItem value="infant">Infant (10%)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Button onClick={handleCalculateTaxes} className="w-full">
+                    <Calculator className="h-4 w-4 mr-2" />
+                    Calculate Taxes
+                  </Button>
+                  
+                  {calculatedTaxes.length > 0 && (
+                    <div className="mt-4 space-y-3">
+                      <Separator />
+                      <h4 className="font-medium">Tax Breakdown</h4>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {calculatedTaxes.map((tax, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-secondary/20 rounded">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="font-mono">{tax.code}</Badge>
+                              <span className="text-sm">{tax.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">${tax.amount.toFixed(2)}</span>
+                              {taxRates.find(r => r.code === tax.code)?.refundable && (
+                                <Badge variant="default" className="text-xs">Refundable</Badge>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <Separator />
+                      <div className="flex items-center justify-between font-medium">
+                        <span>Total Taxes</span>
+                        <span>${calculatedTaxes.reduce((sum, t) => sum + t.amount, 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowTaxCalculatorDialog(false)}>Close</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={showRefundFeeCalculator} onOpenChange={setShowRefundFeeCalculator}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Refund Fee Calculator
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Refund Fee Calculator</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <Label>Time Until Departure (hours)</Label>
+                    <Input 
+                      type="number" 
+                      value={refundFeeParams.timeToDeparture || ''}
+                      onChange={(e) => setRefundFeeParams({...refundFeeParams, timeToDeparture: parseFloat(e.target.value) || 0})}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Hours remaining before flight departure</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Fare Class</Label>
+                      <Select 
+                        value={refundFeeParams.fareClass} 
+                        onValueChange={(v: 'first' | 'business' | 'economy') => setRefundFeeParams({...refundFeeParams, fareClass: v})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="economy">Economy</SelectItem>
+                          <SelectItem value="business">Business</SelectItem>
+                          <SelectItem value="first">First</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Refund Reason</Label>
+                      <Select 
+                        value={refundFeeParams.refundReason} 
+                        onValueChange={(v: 'voluntary' | 'involuntary') => setRefundFeeParams({...refundFeeParams, refundReason: v})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="voluntary">Voluntary (Passenger-initiated)</SelectItem>
+                          <SelectItem value="involuntary">Involuntary (Airline-initiated)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Fare Type</Label>
+                    <Select 
+                      value={refundFeeParams.fareType} 
+                      onValueChange={(v: 'regular' | 'promotional') => setRefundFeeParams({...refundFeeParams, fareType: v})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="regular">Regular Fare</SelectItem>
+                        <SelectItem value="promotional">Promotional Fare (50% higher fees)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={handleCalculateRefundFee} className="w-full">
+                    <Calculator className="h-4 w-4 mr-2" />
+                    Calculate Refund Fee
+                  </Button>
+
+                  {calculatedRefundFee > 0 && (
+                    <div className="mt-4 p-4 bg-secondary/20 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Calculated Refund Fee</p>
+                          <p className="text-xs text-muted-foreground">
+                            {refundFeeParams.timeToDeparture < 24 && '< 24 hours before departure'}
+                            {refundFeeParams.timeToDeparture >= 24 && refundFeeParams.timeToDeparture < 72 && '24-72 hours before departure'}
+                            {refundFeeParams.timeToDeparture >= 72 && '> 72 hours before departure'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold">${calculatedRefundFee}</p>
+                          {refundFeeParams.refundReason === 'involuntary' && (
+                            <Badge variant="default" className="text-xs mt-1">No Fee - Involuntary</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowRefundFeeCalculator(false)}>Close</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={showBSPReportingDialog} onOpenChange={setShowBSPReportingDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  BSP/ARC Reporting
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>BSP/ARC Reporting</DialogTitle>
+                  <DialogDescription>Generate settlement, billing, and refund reports</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Report Period</Label>
+                      <Select 
+                        value={bspReportPeriod} 
+                        onValueChange={(v: 'daily' | 'weekly' | 'monthly') => setBSPReportPeriod(v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Report Type</Label>
+                      <Select 
+                        value={bspReportType} 
+                        onValueChange={(v: 'settlement' | 'billing' | 'refunds') => setBSPReportType(v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="settlement">Settlement Report</SelectItem>
+                          <SelectItem value="billing">Billing Report</SelectItem>
+                          <SelectItem value="refunds">Refund Report</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    <Card className="p-4">
+                      <div className="text-2xl font-bold">{tickets.filter(t => t.status === 'open').length}</div>
+                      <div className="text-xs text-muted-foreground">Issued Tickets</div>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-2xl font-bold">{tickets.filter(t => t.status === 'void').length}</div>
+                      <div className="text-xs text-muted-foreground">Voided</div>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-2xl font-bold">{tickets.filter(t => t.status === 'refunded').length}</div>
+                      <div className="text-xs text-muted-foreground">Refunded</div>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-2xl font-bold">${tickets.reduce((sum, t) => sum + t.fare.total, 0).toFixed(0)}</div>
+                      <div className="text-xs text-muted-foreground">Total Value</div>
+                    </Card>
+                  </div>
+
+                  <div className="flex gap-2 mt-4">
+                    <Button onClick={handleGenerateBSPReport} className="flex-1">
+                      <Download className="h-4 w-4 mr-2" />
+                      Generate Report
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowBSPReportingDialog(false)}>
+                      Close
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Ticket Management */}
           <Card className="enterprise-card">
             <CardHeader>
               <CardTitle>Ticket Management</CardTitle>
               <CardDescription>
-                E-ticket issuance, EMD, reissue, refund, and interline ticketing
+                E-ticket issuance, reissue, refund, and exchange operations
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -499,6 +2229,7 @@ export default function PSSModule() {
                       <th>PNR</th>
                       <th>Route</th>
                       <th>Fare</th>
+                      <th>Commission</th>
                       <th>Issued</th>
                       <th>Status</th>
                       <th>Actions</th>
@@ -507,8 +2238,8 @@ export default function PSSModule() {
                   <tbody>
                     {tickets.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="text-center text-muted-foreground py-8">
-                          No tickets issued yet
+                        <td colSpan={9} className="text-center text-muted-foreground py-8">
+                          No tickets issued yet. Issue tickets from the Reservations tab.
                         </td>
                       </tr>
                     ) : (
@@ -523,6 +2254,10 @@ export default function PSSModule() {
                             ))}
                           </td>
                           <td className="text-sm">${ticket.fare.total}</td>
+                          <td className="text-sm">
+                            <div>${ticket.commission.amount}</div>
+                            <div className="text-xs text-muted-foreground">({ticket.commission.rate}%)</div>
+                          </td>
                           <td className="text-sm">{new Date(ticket.issuedAt).toLocaleDateString()}</td>
                           <td>
                             <Badge 
@@ -535,16 +2270,64 @@ export default function PSSModule() {
                           </td>
                           <td>
                             <div className="flex items-center gap-1">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleViewTicketDetails(ticket)}
+                                title="View Details"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
                               {ticket.status === 'open' && (
                                 <>
-                                  <Button variant="ghost" size="sm" onClick={() => handleVoidTicket(ticket.ticketNumber)} title="Void">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => {
+                                      setSelectedTicket(ticket)
+                                      setShowPartialExchangeDialog(true)
+                                    }}
+                                    title="Exchange"
+                                  >
+                                    <RefreshCw className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => {
+                                      setSelectedTicket(ticket)
+                                      setShowInvoluntaryRefundDialog(true)
+                                    }}
+                                    title="Involuntary Refund"
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => voidTicket(ticket.ticketNumber)} 
+                                    title="Void"
+                                  >
                                     <FileText className="h-4 w-4" />
                                   </Button>
-                                  <Button variant="ghost" size="sm" onClick={() => refundTicket(ticket.ticketNumber, 'Passenger request')} title="Refund">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => refundTicket(ticket.ticketNumber, 'Voluntary refund')} 
+                                    title="Refund"
+                                  >
                                     <DollarSign className="h-4 w-4" />
                                   </Button>
                                 </>
                               )}
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleViewAuditTrail(ticket.ticketNumber)}
+                                title="Audit Trail"
+                              >
+                                <History className="h-4 w-4" />
+                              </Button>
                             </div>
                           </td>
                         </tr>
@@ -580,6 +2363,7 @@ export default function PSSModule() {
                         <th>Description</th>
                         <th>Amount</th>
                         <th>Status</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -595,6 +2379,16 @@ export default function PSSModule() {
                               {emd.status}
                             </Badge>
                           </td>
+                          <td>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => voidEMD(emd.emdNumber)}
+                              title="Void EMD"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -603,143 +2397,2355 @@ export default function PSSModule() {
               )}
             </CardContent>
           </Card>
+
+          {/* PARTIAL EXCHANGE DIALOG */}
+          <Dialog open={showPartialExchangeDialog} onOpenChange={setShowPartialExchangeDialog}>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Partial Exchange - {selectedTicket?.ticketNumber}</DialogTitle>
+                <DialogDescription>
+                  Exchange selected flight segments only. Original ticket will be exchanged for new ticket with updated fare.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                {selectedTicket && (
+                  <>
+                    {/* Original Ticket Info */}
+                    <div className="p-4 bg-secondary/20 rounded-lg">
+                      <h4 className="font-medium mb-3">Original Ticket Information</h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Passenger:</span> {selectedTicket.passengerName}
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Current Fare:</span> ${selectedTicket.fare.total}
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Base Fare:</span> ${selectedTicket.fare.baseFare}
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Change Penalty:</span> ${selectedTicket.changePenalty || 0}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Segment Selection */}
+                    <div>
+                      <Label className="text-base font-medium">Select Segments to Exchange</Label>
+                      <p className="text-xs text-muted-foreground mb-3">Choose which flight segments you want to change</p>
+                      <div className="space-y-2">
+                        {selectedTicket.segments.map((segment, idx) => (
+                          <div 
+                            key={idx}
+                            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                              selectedSegmentsForExchange.includes(segment.id)
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-border hover:bg-secondary/20'
+                            }`}
+                            onClick={() => {
+                              if (selectedSegmentsForExchange.includes(segment.id)) {
+                                setSelectedSegmentsForExchange(selectedSegmentsForExchange.filter(id => id !== segment.id))
+                              } else {
+                                setSelectedSegmentsForExchange([...selectedSegmentsForExchange, segment.id])
+                              }
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Checkbox 
+                                  checked={selectedSegmentsForExchange.includes(segment.id)}
+                                  readOnly
+                                />
+                                <div>
+                                  <div className="font-medium">{segment.flightNumber}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {segment.origin} → {segment.destination}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right text-sm">
+                                <div>{segment.departureDate}</div>
+                                <div className="text-muted-foreground">{segment.departureTime}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* New Fare Input */}
+                    <div>
+                      <Label>New Fare ($)</Label>
+                      <Input 
+                        type="number" 
+                        value={exchangeNewFare || ''}
+                        onChange={(e) => setExchangeNewFare(parseFloat(e.target.value) || 0)}
+                        placeholder="Enter new fare amount"
+                      />
+                    </div>
+
+                    {/* Fare Breakdown */}
+                    {selectedSegmentsForExchange.length > 0 && exchangeNewFare > 0 && (
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 className="font-medium mb-3">Exchange Calculation</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Original Fare:</span>
+                            <span>${selectedTicket.fare.total}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>New Fare:</span>
+                            <span>${exchangeNewFare}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Fare Difference:</span>
+                            <span className={exchangeNewFare - selectedTicket.fare.total > 0 ? 'text-red-600' : 'text-green-600'}>
+                              ${exchangeNewFare - selectedTicket.fare.total}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Change Fee:</span>
+                            <span>${selectedTicket.changePenalty || 0}</span>
+                          </div>
+                          <Separator />
+                          <div className="flex justify-between font-medium text-base">
+                            <span>Total Due / Refund:</span>
+                            <span className={exchangeNewFare - selectedTicket.fare.total + (selectedTicket.changePenalty || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
+                              ${(exchangeNewFare - selectedTicket.fare.total + (selectedTicket.changePenalty || 0)).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fare Rules */}
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Info className="h-4 w-4" />
+                        Fare Rules & Restrictions
+                      </h4>
+                      <ul className="text-sm space-y-1 text-amber-800">
+                        {selectedTicket.fareRules.map((rule, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span>•</span>
+                            <span>{rule}</span>
+                          </li>
+                        ))}
+                        <li className="flex items-start gap-2">
+                          <span>•</span>
+                          <span>Exchange fee of ${selectedTicket.changePenalty || 0} applies to voluntary changes</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span>•</span>
+                          <span>Fare difference will be collected or refunded based on new fare</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => {
+                  setShowPartialExchangeDialog(false)
+                  setSelectedSegmentsForExchange([])
+                  setExchangeNewFare(0)
+                }}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handlePartialExchange}
+                  disabled={selectedSegmentsForExchange.length === 0 || exchangeNewFare === 0}
+                >
+                  Process Exchange
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* INVOLUNTARY REFUND DIALOG */}
+          <Dialog open={showInvoluntaryRefundDialog} onOpenChange={setShowInvoluntaryRefundDialog}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Involuntary Refund - {selectedTicket?.ticketNumber}</DialogTitle>
+                <DialogDescription>
+                  Process airline-initiated refunds for delays, cancellations, and other disruptions
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                {selectedTicket && (
+                  <>
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <h4 className="font-medium mb-3 flex items-center gap-2 text-red-800">
+                        <AlertTriangle className="h-4 w-4" />
+                        Involuntary Refund Information
+                      </h4>
+                      <p className="text-sm text-red-700 mb-3">
+                        Involuntary refunds are airline-initiated and typically result in full refund without penalties.
+                        Common reasons include flight cancellations, significant delays, and schedule changes.
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Ticket Number:</span>
+                          <span className="font-mono">{selectedTicket.ticketNumber}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Passenger:</span>
+                          <span>{selectedTicket.passengerName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Original Amount:</span>
+                          <span>${selectedTicket.fare.total}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Refund Reason *</Label>
+                      <Select value={involuntaryRefundReason} onValueChange={setInvoluntaryRefundReason}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select reason for refund" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="flight_cancelled">Flight Cancelled</SelectItem>
+                          <SelectItem value="significant_delay">Significant Delay (2+ hours)</SelectItem>
+                          <SelectItem value="schedule_change">Schedule Change</SelectItem>
+                          <SelectItem value="flight_diverted">Flight Diverted</SelectItem>
+                          <SelectItem value="equipment_change">Equipment Change</SelectItem>
+                          <SelectItem value="route_discontinuation">Route Discontinuation</SelectItem>
+                          <SelectItem value="other">Other (Specify)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {involuntaryRefundReason === 'other' && (
+                      <div>
+                        <Label>Specify Reason</Label>
+                        <Textarea 
+                          placeholder="Please provide details..."
+                          value={involuntaryRefundReason === 'other' ? '' : involuntaryRefundReason}
+                          onChange={(e) => setInvoluntaryRefundReason(`Other: ${e.target.value}`)}
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <Label>Approver Name *</Label>
+                      <Input 
+                        placeholder="Enter approver name"
+                        value={involuntaryRefundApprover}
+                        onChange={(e) => setInvoluntaryRefundApprover(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Manager or supervisor approval required for involuntary refunds</p>
+                    </div>
+
+                    {/* Refund Breakdown */}
+                    <div className="p-4 bg-secondary/20 rounded-lg">
+                      <h4 className="font-medium mb-3">Refund Breakdown</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Base Fare:</span>
+                          <span>${selectedTicket.fare.baseFare}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Taxes:</span>
+                          <span>${selectedTicket.fare.taxes}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Fees:</span>
+                          <span>${selectedTicket.fare.fees}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between font-medium text-base">
+                          <span>Total Refund:</span>
+                          <span className="text-green-600">${selectedTicket.fare.total}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tax Breakdown */}
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h4 className="font-medium mb-2">Tax Breakdown (Refundable)</h4>
+                      <div className="space-y-1 text-sm max-h-32 overflow-y-auto">
+                        {selectedTicket.taxes.length > 0 ? (
+                          selectedTicket.taxes.map((tax, idx) => (
+                            <div key={idx} className="flex justify-between">
+                              <span>{tax.code} - {tax.name}</span>
+                              <span>${tax.amount.toFixed(2)}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-muted-foreground">
+                            Estimated taxes: ${Math.round(selectedTicket.fare.taxes)} (full amount refundable)
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => {
+                  setShowInvoluntaryRefundDialog(false)
+                  setInvoluntaryRefundReason('')
+                  setInvoluntaryRefundApprover('')
+                }}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={handleInvoluntaryRefund}
+                  disabled={!involuntaryRefundReason || !involuntaryRefundApprover}
+                >
+                  Process Refund
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* TICKET DETAIL DIALOG */}
+          <Dialog open={showTicketDetailDialog} onOpenChange={setShowTicketDetailDialog}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center justify-between">
+                  <span>Ticket Details - {selectedTicket?.ticketNumber}</span>
+                  {selectedTicket?.isCodeshare && (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <Share2 className="h-3 w-3" />
+                      Codeshare
+                    </Badge>
+                  )}
+                </DialogTitle>
+              </DialogHeader>
+              {selectedTicket && (
+                <div className="space-y-4 py-4">
+                  {/* Quick Stats */}
+                  <div className="grid grid-cols-4 gap-4">
+                    <Card className="p-3">
+                      <div className="text-xs text-muted-foreground">Status</div>
+                      <Badge 
+                        variant={selectedTicket.status === 'open' ? 'default' : 
+                                selectedTicket.status === 'void' ? 'destructive' : 'secondary'}
+                        className="capitalize mt-1"
+                      >
+                        {selectedTicket.status}
+                      </Badge>
+                    </Card>
+                    <Card className="p-3">
+                      <div className="text-xs text-muted-foreground">Total Fare</div>
+                      <div className="font-bold text-lg">${selectedTicket.fare.total}</div>
+                    </Card>
+                    <Card className="p-3">
+                      <div className="text-xs text-muted-foreground">Commission</div>
+                      <div className="font-bold text-lg">${selectedTicket.commission.amount}</div>
+                      <div className="text-xs text-muted-foreground">({selectedTicket.commission.rate}%)</div>
+                    </Card>
+                    <Card className="p-3">
+                      <div className="text-xs text-muted-foreground">Refundable</div>
+                      <div className="mt-1">
+                        {selectedTicket.refundable ? (
+                          <CheckCircle className="h-6 w-6 text-green-600" />
+                        ) : (
+                          <XCircle className="h-6 w-6 text-red-600" />
+                        )}
+                      </div>
+                    </Card>
+                  </div>
+
+                  {/* Passenger & PNR Info */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card className="p-4">
+                      <h4 className="font-medium mb-3">Passenger Information</h4>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Name:</span> {selectedTicket.passengerName}
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">PNR:</span> <span className="font-mono">{selectedTicket.pnrNumber}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Issued:</span> {new Date(selectedTicket.issuedAt).toLocaleString()}
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Issued By:</span> {selectedTicket.issuedBy}
+                        </div>
+                      </div>
+                    </Card>
+
+                    <Card className="p-4">
+                      <h4 className="font-medium mb-3">Carrier Information</h4>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Marketing Carrier:</span> {selectedTicket.segments[0]?.airlineCode}
+                        </div>
+                        {selectedTicket.operatingCarrier && (
+                          <div>
+                            <span className="text-muted-foreground">Operating Carrier:</span> {selectedTicket.operatingCarrier}
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-muted-foreground">Validation Airline:</span> {selectedTicket.validationAirline}
+                        </div>
+                        {selectedTicket.isCodeshare && (
+                          <div>
+                            <Badge variant="outline" className="mt-2">
+                              This is a codeshare flight
+                            </Badge>
+                          </div>
+                        )}
+                        {selectedTicket.interlinePartners && selectedTicket.interlinePartners.length > 0 && (
+                          <div>
+                            <span className="text-muted-foreground">Interline Partners:</span>
+                            <div className="flex gap-1 mt-1">
+                              {selectedTicket.interlinePartners.map((partner, idx) => (
+                                <Badge key={idx} variant="secondary" className="text-xs">{partner}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  </div>
+
+                  {/* Flight Segments */}
+                  <Card className="p-4">
+                    <h4 className="font-medium mb-3">Flight Segments</h4>
+                    <div className="space-y-3">
+                      {selectedTicket.segments.map((segment, idx) => (
+                        <div key={idx} className="flex items-center gap-4 p-3 bg-secondary/20 rounded-lg">
+                          <div className="flex-1">
+                            <div className="font-medium">{segment.flightNumber}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {segment.origin} → {segment.destination}
+                            </div>
+                          </div>
+                          <div className="text-right text-sm">
+                            <div>{segment.departureDate}</div>
+                            <div className="text-muted-foreground">{segment.departureTime}</div>
+                          </div>
+                          <div className="text-right text-sm">
+                            <div>{segment.arrivalDate}</div>
+                            <div className="text-muted-foreground">{segment.arrivalTime}</div>
+                          </div>
+                          <Badge variant="outline">{segment.boardingClass}</Badge>
+                          <Badge variant="outline">{segment.fareClass}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+
+                  {/* Fare Breakdown */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card className="p-4">
+                      <h4 className="font-medium mb-3">Fare Breakdown</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Base Fare:</span>
+                          <span>${selectedTicket.fare.baseFare}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Taxes:</span>
+                          <span>${selectedTicket.fare.taxes}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Fees:</span>
+                          <span>${selectedTicket.fare.fees}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between font-medium text-base">
+                          <span>Total:</span>
+                          <span>${selectedTicket.fare.total}</span>
+                        </div>
+                      </div>
+                    </Card>
+
+                    <Card className="p-4">
+                      <h4 className="font-medium mb-3">Commission Details</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Commission Amount:</span>
+                          <span>${selectedTicket.commission.amount}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Commission Rate:</span>
+                          <span>{selectedTicket.commission.rate}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Paid To:</span>
+                          <span>{selectedTicket.commission.paidTo || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </Card>
+                  </div>
+
+                  {/* Tax Breakdown */}
+                  {selectedTicket.taxes.length > 0 && (
+                    <Card className="p-4">
+                      <h4 className="font-medium mb-3">Tax Breakdown</h4>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        {selectedTicket.taxes.map((tax, idx) => (
+                          <div key={idx} className="flex justify-between p-2 bg-secondary/20 rounded">
+                            <div>
+                              <Badge variant="outline" className="mr-2">{tax.code}</Badge>
+                              {tax.name}
+                            </div>
+                            <span>${tax.amount.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Fare Rules */}
+                  <Card className="p-4">
+                    <h4 className="font-medium mb-3">Fare Rules & Restrictions</h4>
+                    <ul className="space-y-2 text-sm">
+                      {selectedTicket.fareRules.map((rule, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-muted-foreground">•</span>
+                          <span>{rule}</span>
+                        </li>
+                      ))}
+                      <li className="flex items-start gap-2">
+                        <span className="text-muted-foreground">•</span>
+                        <span>Change Penalty: ${selectedTicket.changePenalty || 0}</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-muted-foreground">•</span>
+                        <span>
+                          {selectedTicket.refundable ? (
+                            <span className="text-green-600">Refundable</span>
+                          ) : (
+                            <span className="text-red-600">Non-refundable</span>
+                          )}
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-muted-foreground">•</span>
+                        <span>Voidable until: {new Date(selectedTicket.voidableUntil).toLocaleString()}</span>
+                      </li>
+                    </ul>
+                  </Card>
+
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowTicketDetailDialog(false)}>
+                      Close
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      setShowTicketDetailDialog(false)
+                      handleViewAuditTrail(selectedTicket.ticketNumber)
+                    }}>
+                      <History className="h-4 w-4 mr-2" />
+                      View Audit Trail
+                    </Button>
+                  </DialogFooter>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* AUDIT TRAIL DIALOG */}
+          <Dialog open={showAuditTrailDialog} onOpenChange={setShowAuditTrailDialog}>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  Ticket Audit Trail - {selectedTicket?.ticketNumber}
+                </DialogTitle>
+                <DialogDescription>
+                  Complete history of all actions performed on this ticket
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                {selectedTicket && (
+                  <>
+                    <Card className="p-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Passenger:</span>
+                          <div className="font-medium">{selectedTicket.passengerName}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">PNR:</span>
+                          <div className="font-mono font-medium">{selectedTicket.pnrNumber}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Current Status:</span>
+                          <div>
+                            <Badge 
+                              variant={selectedTicket.status === 'open' ? 'default' : 
+                                      selectedTicket.status === 'void' ? 'destructive' : 'secondary'}
+                              className="capitalize"
+                            >
+                              {selectedTicket.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Total Amount:</span>
+                          <div className="font-medium">${selectedTicket.fare.total}</div>
+                        </div>
+                      </div>
+                    </Card>
+
+                    <Card className="p-4">
+                      <h4 className="font-medium mb-3">Audit History</h4>
+                      {ticketAuditTrail.filter(a => a.ticketNumber === selectedTicket.ticketNumber).length === 0 ? (
+                        <div className="text-center text-muted-foreground py-4">
+                          No audit trail entries found for this ticket
+                        </div>
+                      ) : (
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                          {ticketAuditTrail
+                            .filter(a => a.ticketNumber === selectedTicket.ticketNumber)
+                            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                            .map((entry, idx) => (
+                              <div key={idx} className="p-3 border rounded-lg">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="capitalize">
+                                      {entry.action.replace('_', ' ')}
+                                    </Badge>
+                                    <span className="text-sm text-muted-foreground">
+                                      {new Date(entry.timestamp).toLocaleString()}
+                                    </span>
+                                  </div>
+                                  <span className="text-sm text-muted-foreground">
+                                    By: {entry.user}
+                                  </span>
+                                </div>
+                                {entry.reason && (
+                                  <div className="text-sm mb-2">
+                                    <span className="text-muted-foreground">Reason:</span> {entry.reason}
+                                  </div>
+                                )}
+                                {entry.approver && (
+                                  <div className="text-sm mb-2">
+                                    <span className="text-muted-foreground">Approver:</span> {entry.approver}
+                                  </div>
+                                )}
+                                {entry.before && (
+                                  <div className="text-sm bg-red-50 p-2 rounded mb-2">
+                                    <div className="font-medium text-red-800 mb-1">Before:</div>
+                                    <pre className="text-xs text-red-700 whitespace-pre-wrap">
+                                      {JSON.stringify(entry.before, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                                {entry.after && (
+                                  <div className="text-sm bg-green-50 p-2 rounded">
+                                    <div className="font-medium text-green-800 mb-1">After:</div>
+                                    <pre className="text-xs text-green-700 whitespace-pre-wrap">
+                                      {JSON.stringify(entry.after, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </Card>
+                  </>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowAuditTrailDialog(false)}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* Inventory Tab */}
         <TabsContent value="inventory" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="enterprise-card">
-              <CardHeader>
-                <CardTitle className="text-base">Fare Class Control</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {['Y', 'B', 'M', 'Q', 'K', 'L', 'T', 'E'].map((rbd) => (
-                    <div key={rbd} className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{rbd}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">9/9</span>
-                        <Badge variant="outline" className="text-xs">Open</Badge>
+          <Tabs value={inventorySubTab} onValueChange={setInventorySubTab}>
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="seatmap">Seat Map</TabsTrigger>
+              <TabsTrigger value="od">O&D Control</TabsTrigger>
+              <TabsTrigger value="fareclasses">Fare Classes</TabsTrigger>
+              <TabsTrigger value="overbooking">Overbooking</TabsTrigger>
+              <TabsTrigger value="advanced">Advanced</TabsTrigger>
+            </TabsList>
+
+            {/* Overview Tab */}
+            <TabsContent value="overview" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="enterprise-card">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Layers className="h-4 w-4" />
+                      Fare Class Control
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {fareClasses.slice(0, 6).map((fc) => (
+                        <div key={fc.code} className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{fc.code} - {fc.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">{fc.sold}/{fc.capacity}</span>
+                            <Badge variant={fc.isOpen ? 'default' : 'secondary'} className="text-xs">
+                              {fc.isOpen ? 'Open' : 'Closed'}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="enterprise-card">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      Overbooking Control
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Economy</span>
+                        <span className="font-medium text-green-600">+{overbookingSettings.economy} seats</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Business</span>
+                        <span className="font-medium text-green-600">+{overbookingSettings.business} seats</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span>First</span>
+                        <span className="font-medium text-muted-foreground">+{overbookingSettings.first} seats</span>
+                      </div>
+                      <Separator />
+                      <div className="text-xs text-muted-foreground">
+                        Threshold: {overbookingSettings.loadFactorThreshold}% load factor
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span>Auto-adjust</span>
+                        <Switch checked={overbookingSettings.autoAdjust} onCheckedChange={(v) => setOverbookingSettings({...overbookingSettings, autoAdjust: v})} />
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
 
-            <Card className="enterprise-card">
-              <CardHeader>
-                <CardTitle className="text-base">Overbooking Control</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Economy</span>
-                    <span className="font-medium">+5 seats</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Business</span>
-                    <span className="font-medium">+2 seats</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span>First</span>
-                    <span className="font-medium">0 seats</span>
-                  </div>
-                  <Separator />
-                  <div className="text-xs text-muted-foreground">
-                    Configured per route and season
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="enterprise-card">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Armchair className="h-4 w-4" />
+                      Seat Map Summary
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Aircraft:</span>
+                        <span className="font-medium ml-2">{selectedAircraft}</span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Configuration:</span>
+                        <span className="font-medium ml-2">3-3 (Economy)</span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Total Seats:</span>
+                        <span className="font-medium ml-2">{seats.length}</span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Available:</span>
+                        <span className="font-medium ml-2 text-green-600">
+                          {seats.filter(s => s.status === 'available' || s.status === 'premium').length}
+                        </span>
+                      </div>
+                      <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => setInventorySubTab('seatmap')}>
+                        View Full Seat Map
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
-            <Card className="enterprise-card">
-              <CardHeader>
-                <CardTitle className="text-base">Seat Map Control</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Aircraft:</span>
-                    <span className="font-medium ml-2">B737-800</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Configuration:</span>
-                    <span className="font-medium ml-2">3-3</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Total Seats:</span>
-                    <span className="font-medium ml-2">189</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Available:</span>
-                    <span className="font-medium ml-2 text-green-600">142</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              <Card className="enterprise-card">
+                <CardHeader>
+                  <CardTitle>Fare Families</CardTitle>
+                  <CardDescription>
+                    Manage fare families, bundled products, and pricing tiers
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <table className="enterprise-table">
+                    <thead>
+                      <tr>
+                        <th>Family</th>
+                        <th>Cabin</th>
+                        <th>Fare Classes</th>
+                        <th>Features</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fareFamilies.map((family) => (
+                        <tr key={family.id}>
+                          <td className="font-medium">{family.name}</td>
+                          <td className="capitalize">{family.cabin}</td>
+                          <td>
+                            {family.fareClasses.map(fc => (
+                              <Badge key={fc} variant="outline" className="mr-1">{fc}</Badge>
+                            ))}
+                          </td>
+                          <td className="text-sm text-muted-foreground max-w-xs truncate">
+                            {family.features.join(', ')}
+                          </td>
+                          <td>
+                            <Badge variant={family.isActive ? 'default' : 'secondary'}>
+                              {family.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </td>
+                          <td>
+                            <Button variant="ghost" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          <Card className="enterprise-card">
-            <CardHeader>
-              <CardTitle>Fare Families</CardTitle>
-              <CardDescription>
-                Manage fare families, bundled products, and pricing tiers
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <table className="enterprise-table">
-                <thead>
-                  <tr>
-                    <th>Family</th>
-                    <th>Cabin</th>
-                    <th>Fare Classes</th>
-                    <th>Features</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="font-medium">Basic Economy</td>
-                    <td>Economy</td>
-                    <td><Badge variant="outline">E</Badge> <Badge variant="outline">T</Badge></td>
-                    <td className="text-sm text-muted-foreground">Personal item, no changes</td>
-                    <td><Badge variant="default">Active</Badge></td>
-                  </tr>
-                  <tr>
-                    <td className="font-medium">Standard</td>
-                    <td>Economy</td>
-                    <td><Badge variant="outline">Y</Badge> <Badge variant="outline">B</Badge></td>
-                    <td className="text-sm text-muted-foreground">Carry-on, seat selection</td>
-                    <td><Badge variant="default">Active</Badge></td>
-                  </tr>
-                  <tr>
-                    <td className="font-medium">Flex</td>
-                    <td>Economy</td>
-                    <td><Badge variant="outline">M</Badge> <Badge variant="outline">Q</Badge></td>
-                    <td className="text-sm text-muted-foreground">Full baggage, free changes</td>
-                    <td><Badge variant="default">Active</Badge></td>
-                  </tr>
-                  <tr>
-                    <td className="font-medium">Business</td>
-                    <td>Business</td>
-                    <td><Badge variant="outline">J</Badge> <Badge variant="outline">C</Badge></td>
-                    <td className="text-sm text-muted-foreground">Lounge, priority, full service</td>
-                    <td><Badge variant="default">Active</Badge></td>
-                  </tr>
-                  <tr>
-                    <td className="font-medium">First</td>
-                    <td>First</td>
-                    <td><Badge variant="outline">F</Badge> <Badge variant="outline">A</Badge></td>
-                    <td className="text-sm text-muted-foreground">Suites, private terminal, chef</td>
-                    <td><Badge variant="default">Active</Badge></td>
-                  </tr>
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+            {/* Seat Map Tab */}
+            <TabsContent value="seatmap" className="space-y-4">
+              <Card className="enterprise-card">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Interactive Seat Map</CardTitle>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Label>Aircraft:</Label>
+                        <Select value={selectedAircraft} onValueChange={setSelectedAircraft}>
+                          <SelectTrigger className="w-40">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="B737-800">Boeing 737-800</SelectItem>
+                            <SelectItem value="A320-200">Airbus A320-200</SelectItem>
+                            <SelectItem value="B777-300ER">Boeing 777-300ER</SelectItem>
+                            <SelectItem value="A350-900">Airbus A350-900</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label>Cabin:</Label>
+                        <Select value={selectedCabin} onValueChange={(v: CabinClass) => setSelectedCabin(v)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="economy">Economy</SelectItem>
+                            <SelectItem value="business">Business</SelectItem>
+                            <SelectItem value="first">First</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                  <CardDescription>
+                    Click on available seats to select. View seat details and pricing.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {/* Legend */}
+                  <div className="flex items-center gap-6 mb-6 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-green-100 border border-green-300 rounded"></div>
+                      <span>Available</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-amber-100 border border-amber-400 rounded"></div>
+                      <span>Premium</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-gray-100 border border-gray-300 rounded"></div>
+                      <span>Occupied</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-red-100 border border-red-300 rounded"></div>
+                      <span>Blocked</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-blue-500 border border-blue-600 rounded"></div>
+                      <span>Selected</span>
+                    </div>
+                  </div>
+
+                  {/* Seat Map */}
+                  <ScrollArea className="max-h-96">
+                    <div className="flex justify-center">
+                      <div className="space-y-1">
+                        {/* Aircraft nose */}
+                        <div className="w-full flex justify-center mb-4">
+                          <div className="bg-gray-200 text-gray-600 px-6 py-2 rounded-t-full text-sm font-medium">
+                            {selectedAircraft} - {selectedCabin.toUpperCase()}
+                          </div>
+                        </div>
+                        
+                        {/* Seats grid */}
+                        <div className="bg-gray-50 p-6 rounded-lg border">
+                          {Array.from(new Set(seats.map(s => s.row))).sort((a, b) => a - b).map((row) => (
+                            <div key={row} className="flex items-center justify-center gap-2 mb-2">
+                              <span className="w-8 text-center text-sm font-medium text-muted-foreground">{row}</span>
+                              <div className="flex items-center gap-1">
+                                {seats.filter(s => s.row === row).sort((a, b) => a.column.localeCompare(b.column)).map((seat) => (
+                                  <button
+                                    key={seat.id}
+                                    onClick={() => handleSeatClick(seat)}
+                                    disabled={seat.status === 'occupied' || seat.status === 'blocked'}
+                                    className={`
+                                      w-10 h-10 rounded border-2 flex items-center justify-center text-xs font-medium
+                                      ${getSeatColor(seat.status)}
+                                      ${seat.isExitRow ? 'ring-2 ring-orange-400' : ''}
+                                      ${seat.isWindow ? 'rounded-l' : ''}
+                                      ${seat.isAisle ? 'mx-1' : ''}
+                                      transition-all
+                                    `}
+                                    title={`${seat.id}${seat.isWindow ? ' (Window)' : ''}${seat.isAisle ? ' (Aisle)' : ''}${seat.isExitRow ? ' (Exit Row)' : ''} - $${seat.price}`}
+                                  >
+                                    {seat.column}
+                                  </button>
+                                ))}
+                              </div>
+                              <span className="w-8 text-center text-sm font-medium text-muted-foreground">{row}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Aircraft tail */}
+                        <div className="w-full flex justify-center mt-4">
+                          <div className="bg-gray-200 text-gray-600 px-8 py-2 rounded-b-full text-sm">
+                            ◄
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </ScrollArea>
+
+                  {/* Selected Seat Details */}
+                  {selectedSeat && (
+                    <Card className="mt-4 bg-blue-50 border-blue-200">
+                      <CardContent className="pt-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-2">
+                            <h4 className="font-semibold">Seat {selectedSeat.id}</h4>
+                            <div className="flex items-center gap-4 text-sm">
+                              <span className="text-muted-foreground">Price:</span>
+                              <span className="font-semibold text-lg">${selectedSeat.price}</span>
+                              {selectedSeat.status === 'premium' && (
+                                <Badge variant="secondary">Premium</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-sm">
+                              <span className="text-muted-foreground">Characteristics:</span>
+                              <div className="flex items-center gap-2">
+                                {selectedSeat.isWindow && <Badge variant="outline">Window</Badge>}
+                                {selectedSeat.isAisle && <Badge variant="outline">Aisle</Badge>}
+                                {selectedSeat.isExitRow && <Badge variant="outline">Exit Row</Badge>}
+                                {selectedSeat.isWing && <Badge variant="outline">Wing</Badge>}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm">
+                              <span className="text-muted-foreground">Legroom:</span>
+                              <span>{selectedSeat.legroom} inches</span>
+                              <span className="text-muted-foreground ml-4">Recline:</span>
+                              <span>{selectedSeat.recline} inches</span>
+                            </div>
+                          </div>
+                          <Button onClick={() => setSelectedSeat(null)}>
+                            Deselect
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Seat Configuration Button */}
+                  <div className="mt-4 flex justify-end">
+                    <Dialog open={showSeatConfigDialog} onOpenChange={setShowSeatConfigDialog}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline">
+                          <Settings className="h-4 w-4 mr-2" />
+                          Configure Seat Map
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Seat Configuration Manager</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div>
+                            <Label>Aircraft Type</Label>
+                            <Select value={selectedAircraft} onValueChange={setSelectedAircraft}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="B737-800">Boeing 737-800</SelectItem>
+                                <SelectItem value="A320-200">Airbus A320-200</SelectItem>
+                                <SelectItem value="B777-300ER">Boeing 777-300ER</SelectItem>
+                                <SelectItem value="A350-900">Airbus A350-900</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>Configuration Name</Label>
+                            <Input placeholder="e.g., Standard 3-3 Layout" />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>Economy Rows</Label>
+                              <Input type="number" defaultValue={24} />
+                            </div>
+                            <div>
+                              <Label>Business Rows</Label>
+                              <Input type="number" defaultValue={9} />
+                            </div>
+                          </div>
+                          <div>
+                            <Label>Seat Layout</Label>
+                            <Select>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select layout" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="3-3">3-3 (Narrowbody)</SelectItem>
+                                <SelectItem value="2-4-2">2-4-2 (Widebody)</SelectItem>
+                                <SelectItem value="3-4-3">3-4-3 (Large Widebody)</SelectItem>
+                                <SelectItem value="1-2-1">1-2-1 (Business)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setShowSeatConfigDialog(false)}>Cancel</Button>
+                          <Button>Save Configuration</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* O&D Control Tab */}
+            <TabsContent value="od" className="space-y-4">
+              <Card className="enterprise-card">
+                <CardHeader>
+                  <CardTitle>Origin-Destination Control</CardTitle>
+                  <CardDescription>
+                    Search and manage availability across connecting flight options
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-end gap-4 mb-6">
+                    <div>
+                      <Label>Origin</Label>
+                      <Input value={odOrigin} onChange={(e) => setOdOrigin(e.target.value.toUpperCase())} placeholder="JFK" className="w-24" />
+                    </div>
+                    <ArrowRight className="h-6 w-6 text-muted-foreground mb-2" />
+                    <div>
+                      <Label>Destination</Label>
+                      <Input value={odDestination} onChange={(e) => setOdDestination(e.target.value.toUpperCase())} placeholder="LHR" className="w-24" />
+                    </div>
+                    <div>
+                      <Label>Date</Label>
+                      <Input type="date" value={odDate} onChange={(e) => setOdDate(e.target.value)} />
+                    </div>
+                    <Button onClick={handleSearchOD}>
+                      <Search className="h-4 w-4 mr-2" />
+                      Search
+                    </Button>
+                  </div>
+
+                  {odRoutes.length > 0 ? (
+                    <ScrollArea className="max-h-96">
+                      <div className="space-y-3">
+                        {odRoutes.map((route, idx) => (
+                          <Card key={route.id} className="border-2">
+                            <CardContent className="pt-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                  <Badge variant={idx === 0 ? 'default' : 'secondary'}>
+                                    {idx === 0 ? 'Best Price' : `${route.stops} Stop${route.stops > 1 ? 's' : ''}`}
+                                  </Badge>
+                                  <span className="text-sm text-muted-foreground">{formatDuration(route.totalDuration)}</span>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-2xl font-bold text-green-600">${route.totalPrice}</div>
+                                  <div className="text-xs text-muted-foreground">per person</div>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                {route.segments.map((seg, segIdx) => (
+                                  <div key={segIdx} className="flex items-center gap-3 text-sm p-2 bg-secondary/20 rounded">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-semibold">{seg.flightNumber}</span>
+                                        <span className="text-muted-foreground">{seg.aircraft}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <span className="font-medium">{seg.origin}</span>
+                                        <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                                        <span className="font-medium">{seg.destination}</span>
+                                      </div>
+                                    </div>
+                                    <div className="text-right text-muted-foreground">
+                                      <div>{seg.departureTime}</div>
+                                      <div>{seg.arrivalTime}</div>
+                                    </div>
+                                    {segIdx < route.segments.length - 1 && (
+                                      <div className="text-xs text-muted-foreground">
+                                        <Clock className="h-3 w-3 inline mr-1" />
+                                        Layover
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="mt-3 flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">Fare Classes:</span>
+                                {route.availableFareClasses.slice(0, 5).map(fc => (
+                                  <Badge key={fc} variant="outline" className="text-xs">{fc}</Badge>
+                                ))}
+                                {route.availableFareClasses.length > 5 && (
+                                  <Badge variant="outline" className="text-xs">+{route.availableFareClasses.length - 5} more</Badge>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Plane className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>Enter origin, destination, and date to search for available routes</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Fare Classes Tab */}
+            <TabsContent value="fareclasses" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Fare Class Management</h3>
+                  <p className="text-sm text-muted-foreground">Configure fare classes, hierarchy, and restrictions</p>
+                </div>
+                <Dialog open={showFareClassDialog} onOpenChange={setShowFareClassDialog}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Fare Class
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Configure Fare Class</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Fare Class Code</Label>
+                          <Input placeholder="e.g., Y, B, M" maxLength={1} />
+                        </div>
+                        <div>
+                          <Label>Name</Label>
+                          <Input placeholder="e.g., Economy Full" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Hierarchy Level</Label>
+                          <Input type="number" placeholder="1-10" />
+                        </div>
+                        <div>
+                          <Label>Capacity</Label>
+                          <Input type="number" placeholder="Number of seats" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Price</Label>
+                        <Input type="number" placeholder="Base price" />
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <Label>Advance Purchase (days)</Label>
+                          <Input type="number" defaultValue={0} />
+                        </div>
+                        <div>
+                          <Label>Min Stay (days)</Label>
+                          <Input type="number" defaultValue={0} />
+                        </div>
+                        <div>
+                          <Label>Max Stay (days)</Label>
+                          <Input type="number" defaultValue={365} />
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowFareClassDialog(false)}>Cancel</Button>
+                      <Button>Save Fare Class</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <Card className="enterprise-card">
+                <CardContent className="pt-6">
+                  <ScrollArea className="max-h-96">
+                    <table className="enterprise-table">
+                      <thead>
+                        <tr>
+                          <th>Code</th>
+                          <th>Name</th>
+                          <th>Hierarchy</th>
+                          <th>Capacity</th>
+                          <th>Sold</th>
+                          <th>Available</th>
+                          <th>Price</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {fareClasses.map((fc) => (
+                          <tr key={fc.code}>
+                            <td className="font-mono font-bold">{fc.code}</td>
+                            <td>{fc.name}</td>
+                            <td>
+                              <Badge variant="outline">{fc.hierarchy}</Badge>
+                            </td>
+                            <td>{fc.capacity}</td>
+                            <td>{fc.sold}</td>
+                            <td className={fc.available < 5 ? 'text-red-600 font-medium' : ''}>
+                              {fc.available}
+                            </td>
+                            <td>${fc.price}</td>
+                            <td>
+                              <Button
+                                variant={fc.isOpen ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => handleToggleFareBucket(fc.code)}
+                              >
+                                {fc.isOpen ? <Unlock className="h-4 w-4 mr-2" /> : <Lock className="h-4 w-4 mr-2" />}
+                                {fc.isOpen ? 'Open' : 'Closed'}
+                              </Button>
+                            </td>
+                            <td>
+                              <div className="flex items-center gap-1">
+                                <Button variant="ghost" size="sm">
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
+              {/* Fare Class Hierarchy Visualization */}
+              <Card className="enterprise-card">
+                <CardHeader>
+                  <CardTitle className="text-base">Fare Class Hierarchy</CardTitle>
+                  <CardDescription>Visual representation of fare class nesting</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-start gap-2 overflow-x-auto pb-4">
+                    {fareClasses
+                      .sort((a, b) => a.hierarchy - b.hierarchy)
+                      .map((fc, idx) => (
+                        <div key={fc.code} className="flex items-center">
+                          {idx > 0 && <ArrowRight className="h-4 w-4 text-muted-foreground mx-1" />}
+                          <div className={`p-3 rounded border-2 ${fc.available < 5 ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'} min-w-[100px] text-center`}>
+                            <div className="font-bold text-lg">{fc.code}</div>
+                            <div className="text-xs text-muted-foreground">{fc.available} avail</div>
+                            <div className="text-xs font-medium">${fc.price}</div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                  <div className="mt-4 text-sm text-muted-foreground">
+                    <ArrowRight className="h-4 w-4 inline mr-1" />
+                    Higher hierarchy classes can book into lower hierarchy classes when inventory is available
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Overbooking Tab */}
+            <TabsContent value="overbooking" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Overbooking Control</h3>
+                  <p className="text-sm text-muted-foreground">Configure overbooking limits and compensation rules</p>
+                </div>
+                <Dialog open={showOverbookingDialog} onOpenChange={setShowOverbookingDialog}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Configure Overbooking
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Overbooking Settings</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-6 py-4">
+                      <div>
+                        <Label>Economy Overbooking Limit</Label>
+                        <div className="flex items-center gap-4 mt-2">
+                          <Slider
+                            value={[overbookingSettings.economy]}
+                            onValueChange={(v) => setOverbookingSettings({...overbookingSettings, economy: v[0]})}
+                            max={20}
+                            min={0}
+                            step={1}
+                            className="flex-1"
+                          />
+                          <span className="w-12 text-right font-medium">+{overbookingSettings.economy}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Business Overbooking Limit</Label>
+                        <div className="flex items-center gap-4 mt-2">
+                          <Slider
+                            value={[overbookingSettings.business]}
+                            onValueChange={(v) => setOverbookingSettings({...overbookingSettings, business: v[0]})}
+                            max={10}
+                            min={0}
+                            step={1}
+                            className="flex-1"
+                          />
+                          <span className="w-12 text-right font-medium">+{overbookingSettings.business}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <Label>First Overbooking Limit</Label>
+                        <div className="flex items-center gap-4 mt-2">
+                          <Slider
+                            value={[overbookingSettings.first]}
+                            onValueChange={(v) => setOverbookingSettings({...overbookingSettings, first: v[0]})}
+                            max={5}
+                            min={0}
+                            step={1}
+                            className="flex-1"
+                          />
+                          <span className="w-12 text-right font-medium">+{overbookingSettings.first}</span>
+                        </div>
+                      </div>
+                      <Separator />
+                      <div>
+                        <Label>Load Factor Threshold for Auto-Adjust (%)</Label>
+                        <div className="flex items-center gap-4 mt-2">
+                          <Slider
+                            value={[overbookingSettings.loadFactorThreshold]}
+                            onValueChange={(v) => setOverbookingSettings({...overbookingSettings, loadFactorThreshold: v[0]})}
+                            max={100}
+                            min={50}
+                            step={5}
+                            className="flex-1"
+                          />
+                          <span className="w-12 text-right font-medium">{overbookingSettings.loadFactorThreshold}%</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label>Auto-Adjust Overbooking Based on Demand</Label>
+                        <Switch
+                          checked={overbookingSettings.autoAdjust}
+                          onCheckedChange={(v) => setOverbookingSettings({...overbookingSettings, autoAdjust: v})}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowOverbookingDialog(false)}>Cancel</Button>
+                      <Button>Save Settings</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="enterprise-card">
+                  <CardHeader>
+                    <CardTitle className="text-base">Current Limits</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span>Economy</span>
+                      <Badge variant="default">+{overbookingSettings.economy}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Business</span>
+                      <Badge variant="default">+{overbookingSettings.business}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>First</span>
+                      <Badge variant="secondary">+{overbookingSettings.first}</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="enterprise-card">
+                  <CardHeader>
+                    <CardTitle className="text-base">Denied Boarding History</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">This Month</span>
+                      <span className="font-medium">3 passengers</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Avg. Compensation</span>
+                      <span className="font-medium">$450</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Last Incident</span>
+                      <span className="font-medium">2 days ago</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="enterprise-card">
+                  <CardHeader>
+                    <CardTitle className="text-base">Compensation Rules</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Voluntary</span>
+                      <span className="font-medium">$200 - $400</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Involuntary (&lt;2hr)</span>
+                      <span className="font-medium">200% fare</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Involuntary (&gt;2hr)</span>
+                      <span className="font-medium">400% fare</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card className="enterprise-card">
+                <CardHeader>
+                  <CardTitle className="text-base">Seasonal Overbooking Adjustments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <table className="enterprise-table">
+                    <thead>
+                      <tr>
+                        <th>Season</th>
+                        <th>Period</th>
+                        <th>Economy</th>
+                        <th>Business</th>
+                        <th>First</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Peak Holiday</td>
+                        <td>Dec 20 - Jan 5</td>
+                        <td>+10</td>
+                        <td>+5</td>
+                        <td>+2</td>
+                        <td><Badge variant="default">Active</Badge></td>
+                      </tr>
+                      <tr>
+                        <td>Summer Peak</td>
+                        <td>Jun 15 - Aug 31</td>
+                        <td>+8</td>
+                        <td>+4</td>
+                        <td>+1</td>
+                        <td><Badge variant="secondary">Scheduled</Badge></td>
+                      </tr>
+                      <tr>
+                        <td>Low Season</td>
+                        <td>Nov - Mar (excl. holidays)</td>
+                        <td>+3</td>
+                        <td>+1</td>
+                        <td>0</td>
+                        <td><Badge variant="outline">Inactive</Badge></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Advanced Tab */}
+            <TabsContent value="advanced" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Agent Blocked Inventory */}
+                <Card className="enterprise-card">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">Agent Blocked Inventory</CardTitle>
+                      <Dialog open={showBlockInventoryDialog} onOpenChange={setShowBlockInventoryDialog}>
+                        <DialogTrigger asChild>
+                          <Button size="sm">
+                            <Lock className="h-4 w-4 mr-2" />
+                            Block Seats
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Block Inventory for Agent</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div>
+                              <Label>Agent ID</Label>
+                              <Input placeholder="e.g., AGT001" />
+                            </div>
+                            <div>
+                              <Label>Route</Label>
+                              <Input placeholder="e.g., JFK-LHR" />
+                            </div>
+                            <div>
+                              <Label>Date</Label>
+                              <Input type="date" />
+                            </div>
+                            <div>
+                              <Label>Number of Seats</Label>
+                              <Input type="number" placeholder="Number of seats to block" />
+                            </div>
+                            <div>
+                              <Label>Fare Class</Label>
+                              <Select>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select fare class" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {fareClasses.map(fc => (
+                                    <SelectItem key={fc.code} value={fc.code}>{fc.code} - {fc.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Block Duration (minutes)</Label>
+                              <Input type="number" defaultValue={30} />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setShowBlockInventoryDialog(false)}>Cancel</Button>
+                            <Button>Block Seats</Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="max-h-64">
+                      <div className="space-y-2">
+                        {blockedInventory.map((block) => (
+                          <div key={block.id} className="p-3 bg-secondary/20 rounded flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-sm">{block.agentName}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {block.route} | {block.date} | {block.seats} seats ({block.fareClass})
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Expires: {new Date(block.expiresAt).toLocaleString()}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={block.status === 'active' ? 'default' : 'secondary'}>
+                                {block.status}
+                              </Badge>
+                              {block.status === 'active' && (
+                                <Button variant="ghost" size="sm">
+                                  <Unlock className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+
+                {/* Group Seat Allotment */}
+                <Card className="enterprise-card">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">Group Seat Allotment</CardTitle>
+                      <Dialog open={showGroupAllotmentDialog} onOpenChange={setShowGroupAllotmentDialog}>
+                        <DialogTrigger asChild>
+                          <Button size="sm">
+                            <Users2 className="h-4 w-4 mr-2" />
+                            Create Allotment
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Create Group Allotment</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div>
+                              <Label>Group Name</Label>
+                              <Input placeholder="e.g., Corporate Summit 2024" />
+                            </div>
+                            <div>
+                              <Label>Route</Label>
+                              <Input placeholder="e.g., JFK-LHR" />
+                            </div>
+                            <div>
+                              <Label>Travel Date</Label>
+                              <Input type="date" />
+                            </div>
+                            <div>
+                              <Label>Number of Seats</Label>
+                              <Input type="number" placeholder="Total seats for group" />
+                            </div>
+                            <div>
+                              <Label>Booking Deadline</Label>
+                              <Input type="date" />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setShowGroupAllotmentDialog(false)}>Cancel</Button>
+                            <Button>Create Allotment</Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="max-h-64">
+                      <div className="space-y-2">
+                        {groupAllotments.map((group) => (
+                          <div key={group.id} className="p-3 bg-secondary/20 rounded">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="font-medium text-sm">{group.groupName}</div>
+                              <Badge variant={group.status === 'active' ? 'default' : 'secondary'}>
+                                {group.status}
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-muted-foreground mb-2">
+                              {group.route} | {group.date}
+                            </div>
+                            <div className="flex items-center gap-4 text-xs">
+                              <div>
+                                <span className="text-muted-foreground">Utilization:</span>
+                                <span className="font-medium ml-1">{group.utilized}/{group.seats}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Deadline:</span>
+                                <span className="font-medium ml-1">{group.deadline}</span>
+                              </div>
+                            </div>
+                            <div className="mt-2">
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-blue-600 h-2 rounded-full"
+                                  style={{ width: `${(group.utilized / group.seats) * 100}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+
+                {/* Dynamic Capacity Adjustment */}
+                <Card className="enterprise-card">
+                  <CardHeader>
+                    <CardTitle className="text-base">Dynamic Capacity Adjustment</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label>Load Factor Threshold (%)</Label>
+                      <div className="flex items-center gap-4 mt-2">
+                        <Slider
+                          defaultValue={[85]}
+                          max={100}
+                          min={50}
+                          step={5}
+                          className="flex-1"
+                        />
+                        <span className="w-12 text-right font-medium">85%</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label>Auto-Adjust Based on Demand</Label>
+                      <Switch defaultChecked />
+                    </div>
+                    <Separator />
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Adjustment History</Label>
+                      <div className="mt-2 space-y-2 text-sm">
+                        <div className="flex items-center justify-between p-2 bg-secondary/20 rounded">
+                          <span>JFK-LHR</span>
+                          <span className="text-green-600">+5 seats</span>
+                          <span className="text-muted-foreground">2h ago</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 bg-secondary/20 rounded">
+                          <span>LAX-SFO</span>
+                          <span className="text-red-600">-3 seats</span>
+                          <span className="text-muted-foreground">5h ago</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Blackout Date Management */}
+                <Card className="enterprise-card">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">Blackout Dates</CardTitle>
+                      <Dialog open={showBlackoutDialog} onOpenChange={setShowBlackoutDialog}>
+                        <DialogTrigger asChild>
+                          <Button size="sm">
+                            <CalendarDays className="h-4 w-4 mr-2" />
+                            Add Blackout
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Add Blackout Date</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div>
+                              <Label>Route</Label>
+                              <Input placeholder="e.g., JFK-LHR or * for all routes" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label>Start Date</Label>
+                                <Input type="date" />
+                              </div>
+                              <div>
+                                <Label>End Date</Label>
+                                <Input type="date" />
+                              </div>
+                            </div>
+                            <div>
+                              <Label>Cabin (Optional)</Label>
+                              <Select>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="All cabins" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">All Cabins</SelectItem>
+                                  <SelectItem value="economy">Economy</SelectItem>
+                                  <SelectItem value="business">Business</SelectItem>
+                                  <SelectItem value="first">First</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Fare Class (Optional)</Label>
+                              <Select>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="All fare classes" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">All Fare Classes</SelectItem>
+                                  {fareClasses.map(fc => (
+                                    <SelectItem key={fc.code} value={fc.code}>{fc.code}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Reason</Label>
+                              <Textarea placeholder="e.g., Holiday peak, maintenance, etc." />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setShowBlackoutDialog(false)}>Cancel</Button>
+                            <Button>Add Blackout</Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="max-h-64">
+                      <div className="space-y-2">
+                        {blackoutDates.map((blackout) => (
+                          <div key={blackout.id} className="p-3 bg-red-50 border border-red-200 rounded flex items-center justify-between">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="destructive" className="text-xs">
+                                  <Calendar className="h-3 w-3 mr-1" />
+                                  Blackout
+                                </Badge>
+                                <span className="font-medium text-sm">{blackout.route}</span>
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {blackout.startDate} → {blackout.endDate}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {blackout.reason}
+                                {blackout.cabin && ` | ${blackout.cabin}`}
+                                {blackout.fareClass && ` | ${blackout.fareClass}`}
+                              </div>
+                            </div>
+                            <Button variant="ghost" size="sm">
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Fare Families Configuration */}
+              <Card className="enterprise-card">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Fare Families Configuration</CardTitle>
+                    <Dialog open={showFareFamilyDialog} onOpenChange={setShowFareFamilyDialog}>
+                      <DialogTrigger asChild>
+                        <Button>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Create Fare Family
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle>Configure Fare Family</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>Family Name</Label>
+                              <Input placeholder="e.g., Premium Economy" />
+                            </div>
+                            <div>
+                              <Label>Cabin Class</Label>
+                              <Select>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select cabin" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="economy">Economy</SelectItem>
+                                  <SelectItem value="business">Business</SelectItem>
+                                  <SelectItem value="first">First</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div>
+                            <Label>Assigned Fare Classes</Label>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {fareClasses.map(fc => (
+                                <Badge key={fc.code} variant="outline" className="cursor-pointer hover:bg-secondary">
+                                  <Checkbox className="mr-2" />
+                                  {fc.code}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <Label>Features & Benefits</Label>
+                            <Textarea placeholder="Enter features separated by commas..." />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>Base Markup (%)</Label>
+                              <Input type="number" placeholder="0" />
+                            </div>
+                            <div>
+                              <Label>Demand Multiplier</Label>
+                              <Input type="number" step="0.1" placeholder="1.0" />
+                            </div>
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setShowFareFamilyDialog(false)}>Cancel</Button>
+                          <Button>Save Family</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {fareFamilies.map((family) => (
+                      <Card key={family.id} className="border-2">
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">{family.name}</CardTitle>
+                            <Badge variant={family.isActive ? 'default' : 'secondary'}>
+                              {family.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </div>
+                          <CardDescription className="capitalize">{family.cabin} Class</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Fare Classes</Label>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {family.fareClasses.map(fc => (
+                                <Badge key={fc} variant="outline" className="text-xs">{fc}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Features</Label>
+                            <div className="mt-1 space-y-1">
+                              {family.features.slice(0, 3).map((feature, idx) => (
+                                <div key={idx} className="text-xs flex items-center gap-1">
+                                  <CheckCircle className="h-3 w-3 text-green-600" />
+                                  {feature}
+                                </div>
+                              ))}
+                              {family.features.length > 3 && (
+                                <div className="text-xs text-muted-foreground">
+                                  +{family.features.length - 3} more features
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between text-sm pt-2 border-t">
+                            <span className="text-muted-foreground">Markup:</span>
+                            <span className="font-medium">+{family.pricingRules.baseMarkup}%</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" className="flex-1">
+                              <Edit className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Route-Specific Inventory */}
+              <Card className="enterprise-card">
+                <CardHeader>
+                  <CardTitle>Route-Specific Inventory</CardTitle>
+                  <CardDescription>Configure inventory and pricing by route</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="max-h-80">
+                    <table className="enterprise-table">
+                      <thead>
+                        <tr>
+                          <th>Route</th>
+                          <th>Cabin</th>
+                          <th>Capacity</th>
+                          <th>Sold</th>
+                          <th>Load Factor</th>
+                          <th>Pricing Tier</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="font-medium">JFK-LHR</td>
+                          <td>Economy</td>
+                          <td>200</td>
+                          <td>176</td>
+                          <td>
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 bg-gray-200 rounded-full h-2">
+                                <div className="bg-yellow-600 h-2 rounded-full" style={{ width: '88%' }} />
+                              </div>
+                              <span className="text-sm">88%</span>
+                            </div>
+                          </td>
+                          <td>High Demand</td>
+                          <td>
+                            <Button variant="ghost" size="sm">
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="font-medium">JFK-LAX</td>
+                          <td>Economy</td>
+                          <td>180</td>
+                          <td>135</td>
+                          <td>
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 bg-gray-200 rounded-full h-2">
+                                <div className="bg-green-600 h-2 rounded-full" style={{ width: '75%' }} />
+                              </div>
+                              <span className="text-sm">75%</span>
+                            </div>
+                          </td>
+                          <td>Standard</td>
+                          <td>
+                            <Button variant="ghost" size="sm">
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="font-medium">LHR-CDG</td>
+                          <td>Business</td>
+                          <td>40</td>
+                          <td>32</td>
+                          <td>
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 bg-gray-200 rounded-full h-2">
+                                <div className="bg-green-600 h-2 rounded-full" style={{ width: '80%' }} />
+                              </div>
+                              <span className="text-sm">80%</span>
+                            </div>
+                          </td>
+                          <td>Standard</td>
+                          <td>
+                            <Button variant="ghost" size="sm">
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
+
+      {/* PNR Split Dialog */}
+      <Dialog open={showSplitDialog} onOpenChange={setShowSplitDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Split PNR - {selectedPNR?.pnrNumber}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Select passengers to create separate PNRs. Each group will become a new PNR.
+            </p>
+            <div className="space-y-3">
+              {selectedPNR?.passengers.map((p, idx) => (
+                <div key={idx} className="flex items-center gap-3 p-3 border rounded-lg">
+                  <Checkbox
+                    id={`pax-${idx}`}
+                    checked={splitPassengerGroups.some(g => g.includes(idx))}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSplitPassengerGroups([[idx]])
+                      } else {
+                        setSplitPassengerGroups(splitPassengerGroups.filter(g => !g.includes(idx)))
+                      }
+                    }}
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor={`pax-${idx}`} className="font-medium">
+                      {p.title} {p.firstName} {p.lastName}
+                    </Label>
+                    <div className="text-sm text-muted-foreground">
+                      DOB: {p.dateOfBirth} | Passport: {p.passportNumber}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {splitPassengerGroups.length === 0 && (
+              <p className="text-sm text-amber-600 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Select at least one passenger to split
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowSplitDialog(false); setSplitPassengerGroups([]); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleSplitPNR} disabled={splitPassengerGroups.length === 0}>
+              Split PNR
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PNR Merge Dialog */}
+      <Dialog open={showMergeDialog} onOpenChange={setShowMergeDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Merge Multiple PNRs</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Select 2 or more PNRs to merge into a single PNR. All passengers and segments will be combined.
+            </p>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {pnrs.filter(p => p.status !== 'cancelled').map((pnr) => (
+                <div key={pnr.pnrNumber} className="flex items-center gap-3 p-3 border rounded-lg">
+                  <Checkbox
+                    id={`pnr-${pnr.pnrNumber}`}
+                    checked={selectedPNRsForMerge.includes(pnr.pnrNumber)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedPNRsForMerge([...selectedPNRsForMerge, pnr.pnrNumber])
+                      } else {
+                        setSelectedPNRsForMerge(selectedPNRsForMerge.filter(n => n !== pnr.pnrNumber))
+                      }
+                    }}
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor={`pnr-${pnr.pnrNumber}`} className="font-medium">
+                      {pnr.pnrNumber}
+                    </Label>
+                    <div className="text-sm text-muted-foreground">
+                      {pnr.passengers.length} passengers | {pnr.segments.length} segments | ${pnr.fareQuote.total}
+                    </div>
+                  </div>
+                  <Badge variant={pnr.status === 'confirmed' ? 'default' : 'secondary'}>
+                    {pnr.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+            {selectedPNRsForMerge.length < 2 && (
+              <p className="text-sm text-amber-600 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Select at least 2 PNRs to merge
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowMergeDialog(false); setSelectedPNRsForMerge([]); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleMergePNRs} disabled={selectedPNRsForMerge.length < 2}>
+              Merge PNRs ({selectedPNRsForMerge.length})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fare Re-quote Dialog */}
+      <Dialog open={showRequoteDialog} onOpenChange={setShowRequoteDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Fare Re-quote - {selectedPNR?.pnrNumber}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {!requoteResult ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Recalculate fare based on current demand and availability.
+                </p>
+                <div className="grid grid-cols-2 gap-4 p-4 bg-secondary/30 rounded-lg">
+                  <div>
+                    <Label className="text-muted-foreground">Current Fare</Label>
+                    <p className="text-2xl font-bold">${selectedPNR?.fareQuote.total}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Route</Label>
+                    <p className="font-medium">
+                      {selectedPNR?.segments.map(s => `${s.origin}-${s.destination}`).join(' → ')}
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={handleRequoteFare} className="w-full">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Calculate New Fare
+                </Button>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-secondary/30 rounded-lg">
+                    <Label className="text-muted-foreground">Original Fare</Label>
+                    <p className="text-2xl font-bold">${requoteResult.originalFare}</p>
+                  </div>
+                  <div className={`p-4 rounded-lg ${requoteResult.fareDifference > 0 ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'}`}>
+                    <Label className="text-muted-foreground">New Fare</Label>
+                    <p className="text-2xl font-bold">${requoteResult.newFare}</p>
+                    <div className={`text-sm font-medium mt-1 ${requoteResult.fareDifference > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      {requoteResult.fareDifference > 0 ? '+' : ''}${requoteResult.fareDifference}
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm font-medium text-blue-900">{requoteResult.reason}</p>
+                  <div className="text-xs text-blue-700 mt-2">
+                    Demand Factor: {requoteResult.demandFactor.toFixed(1)}% | Time to Departure: {requoteResult.timeToDeparture.toFixed(0)} days
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <Label>Base Fare</Label>
+                    <p>${requoteResult.breakdown.originalBaseFare} → ${requoteResult.breakdown.newBaseFare}</p>
+                  </div>
+                  <div>
+                    <Label>Taxes</Label>
+                    <p>${requoteResult.breakdown.originalTaxes} → ${requoteResult.breakdown.newTaxes}</p>
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => {
+                    if (selectedPNR) {
+                      updatePNR(selectedPNR.pnrNumber, {
+                        fareQuote: {
+                          ...selectedPNR.fareQuote,
+                          baseFare: requoteResult.breakdown.newBaseFare,
+                          taxes: requoteResult.breakdown.newTaxes,
+                          total: requoteResult.newFare
+                        },
+                        remarks: [
+                          ...selectedPNR.remarks,
+                          `Fare re-quoted: ${requoteResult.originalFare} → ${requoteResult.newFare}`
+                        ]
+                      })
+                    }
+                    setShowRequoteDialog(false)
+                    setRequoteResult(null)
+                  }}
+                  className="w-full"
+                >
+                  Apply New Fare
+                </Button>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowRequoteDialog(false); setRequoteResult(null); }}>
+              {requoteResult ? 'Back' : 'Cancel'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Queue Assignment Dialog */}
+      <Dialog open={showQueueDialog} onOpenChange={setShowQueueDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Queue Position - {selectedPNR?.pnrNumber}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Assign a queue priority (1 = highest, 10 = lowest)
+            </p>
+            <div className="space-y-4">
+              <div>
+                <Label>Current Queue Position: {selectedPNR?.queuePosition || 'Not assigned'}</Label>
+              </div>
+              <div>
+                <Label>New Queue Position: {queuePriority}</Label>
+                <Slider
+                  value={[queuePriority]}
+                  onValueChange={(value) => setQueuePriority(value[0])}
+                  min={1}
+                  max={10}
+                  step={1}
+                  className="mt-2"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>1 (Highest)</span>
+                  <span>5 (Medium)</span>
+                  <span>10 (Lowest)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowQueueDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAssignQueue}>
+              Assign Queue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Waitlist Processing Dialog */}
+      <Dialog open={showWaitlistDialog} onOpenChange={setShowWaitlistDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Process Waitlist</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Flight Number</Label>
+                <Input
+                  placeholder="AA123"
+                  value={waitlistFlight.flightNumber}
+                  onChange={(e) => setWaitlistFlight({ ...waitlistFlight, flightNumber: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={waitlistFlight.date}
+                  onChange={(e) => setWaitlistFlight({ ...waitlistFlight, date: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h4 className="font-medium mb-2">Current Waitlist ({pnrs.filter(p => p.status === 'waitlist').length} PNRs)</h4>
+              <ScrollArea className="h-48 border rounded-lg p-2">
+                {pnrs.filter(p => p.status === 'waitlist').map((pnr) => (
+                  <div key={pnr.pnrNumber} className="p-2 border-b last:border-0">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm">{pnr.pnrNumber}</span>
+                      <Badge variant="secondary">Position {pnr.queuePosition || 'N/A'}</Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {pnr.passengers.length} passengers | {pnr.segments[0]?.origin} → {pnr.segments[0]?.destination}
+                    </div>
+                  </div>
+                ))}
+                {pnrs.filter(p => p.status === 'waitlist').length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">No PNRs on waitlist</p>
+                )}
+              </ScrollArea>
+            </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-900 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Processing will promote eligible waitlisted PNRs to confirmed status based on available inventory
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowWaitlistDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleProcessWaitlist}>
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Process Waitlist
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,20 +10,1312 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ============================================
+// PSS (Passenger Service System) Models
+// ============================================
+
+model PNR {
+  id              String   @id @default(cuid())
+  pnrNumber       String   @unique
+  createdAt       DateTime @default(now())
+  createdBy       String
+  status          String   // 'confirmed' | 'waitlist' | 'cancelled' | 'ticketed' | 'void'
+  contactEmail    String
+  contactPhone    String
+  contactAddress  String
+  paymentMethod   String
+  cardLastFour    String?
+  amount          Float
+  currency        String
+  bookingClass    String
+  agentId         String
+  agencyCode      String
+  corporateAccount String?
+  timeLimit       DateTime?
+  isGroup         Boolean  @default(false)
+  groupSize       Int?
+  source          String   // 'web' | 'mobile' | 'api' | 'agent'
+  parentPnrId     String?
+  linkedPnrs      String   // JSON array of PNR numbers
+  marriedSegmentKey String?
+  queuePosition   Int?
+  queuePriority   Int?
+
+  passengers      Passenger[]
+  segments        FlightSegment[]
+  tickets         Ticket[]
+  emds            EMD[]
+  remarks         PNRRemark[]
+  ssrs            SSR[]
+
+  @@index([pnrNumber])
+  @@index([status])
+  @@index([agentId])
+  @@index([agencyCode])
 }
 
-model Post {
+model Passenger {
+  id                  String   @id @default(cuid())
+  pnrId               String
+  pnr                 PNR      @relation(fields: [pnrId], references: [id], onDelete: Cascade)
+  title               String
+  firstName           String
+  lastName            String
+  dateOfBirth         String
+  passportNumber      String
+  passportExpiry      String
+  nationality         String
+  frequentFlyerNumber String?
+  frequentFlyerProgram String?
+  seatPreferences     String?
+  mealPreference      String?
+  customerId          String?
+
+  @@index([pnrId])
+  @@index([customerId])
+}
+
+model FlightSegment {
+  id              String   @id @default(cuid())
+  pnrId           String
+  pnr             PNR      @relation(fields: [pnrId], references: [id], onDelete: Cascade)
+  flightNumber    String
+  airlineCode     String
+  origin          String
+  destination     String
+  departureDate   String
+  departureTime   String
+  arrivalDate     String
+  arrivalTime     String
+  aircraftType    String
+  fareClass       String
+  fareBasis       String
+  status          String   // 'confirmed' | 'waitlist' | 'standby'
+  boardingClass   String   // 'economy' | 'business' | 'first'
+  cabinClass      String   // 'economy' | 'business' | 'first'
+  segmentSequence Int
+
+  @@index([pnrId])
+  @@index([flightNumber])
+  @@index([departureDate])
+}
+
+model Ticket {
+  id                String   @id @default(cuid())
+  ticketNumber      String   @unique
+  pnrId             String
+  pnr               PNR      @relation(fields: [pnrId], references: [id], onDelete: Cascade)
+  passengerId       String
+  passengerName     String
+  issuedAt          DateTime @default(now())
+  issuedBy          String
+  status            String   // 'open' | 'void' | 'refunded' | 'exchanged' | 'used'
+  baseFare          Float
+  taxes             Float
+  fees              Float
+  totalFare         Float
+  currency          String
+  commissionAmount  Float
+  commissionRate    Float
+  paidTo            String
+  validationAirline String
+  interlinePartners String   // JSON array
+  isCodeshare       Boolean  @default(false)
+  operatingCarrier  String?
+  voidableUntil     DateTime?
+  refundable        Boolean  @default(false)
+  changePenalty     Float    @default(0)
+  taxBreakdown      String   // JSON
+  fareRules         String   // JSON
+
+  @@index([ticketNumber])
+  @@index([pnrId])
+  @@index([status])
+}
+
+model EMD {
+  id               String   @id @default(cuid())
+  emdNumber        String   @unique
+  pnrId            String
+  pnr              PNR      @relation(fields: [pnrId], references: [id], onDelete: Cascade)
+  passengerId      String
+  passengerName    String
+  type             String   // 'seat' | 'baggage' | 'meal' | 'lounge' | 'insurance' | 'other'
+  description      String
+  amount           Float
+  currency         String
+  issuedAt         DateTime @default(now())
+  status           String   // 'active' | 'void' | 'refunded' | 'used'
+  associatedTicket String?
+  serviceCode      String
+
+  @@index([emdNumber])
+  @@index([pnrId])
+}
+
+model PNRRemark {
   id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
+  pnrId     String
+  pnr       PNR      @relation(fields: [pnrId], references: [id], onDelete: Cascade)
+  remark    String
+  category  String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdBy String
+
+  @@index([pnrId])
+}
+
+model SSR {
+  id        String   @id @default(cuid())
+  pnrId     String
+  pnr       PNR      @relation(fields: [pnrId], references: [id], onDelete: Cascade)
+  passengerId String
+  ssrCode   String
+  ssrType   String
+  status    String   // 'confirmed' | 'pending' | 'cancelled'
+  confirmedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([pnrId])
+}
+
+// ============================================
+// Inventory Management Models
+// ============================================
+
+model RouteInventory {
+  id              String   @id @default(cuid())
+  route           String
+  origin          String
+  destination     String
+  flightNumber    String
+  date            String
+  aircraftType    String
+  capacity        String   // JSON - by booking class
+  sold            String   // JSON - by booking class
+  waitlist        String   // JSON - by booking class
+  oversell        String   // JSON - by booking class
+  blocked         String   // JSON - by booking class
+  marriedSegments String   // JSON array
+  oandDControl    String   // JSON
+
+  @@unique([flightNumber, date])
+  @@index([route])
+  @@index([date])
+}
+
+model FareClass {
+  id                String   @id @default(cuid())
+  code              String   @unique
+  name              String
+  bookingClass      String
+  cabin             String   // 'economy' | 'business' | 'first'
+  baseFare          Float
+  advancePurchase   Int
+  minimumStay       String
+  maximumStay       String
+  changeAllowed     Boolean  @default(true)
+  refundable        Boolean  @default(false)
+  fareRules         String   // JSON
+  isActive          Boolean  @default(true)
+  effectiveDate     DateTime @default(now())
+  expiryDate        DateTime?
+
+  @@index([code])
+  @@index([cabin])
+}
+
+model SeatMap {
+  id              String   @id @default(cuid())
+  flightNumber    String
+  date            String
+  aircraftType    String
+  cabin           String
+  seatConfig      String   // JSON
+  availableSeats  String   // JSON array
+  blockedSeats    String   // JSON array
+  occupiedSeats   String   // JSON array
+  seatPricing     String   // JSON
+
+  @@unique([flightNumber, date, cabin])
+}
+
+// ============================================
+// DCS (Departure Control System) Models
+// ============================================
+
+model CheckInRecord {
+  id               String   @id @default(cuid())
+  pnrNumber        String
+  ticketNumber     String
+  passengerId      String
+  passengerName    String
+  flightNumber     String
+  date             String
+  checkInTime      DateTime @default(now())
+  checkInMethod    String   // 'web' | 'mobile' | 'kiosk' | 'counter'
+  seatNumber       String
+  boardingPassIssued Boolean @default(false)
+  boardingPassData String   // JSON
+  documentsVerified Boolean @default(false)
+  visaValid        Boolean  @default(false)
+  passportValid    Boolean  @default(false)
+  bagsChecked      Int      @default(0)
+  baggageWeight    Float?
+  status           String   // 'checked-in' | 'not-checked-in' | 'boarded' | 'no-show'
+  upgradedFrom     String?
+
+  @@unique([ticketNumber, flightNumber])
+  @@index([flightNumber, date])
+  @@index([pnrNumber])
+}
+
+model BoardingRecord {
+  id                String   @id @default(cuid())
+  flightNumber      String
+  date              String
+  gate              String
+  scheduledDeparture DateTime
+  actualDeparture   DateTime?
+  boardingStarted   DateTime?
+  boardingCompleted DateTime?
+  boardedPassengers Int      @default(0)
+  totalPassengers   Int
+  priorityBoarding  String   // JSON array
+  standbyList       String   // JSON array
+  gateChangeLog     String   // JSON array
+  boardingSequence  String   // JSON
+  status            String   // 'scheduled' | 'boarding' | 'completed' | 'delayed'
+  passengers        BoardingPassenger[]
+
+  @@unique([flightNumber, date])
+  @@index([date])
+}
+
+model BoardingPassenger {
+  id              String   @id @default(cuid())
+  boardingRecordId String
+  boardingRecord  BoardingRecord @relation(fields: [boardingRecordId], references: [id], onDelete: Cascade)
+  ticketNumber    String
+  passengerName   String
+  seatNumber      String
+  sequence        Int
+  boardingTime    DateTime?
+  status          String   // 'not-boarded' | 'boarding' | 'boarded' | 'off-loaded'
+  boardingGroup   String?
+  isPriority      Boolean  @default(false)
+  isStandby       Boolean  @default(false)
+
+  @@index([boardingRecordId])
+  @@index([ticketNumber])
+}
+
+model LoadSheet {
+  id                  String   @id @default(cuid())
+  flightNumber        String
+  date                String
+  aircraftRegistration String
+  aircraftType        String
+  totalWeight         Float
+  passengerWeight     Float
+  cargoWeight         Float
+  baggageWeight       Float
+  fuelWeight          Float
+  zeroFuelWeight      Float
+  takeoffWeight       Float
+  landingWeight       Float
+  trimSetting         Float
+  centerOfGravity     String
+  distribution        String   // JSON
+  cgPosition          String
+  cgEnvelope          String   // JSON
+  generatedAt         DateTime @default(now())
+  generatedBy         String
+  approvedBy          String?
+  approvedAt          DateTime?
+
+  @@unique([flightNumber, date])
+}
+
+model BaggageRecord {
+  id              String   @id @default(cuid())
+  tagNumber       String   @unique
+  pnrNumber       String
+  ticketNumber    String
+  passengerId     String
+  passengerName   String
+  flightNumber    String
+  origin          String
+  destination     String
+  weight          Float
+  pieces          Int
+  status          String   // 'checked' | 'loaded' | 'transferred' | 'delivered' | 'mishandled' | 'lost'
+  routing         String   // JSON array
+  interline       Boolean  @default(false)
+  specialHandling String   // JSON array
+  mishandledAt    DateTime?
+  resolvedAt      DateTime?
+  fee             Float
+  feePaid         Boolean  @default(false)
+  transferFlight  String?
+  carousel        String?
+  loadedAt        DateTime?
+  deliveredAt     DateTime?
+  mishandledRecords MishandledBaggage[]
+
+  @@index([tagNumber])
+  @@index([flightNumber])
+  @@index([pnrNumber])
+}
+
+model MishandledBaggage {
+  id              String   @id @default(cuid())
+  baggageRecordId String
+  baggageRecord   BaggageRecord @relation(fields: [baggageRecordId], references: [id])
+  type            String   // 'lost' | 'delayed' | 'damaged' | 'pilfered'
+  reportedAt      DateTime @default(now())
+  reportedBy      String
+  location        String
+  description     String
+  status          String   // 'open' | 'investigating' | 'found' | 'delivered' | 'closed'
+  resolvedAt      DateTime?
+  resolution      String?
+  compensation    Float?
+  claimNumber     String?
+
+  @@index([baggageRecordId])
+  @@index([status])
+}
+
+// ============================================
+// Flight Operations Models
+// ============================================
+
+model FlightSchedule {
+  id            String   @id @default(cuid())
+  flightNumber  String
+  airlineCode   String
+  origin        String
+  destination   String
+  daysOfWeek    String   // JSON array of numbers (0-6)
+  startDate     DateTime
+  endDate       DateTime?
+  departureTime String
+  arrivalTime   String
+  aircraftType  String
+  duration      Int      // minutes
+  distance      Int      // km
+  status        String   // 'active' | 'inactive' | 'seasonal'
+  slotOrigin    String?
+  slotDestination String?
+  slotTime      String?
+  slotOwner     String?
+  frequencies   Int      @default(1)
+  season        String?  // 'low' | 'shoulder' | 'peak'
+
+  @@index([flightNumber])
+  @@index([origin, destination])
+  @@index([status])
+}
+
+model FlightInstance {
+  id                String   @id @default(cuid())
+  scheduleId        String
+  flightNumber      String
+  date              String
+  origin            String
+  destination       String
+  scheduledDeparture DateTime
+  scheduledArrival   DateTime
+  estimatedDeparture DateTime?
+  estimatedArrival   DateTime?
+  actualDeparture    DateTime?
+  actualArrival      DateTime?
+  aircraftRegistration String
+  aircraftType      String
+  captain           String?
+  firstOfficer      String?
+  cabinCrew         String   // JSON array
+  status            String   // 'scheduled' | 'delayed' | 'departed' | 'arrived' | 'cancelled' | 'diverted'
+  delayCode         String?
+  delayReason       String?
+  diversionAirport  String?
+  weatherConditions String?
+  notams            String   // JSON array
+  loadFactor        Float
+  passengers        Int
+  cargo             Float
+  mail              Float
+  fuel              Float
+  gate              String?
+
+  @@unique([flightNumber, date])
+  @@index([date])
+  @@index([status])
+}
+
+model DisruptionEvent {
+  id            String   @id @default(cuid())
+  flightId      String
+  flightNumber  String
+  date          String
+  type          String   // 'delay' | 'cancellation' | 'diversion' | 'aircraft_swap' | 'crew_change'
+  reason        String
+  code          String
+  impact        String   // JSON
+  actions       String   // JSON array
+  status        String   // 'active' | 'mitigating' | 'resolved'
+  createdAt     DateTime @default(now())
+  resolvedAt    DateTime?
+
+  @@index([flightId])
+  @@index([date])
+  @@index([status])
+}
+
+model FlightRelease {
+  id              String   @id @default(cuid())
+  flightId        String
+  flightNumber    String
+  date            String
+  generatedAt     DateTime @default(now())
+  generatedBy     String
+  weather         String   // JSON
+  notams          String   // JSON array
+  atcRestrictions String   // JSON array
+  alternateAirports String // JSON array
+  fuelPlan        String   // JSON
+  route           String
+  altitude        Int
+  speed           Int
+  weight          Float
+  signature       String
+  status          String   // 'draft' | 'approved' | 'filed'
+
+  @@unique([flightNumber, date])
+}
+
+// ============================================
+// Crew Management Models
+// ============================================
+
+model CrewMember {
+  id                  String   @id @default(cuid())
+  employeeNumber      String   @unique
+  firstName           String
+  lastName            String
+  position            String   // 'captain' | 'first_officer' | 'purser' | 'flight_attendant'
+  base                String
+  qualifications      String   // JSON array
+  licenseNumber       String
+  licenseExpiry       String
+  medicalCertificate  String
+  medicalExpiry       String
+  passportNumber      String
+  passportExpiry      String
+  dateOfBirth         String
+  nationality         String
+  email               String
+  phone               String
+  status              String   // 'active' | 'inactive' | 'on_leave' | 'training' | 'suspended'
+  currentDuty         String?
+  hoursFlown          Float    @default(0)
+  hoursThisMonth      Float    @default(0)
+  hoursLast30Days     Float    @default(0)
+  domicile            String
+  language            String   // JSON array
+  schedules           CrewSchedule[]
+
+  @@index([employeeNumber])
+  @@index([status])
+}
+
+model CrewSchedule {
+  id            String   @id @default(cuid())
+  crewId        String
+  crewMember    CrewMember? @relation(fields: [crewId], references: [id])
+  type          String   // 'flight' | 'standby' | 'training' | 'leave' | 'reserve'
+  startDate     DateTime
+  endDate       DateTime
+  startTime     String
+  endTime       String
+  flightId      String?
+  flightNumber  String?
+  route         String?
+  position      String
+  reportTime    String
+  releaseTime   String
+  dutyHours     Float
+  status        String   // 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
+  hotelInfo     String?  // JSON
+  transportInfo String?  // JSON
+
+  @@index([crewId])
+  @@index([startDate])
+  @@index([flightId])
+}
+
+model CrewPairing {
+  id                 String   @id @default(cuid())
+  pairingNumber      String   @unique
+  startDate          String
+  endDate            String
+  flights            String   // JSON array
+  totalFlightTime    Float
+  totalDutyTime      Float
+  restPeriods        String   // JSON array
+  base               String
+  deadhead           Boolean  @default(false)
+  overnightStops     Int
+  hotels             String   // JSON array
+  cost               Float
+  compliant          Boolean  @default(true)
+  complianceNotes    String?  // JSON
+
+  @@index([pairingNumber])
+  @@index([startDate])
+}
+
+model CrewQualification {
+  id              String   @id @default(cuid())
+  crewId          String
+  qualification   String
+  type            String   // 'type_rating' | 'route' | 'airport' | 'language' | 'medical' | 'security'
+  issueDate       String
+  expiryDate      String
+  status          String   // 'valid' | 'expired' | 'suspended'
+  documentNumber  String?
+  issuingAuthority String?
+
+  @@index([crewId])
+  @@index([status])
+}
+
+// ============================================
+// MRO (Maintenance & Engineering) Models
+// ============================================
+
+model MaintenanceRecord {
+  id                  String   @id @default(cuid())
+  aircraftRegistration String
+  aircraftType        String
+  type                String   // 'scheduled' | 'unscheduled' | 'inspection' | 'modification' | 'repair'
+  category            String   // 'a-check' | 'b-check' | 'c-check' | 'd-check' | 'line_maintenance'
+  description         String
+  status              String   // 'pending' | 'in_progress' | 'completed' | 'cancelled'
+  priority            String   // 'low' | 'medium' | 'high' | 'critical'
+  scheduledStart      DateTime
+  scheduledEnd        DateTime
+  actualStart         DateTime?
+  actualEnd           DateTime?
+  station             String
+  hangar              String?
+  assignedTo          String   // JSON array
+  workOrderNumber     String   @unique
+  tasks               String   // JSON array
+  partsUsed           String   // JSON array
+  laborHours          Float
+  cost                Float
+  signOffMechanic     String?
+  signOffInspector    String?
+  signOffTimestamp    DateTime?
+  adCompliance        String?  // JSON array
+  maintenanceTasks    MaintenanceTask[]
+  partUsages          PartUsage[]
+
+  @@index([aircraftRegistration])
+  @@index([status])
+  @@index([scheduledStart])
+}
+
+model MaintenanceTask {
+  id                String   @id @default(cuid())
+  maintenanceRecordId String
+  maintenanceRecord MaintenanceRecord? @relation(fields: [maintenanceRecordId], references: [id])
+  description       String
+  status            String   // 'pending' | 'in_progress' | 'completed'
+  completedBy       String?
+  completedAt       DateTime?
+  reference         String?
+
+  @@index([maintenanceRecordId])
+}
+
+model Part {
+  id                  String   @id @default(cuid())
+  partNumber          String   @unique
+  name                String
+  description         String
+  category            String
+  manufacturer        String
+  quantityOnHand      Int      @default(0)
+  minimumStock        Int
+  reorderQuantity     Int
+  unitCost            Float
+  location            String
+  shelfLife           String?
+  serialTracking      Boolean  @default(false)
+  aircraftApplicability String // JSON array
+  status              String   // 'active' | 'obsolete' | 'discontinued'
+
+  @@index([partNumber])
+  @@index([category])
+}
+
+model PartUsage {
+  id                String   @id @default(cuid())
+  maintenanceRecordId String
+  maintenanceRecord MaintenanceRecord? @relation(fields: [maintenanceRecordId], references: [id])
+  partNumber        String
+  quantity          Int
+  serialNumbers     String?  // JSON array
+  cost              Float
+
+  @@index([maintenanceRecordId])
+}
+
+model Component {
+  id                String   @id @default(cuid())
+  partNumber        String
+  serialNumber      String   @unique
+  installedOn       String
+  installedAt       DateTime
+  aircraftRegistration String
+  position          String
+  cycleCount        Int      @default(0)
+  hoursSinceNew     Float    @default(0)
+  timeSinceOverhaul Float
+  nextOverhaulDue   String?
+  condition         String   // 'serviceable' | 'unserviceable' | 'repairable' | 'scrapped'
+  lastInspection    String
+  nextInspection    String
+
+  @@index([serialNumber])
+  @@index([aircraftRegistration])
+}
+
+// ============================================
+// Revenue Management Models
+// ============================================
+
+model FareBasis {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  name            String
+  bookingClass    String
+  cabin           String   // 'economy' | 'business' | 'first'
+  fareFamily      String
+  baseFare        Float
+  currency        String
+  advancePurchase Int
+  minStay         String
+  maxStay         String
+  changeable      Boolean  @default(true)
+  changeFee       Float
+  refundable      Boolean  @default(false)
+  refundFee       Float
+  seasonality     String   // JSON array
+  routing         String
+  blackouts       String   // JSON array
+  companionRule   String?
+  corporateRule   String?
+  effectiveDate   DateTime @default(now())
+  expiryDate      DateTime?
+  isActive        Boolean  @default(true)
+
+  @@index([code])
+  @@index([cabin])
+}
+
+model RevenueData {
+  id              String   @id @default(cuid())
+  route           String
+  origin          String
+  destination     String
+  date            String
+  flightNumber    String
+  passengers      Int
+  loadFactor      Float
+  revenue         Float
+  yield           Float
+  rask            Float
+  cargoRevenue    Float
+  ancillaryRevenue Float
+  totalRevenue    Float
+  costs           Float
+  profit          Float
+  margin          Float
+  forecastData    String   // JSON
+
+  @@unique([flightNumber, date])
+  @@index([route])
+  @@index([date])
+}
+
+model DemandForecast {
+  id          String   @id @default(cuid())
+  route       String
+  origin      String
+  destination String
+  period      String
+  historicalData String // JSON
+  forecast    String   // JSON
+  factors     String   // JSON
+  createdAt   DateTime @default(now())
+
+  @@index([route])
+  @@index([period])
+}
+
+// ============================================
+// Ancillary Models
+// ============================================
+
+model AncillaryProduct {
+  id                String   @id @default(cuid())
+  code              String   @unique
+  name              String
+  category          String   // 'seat' | 'baggage' | 'meal' | 'lounge' | 'wifi' | 'insurance' | 'upgrade' | 'other'
+  description       String
+  price             Float
+  currency          String
+  taxIncluded       Boolean  @default(false)
+  applicableRoutes  String   // JSON array
+  applicableCabins  String   // JSON array
+  applicableFares   String   // JSON array
+  restrictions      String   // JSON
+  availability      String
+  image             String?
+  bundleId          String?
+  commissionEligible Boolean @default(true)
+  commissionRate    Float
+  isActive          Boolean  @default(true)
+
+  @@index([code])
+  @@index([category])
+}
+
+model Bundle {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  description String
+  products    String   // JSON array
+  totalPrice  Float
+  savings     Float
+  currency    String
+  targetSegment String
+  validity    String
+  terms       String   // JSON array
+  isActive    Boolean  @default(true)
+
+  @@index([code])
+}
+
+model PromoCode {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  type            String   // 'percentage' | 'fixed' | 'ancillary' | 'bundle'
+  value           Float
+  currency        String?
+  minSpend        Float?
+  maxDiscount     Float?
+  applicableRoutes String // JSON array
+  applicableFares  String // JSON array
+  validFrom       DateTime
+  validUntil      DateTime
+  usageLimit      Int
+  usedCount       Int      @default(0)
+  perCustomerLimit Int
+  active          Boolean  @default(true)
+  terms           String   // JSON array
+
+  @@index([code])
+}
+
+// ============================================
+// Agency Models
+// ============================================
+
+model Agency {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  name            String
+  type            String   // 'iata' | 'non_iata' | 'corporate' | 'ota' | 'tmc'
+  iataNumber      String?
+  status          String   // 'active' | 'suspended' | 'inactive'
+  tier            String   // 'platinum' | 'gold' | 'silver' | 'bronze' | 'standard'
+  parentAgencyId  String?
+  branchCode      String?
+  address         String   // JSON
+  contact         String   // JSON
+  creditLimit     Float
+  creditUsed      Float
+  creditAvailable Float
+  currency        String
+  creditTerms     Int
+  autoBlock       Boolean  @default(false)
+  autoBlockThreshold Float
+  commission      String   // JSON
+  permissions     String   // JSON
+  totalBookings   Int      @default(0)
+  totalRevenue    Float    @default(0)
+  cancellationRate Float
+  noShowRate      Float
+  lastBooking     DateTime?
+  walletBalance   Float
+  createdAt       DateTime @default(now())
+  lastModified    DateTime @updatedAt
+
+  @@index([code])
+  @@index([status])
+  @@index([tier])
+}
+
+model CommissionOverride {
+  id              String   @id @default(cuid())
+  agencyId        String
+  route           String
+  origin          String
+  destination     String
+  cabin           String
+  fareClass       String
+  rate            Float
+  effectiveFrom   DateTime
+  effectiveUntil  DateTime?
+
+  @@index([agencyId])
+  @@index([route])
+}
+
+model VolumeBonus {
+  id          String   @id @default(cuid())
+  agencyId    String
+  tier        String
+  minRevenue  Float
+  bonusRate   Float
+  period      String   // 'monthly' | 'quarterly' | 'annual'
+
+  @@index([agencyId])
+}
+
+model WalletTransaction {
+  id          String   @id @default(cuid())
+  agencyId    String
+  type        String   // 'credit' | 'debit' | 'refund' | 'adjustment'
+  amount      Float
+  currency    String
+  balanceAfter Float
+  description String
+  reference   String?
+  createdAt   DateTime @default(now())
+
+  @@index([agencyId])
+  @@index([createdAt])
+}
+
+model ADM {
+  id            String   @id @default(cuid())
+  number        String   @unique
+  agencyId      String
+  agencyCode    String
+  type          String   // 'fare_discrepancy' | 'refund_violation' | 'ticketing_error' | 'documentation' | 'other'
+  amount        Float
+  currency      String
+  reason        String
+  ticketNumbers String   // JSON array
+  pnrNumbers    String   // JSON array
+  status        String   // 'draft' | 'issued' | 'disputed' | 'upheld' | 'waived' | 'paid'
+  issuedDate    DateTime @default(now())
+  dueDate       DateTime
+  paidDate      DateTime?
+  disputedDate  DateTime?
+  disputeReason String?
+  notes         String   // JSON array
+
+  @@index([agencyId])
+  @@index([status])
+}
+
+// ============================================
+// CRM Models
+// ============================================
+
+model CustomerProfile {
+  id          String   @id @default(cuid())
+  title       String
+  firstName   String
+  lastName    String
+  dateOfBirth String
+  nationality String
+  gender      String?  // 'male' | 'female' | 'other' | 'prefer_not_to_say'
+  contact     String   // JSON
+  documents   String   // JSON
+  loyaltyData String   // JSON
+  preferences String   // JSON
+  travelHistory String // JSON
+  segments    String   // JSON
+  status      String   // 'active' | 'inactive' | 'blacklisted'
+  createdAt   DateTime @default(now())
+  lastModified DateTime @updatedAt
+  lastFlight  String?
+
+  @@index([firstName, lastName])
+  @@index([status])
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // 'email' | 'sms' | 'push' | 'in_app' | 'multi_channel'
+  status      String   // 'draft' | 'scheduled' | 'active' | 'completed' | 'paused'
+  targetSegments String // JSON array
+  targetTiers    String // JSON array
+  message       String   // JSON
+  schedule      String   // JSON
+  metrics       String   // JSON
+  createdAt     DateTime @default(now())
+  createdBy     String
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Complaint {
+  id          String   @id @default(cuid())
+  customerId  String
+  customerName String
+  category    String   // 'flight_delay' | 'cancellation' | 'baggage' | 'service' | 'booking' | 'refund' | 'other'
+  subject     String
+  description String
+  severity    String   // 'low' | 'medium' | 'high' | 'critical'
+  channel     String   // 'email' | 'phone' | 'web' | 'social' | 'airport'
+  status      String   // 'open' | 'in_progress' | 'resolved' | 'closed' | 'escalated'
+  pnrNumber   String?
+  flightNumber String?
+  flightDate  String?
+  assignedTo  String?
+  priority    Int
+  sla         String
+  createdAt   DateTime @default(now())
+  dueDate     DateTime
+  resolvedAt  DateTime?
+  resolution  String?
+  compensation String? // JSON
+  followUpRequired Boolean @default(false)
+  followUpDate DateTime?
+
+  @@index([customerId])
+  @@index([status])
+  @@index([severity])
+}
+
+// ============================================
+// Analytics Models
+// ============================================
+
+model KPIData {
+  id          String   @id @default(cuid())
+  period      String   // 'today' | 'yesterday' | 'last_7_days' | 'last_30_days' | 'this_month' | 'last_month' | 'this_year'
+  metricDate  DateTime
+  bookings    Int
+  passengers  Int
+  revenue     Float
+  loadFactor  Float
+  yield       Float
+  ancillaryRevenue Float
+  onTimePerformance Float
+  cancellations Int
+  metrics     String   // JSON
+
+  @@unique([period, metricDate])
+  @@index([metricDate])
+}
+
+model RouteMetric {
+  id          String   @id @default(cuid())
+  route       String
+  origin      String
+  destination String
+  date        String
+  flights     Int
+  passengers  Int
+  loadFactor  Float
+  revenue     Float
+  yield       Float
+  growth      Float
+
+  @@unique([route, date])
+  @@index([date])
+}
+
+model AgentMetric {
+  id          String   @id @default(cuid())
+  agentId     String
+  agentCode   String
+  agentName   String
+  date        String
+  bookings    Int
+  passengers  Int
+  revenue     Float
+  commission  Float
+  growth      Float
+
+  @@unique([agentId, date])
+  @@index([date])
+}
+
+// ============================================
+// Security Models
+// ============================================
+
+model SecurityUser {
+  id          String   @id @default(cuid())
+  username    String   @unique
+  email       String   @unique
+  firstName   String
+  lastName    String
+  role        String
+  permissions String   // JSON
+  department  String
+  location    String
+  status      String   // 'active' | 'inactive' | 'locked' | 'pending'
+  lastLogin   DateTime?
+  createdAt   DateTime @default(now())
+  mfaEnabled  Boolean  @default(false)
+
+  @@index([username])
+  @@index([email])
+  @@index([status])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  userId      String
+  username    String
+  action      String
+  module      String
+  details     String
+  ipAddress   String
+  userAgent   String
+  result      String   // 'success' | 'failure'
+  sessionId   String?
+
+  @@index([userId])
+  @@index([timestamp])
+  @@index([module])
+}
+
+model SecurityEvent {
+  id          String   @id @default(cuid())
+  type        String   // 'login_attempt' | 'unauthorized_access' | 'suspicious_activity' | 'data_breach' | 'fraud_attempt'
+  severity    String   // 'low' | 'medium' | 'high' | 'critical'
+  description String
+  userId      String?
+  ipAddress   String
+  timestamp   DateTime @default(now())
+  status      String   // 'open' | 'investigating' | 'resolved' | 'false_positive'
+  assignedTo  String?
+  resolution  String?
+  resolvedAt  DateTime?
+
+  @@index([timestamp])
+  @@index([status])
+  @@index([severity])
+}
+
+// ============================================
+// Integration Models
+// ============================================
+
+model Integration {
+  id              String   @id @default(cuid())
+  name            String
+  type            String   // 'gds' | 'nds' | 'payment' | 'airport' | 'accounting' | 'crm' | 'loyalty' | 'chatbot' | 'webhook' | 'other'
+  provider        String   // 'amadeus' | 'sabre' | 'travelport' | 'stripe' | 'paypal' | 'aodb' | 'bhs' | 'sap' | 'oracle' | 'salesforce' | 'other'
+  status          String   // 'active' | 'inactive' | 'error' | 'testing'
+  endpoint        String
+  credentials     String   // JSON (encrypted)
+  configuration   String   // JSON
+  lastSync        DateTime?
+  lastSyncStatus  String   // 'success' | 'partial' | 'failed'
+  metrics         String   // JSON
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  lastModified    DateTime @updatedAt
+
+  @@index([type])
+  @@index([provider])
+  @@index([status])
+}
+
+model Webhook {
+  id          String   @id @default(cuid())
+  integrationId String?
+  name        String
+  url         String
+  events      String   // JSON array
+  secret      String
+  status      String   // 'active' | 'inactive'
+  lastTriggered DateTime?
+  successRate Float
+  createdAt   DateTime @default(now())
+
+  @@index([integrationId])
+  @@index([status])
+}
+
+// ============================================
+// Cargo Models
+// ============================================
+
+model CargoBooking {
+  id          String   @id @default(cuid())
+  awbNumber   String   @unique
+  shipper     String   // JSON
+  consignee   String   // JSON
+  flightDetails String // JSON
+  goods       String   // JSON
+  charges     String   // JSON
+  status      String   // 'booked' | 'accepted' | 'received' | 'loaded' | 'in_transit' | 'arrived' | 'delivered' | 'cancelled'
+  bookedAt    DateTime @default(now())
+  bookedBy    String
+  uld         String?
+  tracking    String   // JSON array
+
+  @@index([awbNumber])
+  @@index([status])
+  @@index([bookedAt])
+}
+
+model CargoTracking {
+  id          String   @id @default(cuid())
+  bookingId   String
+  timestamp   DateTime @default(now())
+  location    String
+  status      String
+  remarks     String?
+  userId      String?
+
+  @@index([bookingId])
+  @@index([timestamp])
+}
+
+model ULD {
+  id              String   @id @default(cuid())
+  uldNumber       String   @unique
+  type            String
+  owner           String
+  condition       String   // 'serviceable' | 'repairable' | 'unserviceable'
+  location        String
+  currentFlight   String?
+  lastInspection  String
+  nextInspectionDue String
+  dimensions      String   // JSON
+  contents        String   // JSON
+
+  @@index([uldNumber])
+  @@index([location])
+}
+
+// ============================================
+// Sustainability Models
+// ============================================
+
+model SustainabilityMetric {
+  id                String   @id @default(cuid())
+  period            String
+  flights           Int
+  fuelConsumed      Float
+  co2Emissions      Float
+  co2PerPaxKm       Float
+  co2PerTonneKm     Float
+  efficiency        Float
+  carbonOffsetsSold Float
+  carbonOffsetsRetired Float
+  renewableEnergy   Float
+  wasteRecycled     Float
+  targets           String   // JSON
+  initiatives       String   // JSON array
+  createdAt         DateTime @default(now())
+
+  @@index([period])
+}
+
+model CarbonOffset {
+  id          String   @id @default(cuid())
+  name        String
+  project     String
+  type        String
+  location    String
+  standard    String
+  certification String
+  pricePerTon Float
+  currency    String
+  available   Float
+  sold        Float
+  retired     Float
+  vintage     Int
+  isActive    Boolean  @default(true)
+
+  @@index([project])
+}
+
+// ============================================
+// AI & Automation Models
+// ============================================
+
+model AIModel {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // 'pricing' | 'demand_forecast' | 'maintenance_predictive' | 'fraud_detection' | 'personalization' | 'disruption_recovery' | 'revenue_anomaly'
+  status      String   // 'training' | 'deployed' | 'retired'
+  version     String
+  accuracy    Float
+  lastTrained DateTime?
+  nextTraining DateTime?
+  features    String   // JSON array
+  performance String   // JSON
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([type])
+  @@index([status])
+}
+
+model AIPrediction {
+  id          String   @id @default(cuid())
+  modelId     String
+  modelName   String
+  type        String
+  timestamp   DateTime @default(now())
+  input       String   // JSON
+  output      String   // JSON
+  confidence  Float
+  recommendation String?
+  implemented Boolean  @default(false)
+  outcome     String?
+
+  @@index([modelId])
+  @@index([timestamp])
+}
+
+model AutomationRule {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  trigger     String   // JSON
+  actions     String   // JSON array
+  status      String   // 'active' | 'inactive' | 'paused'
+  priority    String   // 'low' | 'medium' | 'high' | 'critical'
+  executionCount Int   @default(0)
+  successRate Float
+  lastExecuted DateTime?
+  nextExecution DateTime?
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  @@index([status])
+  @@index([priority])
 }

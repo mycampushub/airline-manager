@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { 
   LayoutDashboard, 
   Plane, 
-  Ticket, 
+  PlaneTakeoff,
   Users, 
   Wrench, 
   DollarSign, 
@@ -27,8 +27,7 @@ import {
   Settings,
   LogOut,
   User,
-  Clock,
-  Globe
+  Clock
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -70,64 +69,33 @@ const menuItems: MenuItem[] = [
   },
   {
     id: 'pss',
-    label: 'Core PSS',
-    icon: Plane,
-    children: [
-      { id: 'reservations', label: 'Reservations (CRS)', icon: Ticket },
-      { id: 'ticketing', label: 'Ticketing', icon: Ticket },
-      { id: 'inventory', label: 'Inventory Management', icon: BarChart3 }
-    ]
+    label: 'Passenger Service',
+    icon: Plane
   },
   {
     id: 'dcs',
     label: 'Departure Control',
-    icon: Plane,
-    children: [
-      { id: 'checkin', label: 'Check-In', icon: User },
-      { id: 'boarding', label: 'Boarding', icon: Plane },
-      { id: 'loadbalance', label: 'Load & Balance', icon: BarChart3 },
-      { id: 'baggage', label: 'Baggage', icon: Package }
-    ]
+    icon: PlaneTakeoff
   },
   {
     id: 'flightops',
     label: 'Flight Operations',
-    icon: Plane,
-    children: [
-      { id: 'schedule', label: 'Schedule Planning', icon: Clock },
-      { id: 'disruption', label: 'Disruption Mgmt', icon: Bell },
-      { id: 'dispatch', label: 'Dispatch', icon: Globe }
-    ]
+    icon: Plane
   },
   {
     id: 'crew',
     label: 'Crew Management',
-    icon: Users,
-    children: [
-      { id: 'crew-schedule', label: 'Crew Scheduling', icon: Clock },
-      { id: 'crew-pairing', label: 'Crew Pairing', icon: Users },
-      { id: 'crew-qual', label: 'Qualifications', icon: Shield }
-    ]
+    icon: Users
   },
   {
     id: 'mro',
-    label: 'M & E (MRO)',
-    icon: Wrench,
-    children: [
-      { id: 'maintenance', label: 'Maintenance', icon: Wrench },
-      { id: 'engineering', label: 'Engineering', icon: Cpu },
-      { id: 'parts', label: 'Parts Inventory', icon: Package }
-    ]
+    label: 'Maintenance & Engineering',
+    icon: Wrench
   },
   {
     id: 'revenue',
     label: 'Revenue Management',
-    icon: DollarSign,
-    children: [
-      { id: 'pricing', label: 'Dynamic Pricing', icon: DollarSign },
-      { id: 'forecast', label: 'Demand Forecast', icon: BarChart3 },
-      { id: 'yield', label: 'Yield Mgmt', icon: Calculator }
-    ]
+    icon: DollarSign
   },
   {
     id: 'ancillary',
@@ -143,14 +111,7 @@ const menuItems: MenuItem[] = [
   {
     id: 'agency',
     label: 'Agency Management',
-    icon: Building2,
-    children: [
-      { id: 'agency-hierarchy', label: 'Agency Hierarchy', icon: Building2 },
-      { id: 'credit-wallet', label: 'Credit & Wallet', icon: DollarSign },
-      { id: 'commission', label: 'Commission', icon: Calculator },
-      { id: 'agent-control', label: 'Agent Control', icon: Shield },
-      { id: 'adm', label: 'ADM/ACM', icon: Bell }
-    ]
+    icon: Building2
   },
   {
     id: 'crm',
@@ -192,76 +153,43 @@ const menuItems: MenuItem[] = [
 
 export default function Home() {
   const { currentModule, currentView, setCurrentModule, setCurrentView, sidebarCollapsed, toggleSidebar, updateKPIDashboard } = useAirlineStore()
-  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['pss', 'dcs', 'flightops', 'crew', 'mro', 'revenue', 'agency']))
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const [currentTime, setCurrentTime] = useState<Date | null>(null)
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     updateKPIDashboard('today')
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
   }, [updateKPIDashboard])
 
-  const toggleMenu = (menuId: string) => {
-    setExpandedMenus((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(menuId)) {
-        newSet.delete(menuId)
-      } else {
-        newSet.add(menuId)
-      }
-      return newSet
-    })
-  }
-
   const handleMenuClick = (item: MenuItem) => {
-    if (item.children) {
-      toggleMenu(item.id)
-    } else {
-      setCurrentModule(item.id)
-      setCurrentView('overview')
-    }
+    setCurrentModule(item.id)
+    setCurrentView('overview')
   }
 
-  const renderMenuItem = (item: MenuItem, level: number = 0) => {
+  const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icon
     const isActive = currentModule === item.id
-    const isExpanded = expandedMenus.has(item.id)
-    const hasChildren = item.children && item.children.length > 0
 
     return (
-      <div key={item.id}>
-        <button
-          onClick={() => handleMenuClick(item)}
-          className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-primary/20 ${
-            isActive ? 'bg-primary/30 text-primary-foreground font-medium' : 'text-sidebar-foreground'
-          } ${level > 0 ? 'ml-4' : ''}`}
-          style={{ paddingLeft: `${level * 16 + 12}px` }}
-        >
-          <Icon className="h-4 w-4 flex-shrink-0" />
-          {!sidebarCollapsed && (
-            <>
-              <span className="flex-1 truncate">{item.label}</span>
-              {item.badge && (
-                <Badge variant="secondary" className="text-xs px-1.5 py-0">
-                  {item.badge}
-                </Badge>
-              )}
-              {hasChildren && (
-                isExpanded ? (
-                  <ChevronDown className="h-3 w-3 flex-shrink-0" />
-                ) : (
-                  <ChevronRight className="h-3 w-3 flex-shrink-0" />
-                )
-              )}
-            </>
-          )}
-        </button>
-        {hasChildren && isExpanded && !sidebarCollapsed && (
-          <div className="space-y-1">
-            {item.children!.map((child) => renderMenuItem(child, level + 1))}
-          </div>
+      <button
+        key={item.id}
+        onClick={() => handleMenuClick(item)}
+        className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-primary/20 ${
+          isActive ? 'bg-primary/30 text-primary-foreground font-medium' : 'text-sidebar-foreground'
+        }`}
+      >
+        <Icon className="h-4 w-4 flex-shrink-0" />
+        {!sidebarCollapsed && (
+          <>
+            <span className="flex-1 truncate">{item.label}</span>
+            {item.badge && (
+              <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                {item.badge}
+              </Badge>
+            )}
+          </>
         )}
-      </div>
+      </button>
     )
   }
 
@@ -270,46 +198,22 @@ export default function Home() {
       case 'dashboard':
         return <DashboardModule />
       case 'pss':
-      case 'reservations':
-      case 'ticketing':
-      case 'inventory':
         return <PSSModule />
       case 'dcs':
-      case 'checkin':
-      case 'boarding':
-      case 'loadbalance':
-      case 'baggage':
         return <DCSModule />
       case 'flightops':
-      case 'schedule':
-      case 'disruption':
-      case 'dispatch':
         return <FlightOpsModule />
       case 'crew':
-      case 'crew-schedule':
-      case 'crew-pairing':
-      case 'crew-qual':
         return <CrewModule />
       case 'mro':
-      case 'maintenance':
-      case 'engineering':
-      case 'parts':
         return <MROModule />
       case 'revenue':
-      case 'pricing':
-      case 'forecast':
-      case 'yield':
         return <RevenueModule />
       case 'ancillary':
         return <AncillaryModule />
       case 'revenue-acct':
         return <RevenueAccountingModule />
       case 'agency':
-      case 'agency-hierarchy':
-      case 'credit-wallet':
-      case 'commission':
-      case 'agent-control':
-      case 'adm':
         return <AgencyModule />
       case 'crm':
         return <CRMModule />
@@ -332,15 +236,7 @@ export default function Home() {
 
   const getModuleTitle = () => {
     const item = menuItems.find(m => m.id === currentModule)
-    if (item) return item.label
-    
-    for (const menu of menuItems) {
-      if (menu.children) {
-        const child = menu.children.find(c => c.id === currentModule)
-        if (child) return child.label
-      }
-    }
-    return 'Dashboard'
+    return item ? item.label : 'Dashboard'
   }
 
   return (
@@ -475,7 +371,7 @@ export default function Home() {
             <span>DB: Connected</span>
           </div>
           <div className="flex items-center gap-4 text-xs text-sidebar-foreground">
-            <span>{currentTime.toLocaleString()}</span>
+            {currentTime && <span suppressHydrationWarning>{currentTime.toLocaleString()}</span>}
             <span>•</span>
             <span>v2.5.1</span>
           </div>

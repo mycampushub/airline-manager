@@ -101,7 +101,7 @@ export default function AncillaryModule() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
-                  { name: 'Extra Legroom Seat', category: 'seat', price: 45, icon: ArmChair, desc: 'Additional 6 inches of legroom' },
+                  { name: 'Extra Legroom Seat', category: 'seat', price: 45, icon: Armchair, desc: 'Additional 6 inches of legroom' },
                   { name: 'Extra Baggage (23kg)', category: 'baggage', price: 75, icon: Package, desc: 'Additional checked bag' },
                   { name: 'Lounge Access', category: 'lounge', price: 50, icon: Briefcase, desc: 'Airport lounge entry' },
                   { name: 'Premium Meal', category: 'meal', price: 25, icon: Coffee, desc: 'Gourmet in-flight meal' },

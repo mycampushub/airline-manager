@@ -28,53 +28,56 @@ import {
   MoreHorizontal,
   Download,
   Filter,
-  RefreshCw
+  RefreshCw,
+  Wrench
 } from 'lucide-react'
 import { useAirlineStore } from '@/lib/store'
+
+interface StatCardProps {
+  title: string
+  value: number | string
+  change: number
+  trend: 'up' | 'down' | 'stable'
+  icon: any
+  prefix?: string
+  suffix?: string
+  detail?: string
+}
+
+const StatCard = ({ 
+  title, 
+  value, 
+  change, 
+  trend, 
+  icon: Icon, 
+  prefix = '', 
+  suffix = '',
+  detail
+}: StatCardProps) => (
+  <Card className="enterprise-card">
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+      <Icon className="h-4 w-4 text-muted-foreground" />
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">{prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}</div>
+      <div className="flex items-center gap-1 mt-1">
+        {trend === 'up' && <TrendingUp className="h-3 w-3 text-green-600" />}
+        {trend === 'down' && <TrendingDown className="h-3 w-3 text-red-600" />}
+        <span className={`text-xs ${trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-muted-foreground'}`}>
+          {change > 0 ? '+' : ''}{change}%
+        </span>
+        <span className="text-xs text-muted-foreground ml-1">vs last period</span>
+      </div>
+      {detail && <div className="text-xs text-muted-foreground mt-1">{detail}</div>}
+    </CardContent>
+  </Card>
+)
 
 export default function DashboardModule() {
   const { kpiDashboard, pnrs, tickets, flightInstances, disruptions, crewMembers, maintenanceRecords } = useAirlineStore()
   const metrics = kpiDashboard.metrics
   const [selectedAlert, setSelectedAlert] = useState<any>(null)
-
-  const StatCard = ({ 
-    title, 
-    value, 
-    change, 
-    trend, 
-    icon: Icon, 
-    prefix = '', 
-    suffix = '',
-    detail
-  }: { 
-    title: string
-    value: number | string
-    change: number
-    trend: 'up' | 'down' | 'stable'
-    icon: any
-    prefix?: string
-    suffix?: string
-    detail?: string
-  }) => (
-    <Card className="enterprise-card">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}</div>
-        <div className="flex items-center gap-1 mt-1">
-          {trend === 'up' && <TrendingUp className="h-3 w-3 text-green-600" />}
-          {trend === 'down' && <TrendingDown className="h-3 w-3 text-red-600" />}
-          <span className={`text-xs ${trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-muted-foreground'}`}>
-            {change > 0 ? '+' : ''}{change}%
-          </span>
-          <span className="text-xs text-muted-foreground ml-1">vs last period</span>
-        </div>
-        {detail && <div className="text-xs text-muted-foreground mt-1">{detail}</div>}
-      </CardContent>
-    </Card>
-  )
 
   const alerts = [
     { id: 1, type: 'critical', title: 'Flight AA123 Delayed', message: 'Weather conditions at JFK causing 2h delay', time: '10 min ago', acknowledged: false },

@@ -19,7 +19,9 @@ import {
   Users,
   Plus,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle,
+  XCircle
 } from 'lucide-react'
 import { useAirlineStore, type Agency } from '@/lib/store'
 
