@@ -2,7 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  /* config options here */
+  basePath: "/airline-management",
+  assetPrefix: "/airline-management/",
   typescript: {
     ignoreBuildErrors: true,
   },
