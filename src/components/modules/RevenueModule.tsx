@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useToast } from '@/hooks/use-toast'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -75,6 +76,7 @@ interface OptimizationAction {
 
 export default function RevenueModule() {
   const { fareBasis, revenueData, demandForecasts, addFareBasis, updateRevenueData } = useAirlineStore()
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('pricing')
   const [showFareDialog, setShowFareDialog] = useState(false)
   const [showRuleDialog, setShowRuleDialog] = useState(false)
@@ -160,16 +162,25 @@ export default function RevenueModule() {
 
   // Additional handlers
   const handleExportReport = () => {
-    alert('Revenue report exported')
-    console.log('Exporting revenue report...')
+    const headers = ['Route', 'Date', 'Passengers', 'Revenue', 'Load Factor']
+    const rows = revenueData.map(r => [r.route, r.date, r.passengers, r.revenue, r.loadFactor])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'revenue-report.csv'
+    link.click()
+    toast({ title: 'Report Exported', description: 'Revenue report exported to CSV' })
   }
 
   const handleConfigurePricing = () => {
-    alert('Configure pricing settings - Feature to be implemented')
+    setShowRuleDialog(true)
+    toast({ title: 'Pricing Configuration', description: 'Configure pricing settings' })
   }
 
   const handleRefreshRules = () => {
-    alert('Pricing rules refreshed')
+    setPricingRules([...pricingRules])
+    toast({ title: 'Rules Refreshed', description: 'Pricing rules refreshed' })
   }
 
   // Calculations

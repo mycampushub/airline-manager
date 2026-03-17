@@ -172,7 +172,7 @@ const menuItems: MenuItem[] = [
 ]
 
 function App() {
-  const { currentModule, currentView, setCurrentModule, setCurrentView, sidebarCollapsed, toggleSidebar, updateKPIDashboard, pnrs, tickets, flightInstances } = useAirlineStore()
+  const { currentModule, currentView, setCurrentModule, setCurrentView, sidebarCollapsed, toggleSidebar, updateKPIDashboard, pnrs, tickets, flightInstances, setPendingAction } = useAirlineStore()
   const { toast } = useToast()
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -222,42 +222,15 @@ function App() {
   }
 
   const handleNew = () => {
-    const moduleActions: Record<string, string> = {
-      'pss': 'Creating new PNR (Passenger Name Record)...',
-      'dcs': 'Opening new check-in session...',
-      'flightops': 'Creating new flight schedule...',
-      'crew': 'Adding new crew member...',
-      'mro': 'Creating new maintenance work order...',
-      'revenue': 'Setting up new fare basis...',
-      'ancillary': 'Adding new ancillary product...',
-      'agency': 'Registering new agency...',
-      'crm': 'Adding new customer profile...',
-      'analytics': 'Creating new dashboard...',
-      'security': 'Adding new user...',
-      'integration': 'Configuring new integration...',
-      'cargo': 'Creating new cargo booking...',
-      'sustainability': 'Adding new sustainability initiative...',
-      'ai': 'Creating new automation rule...',
-      'dashboard': 'Creating new widget...'
-    }
-    toast({
-      title: 'New Item',
-      description: moduleActions[currentModule] || 'Creating new item...'
-    })
+    setPendingAction({ action: 'new' })
   }
 
   const handleEdit = () => {
     if (searchResults.length > 0) {
       setSelectedItem({ type: searchResults[0].type, id: searchResults[0].id })
-      toast({
-        title: 'Edit Mode',
-        description: `Editing ${searchResults[0].type}: ${searchResults[0].id}`
-      })
+      setPendingAction({ action: 'edit', data: searchResults[0] })
     } else {
-      toast({
-        title: 'Edit Mode',
-        description: `Edit mode activated for ${getModuleTitle()}. Select an item first.`
-      })
+      setPendingAction({ action: 'edit' })
     }
   }
 
@@ -276,37 +249,24 @@ function App() {
 
   const confirmDelete = () => {
     if (selectedItem) {
-      toast({
-        title: 'Item Deleted',
-        description: `${selectedItem.type} ${selectedItem.id} has been deleted`,
-        variant: 'destructive'
-      })
+      switch (selectedItem.type) {
+        case 'PNR':
+          toast({ title: 'Deleted', description: `PNR ${selectedItem.id} cancelled` })
+          break
+        case 'Ticket':
+          toast({ title: 'Deleted', description: `Ticket ${selectedItem.id} voided` })
+          break
+        default:
+          toast({ title: 'Deleted', description: `${selectedItem.type} ${selectedItem.id} deleted`, variant: 'destructive' })
+      }
       setShowDeleteConfirm(false)
       setSelectedItem(null)
+      setSearchResults([])
     }
   }
 
   const handlePrint = () => {
-    const moduleReports: Record<string, string> = {
-      'pss': 'Printing PNR report...',
-      'dcs': 'Printing boarding passes...',
-      'flightops': 'Printing flight schedule...',
-      'crew': 'Printing crew roster...',
-      'mro': 'Printing work order...',
-      'revenue': 'Printing revenue report...',
-      'ancillary': 'Printing product catalog...',
-      'agency': 'Printing agency statement...',
-      'crm': 'Printing customer report...',
-      'analytics': 'Printing analytics dashboard...',
-      'security': 'Printing audit log...',
-      'integration': 'Printing integration status...',
-      'cargo': 'Printing air waybill...',
-      'sustainability': 'Printing sustainability report...'
-    }
-    toast({
-      title: 'Print',
-      description: moduleReports[currentModule] || 'Preparing print view...'
-    })
+    setPendingAction({ action: 'print' })
     setTimeout(() => window.print(), 500)
   }
 
@@ -654,42 +614,42 @@ function App() {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="enterprise-ribbon h-12 flex items-center justify-between px-4 flex-shrink-0 relative">
-          <div className="flex items-center gap-4">
+        <header className="enterprise-ribbon h-auto min-h-12 flex items-center justify-between px-4 py-2 flex-shrink-0 relative flex-wrap gap-2">
+          <div className="flex items-center gap-4 flex-wrap">
             <h1 className="text-base font-semibold text-primary-foreground">
               {getModuleTitle()}
             </h1>
-            <Separator orientation="vertical" className="h-6 bg-primary-foreground/30" />
-            <div className="flex items-center gap-2">
+            <Separator orientation="vertical" className="h-6 bg-primary-foreground/30 hidden sm:block" />
+            <div className="flex items-center gap-1 flex-wrap">
               <Button variant="ghost" size="sm" onClick={handleNew} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
                 <FileText className="h-3.5 w-3.5 mr-1" />
-                New
+                <span className="hidden md:inline">New</span>
               </Button>
               <Button variant="ghost" size="sm" onClick={handleEdit} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
-                Edit
+                <span className="hidden md:inline">Edit</span>
               </Button>
               <Button variant="ghost" size="sm" onClick={handleDelete} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
-                Delete
+                <span className="hidden md:inline">Delete</span>
               </Button>
               <Button variant="ghost" size="sm" onClick={handlePrint} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
                 <Printer className="h-3.5 w-3.5 mr-1" />
-                Print
+                <span className="hidden lg:inline">Print</span>
               </Button>
               <Button variant="ghost" size="sm" onClick={handleExport} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
                 <Download className="h-3.5 w-3.5 mr-1" />
-                Export
+                <span className="hidden lg:inline">Export</span>
               </Button>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search PNR, Ticket, Passenger..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="w-64 h-8 pl-8 bg-background/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 text-sm"
+                className="w-48 sm:w-64 h-8 pl-8 bg-background/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 text-sm"
               />
               {searchResults.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
@@ -713,7 +673,7 @@ function App() {
                 </div>
               )}
             </div>
-            <Separator orientation="vertical" className="h-6 bg-primary-foreground/30" />
+            <Separator orientation="vertical" className="h-6 bg-primary-foreground/30 hidden sm:block" />
             <div className="relative">
               <Button
                 variant="ghost"

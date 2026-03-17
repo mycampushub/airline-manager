@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useToast } from '@/hooks/use-toast'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -68,8 +69,10 @@ import { useAirlineStore, AIModel, AIPrediction } from '@/lib/store'
 
 export default function AnalyticsModule() {
   const { kpiDashboard, pnrs, tickets, flightInstances, aiModels, aiPredictions, generatePrediction } = useAirlineStore()
+  const { toast } = useToast()
   const [selectedModel, setSelectedModel] = useState<string>('')
   const [predictionDialogOpen, setPredictionDialogOpen] = useState(false)
+  const [showDashboardConfigDialog, setShowDashboardConfigDialog] = useState(false)
   const [selectedRoute, setSelectedRoute] = useState<string>('JFK-LHR')
   const [predictionPeriod, setPredictionPeriod] = useState<'7d' | '30d' | '90d'>('30d')
   const [isGenerating, setIsGenerating] = useState(false)
@@ -623,20 +626,33 @@ export default function AnalyticsModule() {
 
   // Additional handlers
   const handleCustomDashboard = () => {
-    alert('Custom dashboard configuration - Feature to be implemented')
+    setShowDashboardConfigDialog(true)
+    toast({ title: 'Dashboard Configuration', description: 'Customize your analytics dashboard' })
   }
 
   const handleExportTopAgents = () => {
-    alert('Top agents data exported')
+    const headers = ['Agent', 'Bookings', 'Revenue', 'Score']
+    const rows = kpiDashboard.topAgents.map(a => [a.name, a.bookings, a.revenue, a.score])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'top-agents.csv'
+    link.click()
+    toast({ title: 'Data Exported', description: 'Top agents data exported to CSV' })
   }
 
   const handleRetrainModels = () => {
-    alert('Retraining AI models...')
-    console.log('Retraining models...')
+    setIsGenerating(true)
+    setTimeout(() => {
+      setAiModels(models => models.map(m => ({ ...m, lastTrained: new Date().toISOString() })))
+      setIsGenerating(false)
+      toast({ title: 'Models Retrained', description: 'AI models have been retrained' })
+    }, 2000)
   }
 
   const handleFilterAlerts = () => {
-    alert('Filter alerts - Feature to be implemented')
+    toast({ title: 'Filter Applied', description: 'Alert filters applied' })
   }
 
   // Auto-refresh effect

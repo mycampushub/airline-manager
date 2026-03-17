@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useToast } from '@/hooks/use-toast'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -201,6 +202,7 @@ interface RewardRedemption {
 
 export default function CRMModule() {
   const { customerProfiles, campaigns, complaints, addCustomer, createCampaign, logComplaint } = useAirlineStore()
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('customers')
   const [showCustomerDialog, setShowCustomerDialog] = useState(false)
   
@@ -1713,7 +1715,10 @@ export default function CRMModule() {
                           </td>
                           <td className="font-medium text-green-600">${analytics.revenue.toLocaleString()}</td>
                           <td>
-                            <Button size="sm" variant="ghost" onClick={() => alert(`Campaign Analytics: ${analytics.campaignName}\nSent: ${analytics.sent}\nOpened: ${analytics.opened}\nClicked: ${analytics.clicked}\nRevenue: $${analytics.revenue.toLocaleString()}`)}>
+                            <Button size="sm" variant="ghost" onClick={() => toast({ 
+                              title: `Campaign: ${analytics.campaignName}`, 
+                              description: `Sent: ${analytics.sent}, Opened: ${analytics.opened}, Clicked: ${analytics.clicked}, Revenue: $${analytics.revenue.toLocaleString()}` 
+                            })}>
                               <Eye className="h-4 w-4" />
                             </Button>
                           </td>

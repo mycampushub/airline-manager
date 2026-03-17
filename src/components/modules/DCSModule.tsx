@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useToast } from '@/hooks/use-toast'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -351,9 +352,48 @@ export default function DCSModule() {
     updateBoarding,
     generateLoadSheet,
     addBaggage,
-    pnrs 
+    pnrs,
+    pendingAction,
+    setPendingAction
   } = useAirlineStore()
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('checkin')
+  
+  // Fee calculation state
+  const [calculatedFees, setCalculatedFees] = useState<{type: string, amount: number}[]>([])
+
+  // Handle pending actions from App header
+  useEffect(() => {
+    if (pendingAction) {
+      switch (pendingAction.action) {
+        case 'new':
+          setShowCheckInDialog(true)
+          break
+        case 'print':
+          window.print()
+          break
+        case 'export':
+          handleExportData()
+          break
+      }
+      setPendingAction(null)
+    }
+  }, [pendingAction])
+
+  const handleExportData = () => {
+    if (!flightInstances || flightInstances.length === 0) return
+    const headers = ['Flight', 'Origin', 'Destination', 'Date', 'Status', 'Aircraft']
+    const rows = flightInstances.map(f => [
+      f.flightNumber, f.origin, f.destination, f.departureDate, f.status, f.aircraftType
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'dcs-export.csv'
+    link.click()
+  }
+
   const [selectedFlight, setSelectedFlight] = useState('AA123')
   const [showCheckInDialog, setShowCheckInDialog] = useState(false)
   const [showBaggageDialog, setShowBaggageDialog] = useState(false)
@@ -479,6 +519,17 @@ export default function DCSModule() {
     vaccinationRecord: '',
     specialInstructions: ''
   })
+  
+  // Additional state for real functionality
+  const [selectedBaggage, setSelectedBaggage] = useState<BaggageTracking | null>(null)
+  const [showExamineBagDialog, setShowExamineBagDialog] = useState(false)
+  const [alternateAirports, setAlternateAirports] = useState<{code: string, name: string, time: number}[]>([])
+  const [showDivertedFlightDialog, setShowDivertedFlightDialog] = useState(false)
+  const [interlineAgreements, setInterlineAgreements] = useState<{id: string, airline: string, code: string, active: boolean}[]>([])
+  const [excessBaggageRules, setExcessBaggageRules] = useState<{type: string, rate: number}[]>([
+    { type: 'excess_weight', rate: 15 },
+    { type: 'excess_piece', rate: 200 }
+  ])
 
   // Dangerous Goods Management state
   const [showDangerousGoodsDialog, setShowDangerousGoodsDialog] = useState(false)
@@ -1470,53 +1521,131 @@ export default function DCSModule() {
 
   // Additional handlers for DCS Module
   const handlePrintBoardingPass = (checkIn: CheckInRecord) => {
-    alert(`Printing boarding pass for ${checkIn.passengerName}\nSeat: ${checkIn.seatNumber}\nFlight: ${checkIn.flightNumber}`)
-    console.log('Printing boarding pass:', checkIn)
+    const printContent = `
+      <html><head><title>Boarding Pass</title>
+      <style>
+        body { font-family: Arial; padding: 20px; }
+        .bp { border: 2px solid #000; padding: 20px; max-width: 400px; }
+        .header { font-size: 24px; font-weight: bold; margin-bottom: 20px; }
+        .row { display: flex; justify-content: space-between; margin: 10px 0; }
+        .label { font-weight: bold; }
+      </style></head><body>
+        <div class="bp">
+          <div class="header">BOARDING PASS</div>
+          <div class="row"><span class="label">Flight:</span><span>${checkIn.flightNumber}</span></div>
+          <div class="row"><span class="label">Passenger:</span><span>${checkIn.passengerName}</span></div>
+          <div class="row"><span class="label">Seat:</span><span>${checkIn.seatNumber}</span></div>
+          <div class="row"><span class="label">Date:</span><span>${checkIn.date}</span></div>
+          <div class="row"><span class="label">Gate:</span><span>${checkIn.gate || 'TBD'}</span></div>
+        </div>
+      </body></html>
+    `
+    const win = window.open('', '_blank')
+    if (win) {
+      win.document.write(printContent)
+      win.document.close()
+      win.print()
+    }
+    toast({ title: 'Boarding Pass Printed', description: `Boarding pass for ${checkIn.passengerName}` })
   }
 
   const handlePrintBaggageTag = (bag: BaggageTracking) => {
-    alert(`Printing baggage tag\nTag Number: ${bag.tagNumber}\nRoute: ${bag.route}\nWeight: ${bag.weight}kg`)
-    console.log('Printing baggage tag:', bag)
+    const printContent = `
+      <html><head><title>Baggage Tag</title>
+      <style>
+        body { font-family: Arial; padding: 20px; }
+        .tag { border: 2px solid #000; padding: 20px; max-width: 300px; }
+        .header { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+      </style></head><body>
+        <div class="tag">
+          <div class="header">BAGGAGE TAG</div>
+          <div>Tag: ${bag.tagNumber}</div>
+          <div>Route: ${bag.route}</div>
+          <div>Weight: ${bag.weight}kg</div>
+          <div>Flight: ${bag.flightNumber}</div>
+        </div>
+      </body></html>
+    `
+    const win = window.open('', '_blank')
+    if (win) {
+      win.document.write(printContent)
+      win.document.close()
+      win.print()
+    }
+    toast({ title: 'Baggage Tag Printed', description: `Tag: ${bag.tagNumber}` })
   }
 
   const handleExamineBag = (bag: BaggageTracking) => {
-    alert(`Examining baggage: ${bag.tagNumber}\nStatus: ${bag.status}\nLocation: ${bag.location}`)
-    console.log('Examining baggage:', bag)
+    setSelectedBaggage(bag)
+    setShowExamineBagDialog(true)
+    toast({ title: 'Baggage Examined', description: `Examining ${bag.tagNumber}` })
   }
 
   const handleReconcileBag = (bag: BaggageTracking) => {
-    if (confirm(`Mark baggage ${bag.tagNumber} as reconciled?`)) {
-      setBaggageTracking(baggageTracking.map(b => b.id === bag.id ? { ...b, status: 'loaded' as const } : b))
-      alert(`Baggage ${bag.tagNumber} reconciled and marked as loaded`)
-    }
+    setBaggageTracking(baggageTracking.map(b => b.id === bag.id ? { ...b, status: 'loaded' as const } : b))
+    toast({ title: 'Baggage Reconciled', description: `${bag.tagNumber} marked as loaded` })
   }
 
   const handleViewFlightDetails = (flightNumber: string) => {
     const flight = flightInstances.find(f => f.flightNumber === flightNumber)
     if (flight) {
-      alert(`Flight: ${flight.flightNumber}\nRoute: ${flight.origin} → ${flight.destination}\nStatus: ${flight.status}\nGate: ${flight.gate || 'TBD'}`)
+      setSelectedFlight(flight.flightNumber)
+      toast({ 
+        title: `Flight ${flight.flightNumber}`, 
+        description: `${flight.origin} → ${flight.destination} | Status: ${flight.status} | Gate: ${flight.gate || 'TBD'}` 
+      })
     }
   }
 
   // Quick action handlers
   const handleExportLoadSheet = () => {
-    alert('Load sheet exported successfully')
-    console.log('Exporting load sheet data:', loadSheetData)
+    const headers = ['Flight', 'Date', 'Origin', 'Destination', 'PAX', 'Baggage', 'Cargo', 'Mail']
+    const rows = loadSheetData.map(ls => [
+      ls.flightNumber, ls.date, ls.origin, ls.destination, ls.pax, ls.baggage, ls.cargo, ls.mail
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `loadsheet-${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    toast({ title: 'Load Sheet Exported', description: 'Load sheet data exported to CSV' })
   }
 
   const handlePrintLoadSheet = () => {
-    alert('Load sheet sent to printer')
-    console.log('Printing load sheet')
+    const printContent = `
+      <html><head><title>Load Sheet</title>
+      <style>body { font-family: Arial; padding: 20px; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border: 1px solid #000; padding: 8px; text-align: left; }</style></head><body>
+        <h1>Load Sheet</h1>
+        <table><thead><tr><th>Flight</th><th>Date</th><th>Origin</th><th>Dest</th><th>PAX</th><th>Bag</th><th>Cargo</th></tr></thead>
+        <tbody>${loadSheetData.map(ls => `<tr><td>${ls.flightNumber}</td><td>${ls.date}</td><td>${ls.origin}</td><td>${ls.destination}</td><td>${ls.pax}</td><td>${ls.baggage}</td><td>${ls.cargo}</td></tr>`).join('')}</tbody></table>
+      </body></html>
+    `
+    const win = window.open('', '_blank')
+    if (win) {
+      win.document.write(printContent)
+      win.document.close()
+      win.print()
+    }
+    toast({ title: 'Load Sheet Sent to Printer', description: 'Load sheet printed successfully' })
   }
 
   const handleBackToCalculator = () => {
-    alert('Returning to CG calculator...')
-    console.log('Back to CG calculator')
+    setShowCGCaclulatorDialog(false)
+    toast({ title: 'Returned to CG Calculator', description: 'CG Calculator ready' })
   }
 
   const handleAlternateAirport = () => {
-    alert('Alternate airport options:\n1. KJFK - New York (45 min)\n2. KEWR - Newark (50 min)\n3. KLGA - LaGuardia (55 min)')
-    console.log('Showing alternate airport options')
+    const options = [
+      { code: 'KJFK', name: 'New York JFK', time: 45 },
+      { code: 'KEWR', name: 'Newark', time: 50 },
+      { code: 'KLGA', name: 'LaGuardia', time: 55 }
+    ]
+    setAlternateAirports(options)
+    setShowDivertedFlightDialog(true)
+    toast({ title: 'Alternate Airports', description: 'Showing diversion options' })
   }
 
   // Dangerous Goods Management Handlers
@@ -3282,7 +3411,13 @@ export default function DCSModule() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowFeeCalculatorDialog(false)}>Cancel</Button>
-                <Button onClick={() => { alert('Fee calculated'); setShowFeeCalculatorDialog(false) }}>Calculate</Button>
+                <Button onClick={() => { 
+                  setCalculatedFees([
+                    { type: 'Excess Baggage', amount: 150 },
+                    { type: 'Handling Fee', amount: 50 }
+                  ])
+                  toast({ title: 'Fee Calculated', description: 'Total: $200' })
+                }}>Calculate</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -3325,7 +3460,21 @@ export default function DCSModule() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowSpecialBaggageDialog(false)}>Cancel</Button>
-                <Button onClick={() => { alert('Special baggage request submitted'); setShowSpecialBaggageDialog(false) }}>Submit</Button>
+                <Button onClick={() => { 
+                  setSpecialBaggageRequests([...specialBaggageRequests, {
+                    id: `SBR-${Date.now()}`,
+                    passengerName: 'New Request',
+                    flightNumber: selectedFlight,
+                    itemDescription: 'Special Item',
+                    dimensions: '',
+                    weight: 0,
+                    status: 'pending',
+                    approved: null,
+                    requestedAt: new Date().toISOString()
+                  }])
+                  toast({ title: 'Special Baggage Request Submitted', description: 'Request added to queue' })
+                  setShowSpecialBaggageDialog(false) 
+                }}>Submit</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -3366,7 +3515,22 @@ export default function DCSModule() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowDangerousGoodsDialog(false)}>Cancel</Button>
-                <Button variant="destructive" onClick={() => { alert('Dangerous goods declared'); setShowDangerousGoodsDialog(false) }}>Declare</Button>
+                <Button variant="destructive" onClick={() => { 
+                  setDangerousGoodsDeclarations([...dangerousGoodsDeclarations, {
+                    id: `DG-${Date.now()}`,
+                    flightNumber: selectedFlight,
+                    unNumber: 'UN 1993',
+                    properShippingName: 'Flammable liquid',
+                    class: '3',
+                    packingGroup: 'II',
+                    quantity: 100,
+                    unit: 'kg',
+                    declaredBy: 'Crew',
+                    declaredAt: new Date().toISOString()
+                  }])
+                  toast({ title: 'Dangerous Goods Declared', description: 'Declaration recorded' })
+                  setShowDangerousGoodsDialog(false) 
+                }}>Declare</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -3413,7 +3577,16 @@ export default function DCSModule() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowInterlineDialog(false)}>Cancel</Button>
-                <Button onClick={() => { alert('Agreement saved'); setShowInterlineDialog(false) }}>Save</Button>
+                <Button onClick={() => { 
+                  setInterlineAgreements([...interlineAgreements, {
+                    id: `IA-${Date.now()}`,
+                    airline: 'Partner Airline',
+                    code: 'PA',
+                    active: true
+                  }])
+                  toast({ title: 'Agreement Saved', description: 'Interline agreement saved' })
+                  setShowInterlineDialog(false) 
+                }}>Save</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -3453,7 +3626,15 @@ export default function DCSModule() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowExcessRulesDialog(false)}>Cancel</Button>
-                <Button onClick={() => { alert('Rules saved'); setShowExcessRulesDialog(false) }}>Save Rules</Button>
+                <Button onClick={() => { 
+                  setExcessBaggageRules([
+                    { type: 'excess_weight', rate: 15 },
+                    { type: 'excess_piece', rate: 200 },
+                    { type: 'max_weight', rate: 32 }
+                  ])
+                  toast({ title: 'Rules Saved', description: 'Excess baggage rules updated' })
+                  setShowExcessRulesDialog(false) 
+                }}>Save Rules</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

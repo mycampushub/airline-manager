@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -82,7 +82,39 @@ interface EngineeringLogEntry {
 }
 
 export default function MROModule() {
-  const { maintenanceRecords, parts, components, createMaintenanceRecord, updatePart, trackComponent } = useAirlineStore()
+  const { maintenanceRecords, parts, components, createMaintenanceRecord, updatePart, trackComponent, pendingAction, setPendingAction } = useAirlineStore()
+  
+  // Handle pending actions from App header
+  useEffect(() => {
+    if (pendingAction) {
+      switch (pendingAction.action) {
+        case 'new':
+          setShowMaintenanceDialog(true)
+          break
+        case 'print':
+          window.print()
+          break
+        case 'export':
+          handleExportData()
+          break
+      }
+      setPendingAction(null)
+    }
+  }, [pendingAction])
+
+  const handleExportData = () => {
+    const headers = ['ID', 'Aircraft', 'Type', 'Status', 'Date', 'Priority']
+    const rows = maintenanceRecords.map(m => [
+      m.id, m.aircraftId, m.type, m.status, m.scheduledDate, m.priority
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'mro-export.csv'
+    link.click()
+  }
+
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('maintenance')
   const [showMaintenanceDialog, setShowMaintenanceDialog] = useState(false)

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useToast } from '@/hooks/use-toast'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -209,8 +210,42 @@ interface CargoRevenue {
 }
 
 export default function CargoModule() {
-  const { cargoBookings, ulds, createCargoBooking } = useAirlineStore()
+  const { cargoBookings, ulds, createCargoBooking, pendingAction, setPendingAction } = useAirlineStore()
+  const { toast } = useToast()
   
+  // Handle pending actions from App header
+  useEffect(() => {
+    if (pendingAction) {
+      switch (pendingAction.action) {
+        case 'new':
+          setShowBookingDialog(true)
+          break
+        case 'print':
+          window.print()
+          break
+        case 'export':
+          handleExportData()
+          break
+      }
+      setPendingAction(null)
+    }
+  }, [pendingAction])
+
+  const handleExportData = () => {
+    const headers = ['AWB', 'Shipper', 'Consignee', 'Origin', 'Destination', 'Weight', 'Status']
+    const rows = cargoBookings.map(b => [
+      b.awbNumber, b.shipper.name, b.consignee.name, 
+      b.flightDetails.origin, b.flightDetails.destination,
+      b.flightDetails.weight, b.status
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'cargo-export.csv'
+    link.click()
+  }
+
   // Booking Workflow state
   const [bookings, setBookings] = useState<CargoBookingWorkflow[]>([])
   const [showBookingDialog, setShowBookingDialog] = useState(false)
@@ -903,37 +938,79 @@ export default function CargoModule() {
 
   // Additional handlers for Cargo Module
   const handleExportRevenue = () => {
-    alert('Revenue data exported')
-    console.log('Exporting revenue data:', revenues)
+    const headers = ['Invoice', 'Date', 'Amount', 'Type', 'Status']
+    const rows = revenues.map(r => [r.invoiceNumber, r.date, r.amount, r.type, r.status])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `cargo-revenue-${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    toast({ title: 'Revenue Data Exported', description: 'Revenue data exported to CSV' })
   }
 
   const handleViewBookingDetails = (bookingId: string) => {
     const booking = bookings.find(b => b.id === bookingId)
     if (booking) {
-      alert(`Booking: ${booking.awbNumber}\nShipper: ${booking.shipper.name}\nRoute: ${booking.flightDetails.origin} → ${booking.flightDetails.destination}\nStatus: ${booking.status}`)
+      setSelectedBooking(booking)
+      setShowBookingDetails(true)
+      toast({ title: 'Booking Details', description: `Viewing ${booking.awbNumber}` })
     }
   }
 
   const handlePrintAWB = (bookingId: string) => {
     const booking = bookings.find(b => b.id === bookingId)
     if (booking) {
-      alert(`Printing AWB: ${booking.awbNumber}`)
-      console.log('Printing AWB:', booking)
+      const printContent = `
+        <html><head><title>AWB ${booking.awbNumber}</title>
+        <style>body { font-family: Arial; padding: 20px; }</style></head><body>
+          <h1>Airwaybill</h1>
+          <p><strong>AWB:</strong> ${booking.awbNumber}</p>
+          <p><strong>Shipper:</strong> ${booking.shipper.name}</p>
+          <p><strong>Consignee:</strong> ${booking.consignee.name}</p>
+          <p><strong>Route:</strong> ${booking.flightDetails.origin} → ${booking.flightDetails.destination}</p>
+          <p><strong>Weight:</strong> ${booking.flightDetails.weight} kg</p>
+        </body></html>
+      `
+      const win = window.open('', '_blank')
+      if (win) {
+        win.document.write(printContent)
+        win.document.close()
+        win.print()
+      }
+      toast({ title: 'AWB Printed', description: `Printing AWB ${booking.awbNumber}` })
     }
   }
 
   const handlePrintInvoice = (revenueId: string) => {
     const revenue = revenues.find(r => r.id === revenueId)
     if (revenue) {
-      alert(`Printing Invoice: ${revenue.invoiceNumber}\nAmount: $${revenue.amount}`)
-      console.log('Printing invoice:', revenue)
+      const printContent = `
+        <html><head><title>Invoice ${revenue.invoiceNumber}</title>
+        <style>body { font-family: Arial; padding: 20px; }</style></head><body>
+          <h1>Invoice</h1>
+          <p><strong>Invoice #:</strong> ${revenue.invoiceNumber}</p>
+          <p><strong>Date:</strong> ${revenue.date}</p>
+          <p><strong>Amount:</strong> $${revenue.amount}</p>
+          <p><strong>Type:</strong> ${revenue.type}</p>
+        </body></html>
+      `
+      const win = window.open('', '_blank')
+      if (win) {
+        win.document.write(printContent)
+        win.document.close()
+        win.print()
+      }
+      toast({ title: 'Invoice Printed', description: `Printing invoice ${revenue.invoiceNumber}` })
     }
   }
 
   const handleViewULD = (uldId: string) => {
     const uld = uldTrackings.find(u => u.id === uldId)
     if (uld) {
-      alert(`ULD: ${uld.uldNumber}\nType: ${uld.type}\nStatus: ${uld.status}\nLocation: ${uld.location}`)
+      setSelectedULD(uld)
+      setShowULDDetails(true)
+      toast({ title: 'ULD Details', description: `${uld.uldNumber} - ${uld.status}` })
     }
   }
 

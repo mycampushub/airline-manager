@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useToast } from '@/hooks/use-toast'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -168,7 +169,38 @@ interface BlackoutDate {
 }
 
 export default function PSSModule() {
-  const { pnrs, tickets, emds, createPNR, updatePNR, deletePNR, searchPNRs, issueTicket, voidTicket, refundTicket, issueEMD } = useAirlineStore()
+  const { pnrs, tickets, emds, createPNR, updatePNR, deletePNR, searchPNRs, issueTicket, voidTicket, refundTicket, issueEMD, pendingAction, setPendingAction, inventoryBlocks, groupAllotments, blackoutDates, fareFamilies, addInventoryBlock, removeInventoryBlock, addGroupAllotment, addBlackoutDate, removeBlackoutDate, addFareFamily } = useAirlineStore()
+  const { toast } = useToast()
+  
+  // Handle pending actions from App header
+  useEffect(() => {
+    if (pendingAction) {
+      switch (pendingAction.action) {
+        case 'new':
+          setShowCreateDialog(true)
+          break
+        case 'print':
+          window.print()
+          break
+        case 'export':
+          handleExportData()
+          break
+      }
+      setPendingAction(null)
+    }
+  }, [pendingAction])
+  
+  const handleExportData = () => {
+    const headers = ['PNR', 'Status', 'Passengers', 'Origin', 'Destination', 'Amount']
+    const rows = pnrs.map(p => [p.pnrNumber, p.status, p.passengers.map(x => `${x.firstName} ${x.lastName}`).join('; '), p.segments[0]?.origin || '', p.segments[0]?.destination || '', p.fareQuote.total])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'pnrs-export.csv'
+    link.click()
+  }
+  
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPNR, setSelectedPNR] = useState<PNR | null>(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -262,14 +294,6 @@ export default function PSSModule() {
     '2': { route: 'LAX-SFO', date: '2024-12-15', originalCapacity: 180, adjustedCapacity: 177, reason: 'Low demand forecast', timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
   })
   
-  const [fareFamilies, setFareFamilies] = useState<FareFamily[]>([
-    { id: '1', name: 'Basic Economy', cabin: 'economy', fareClasses: ['E', 'T'], features: ['Personal item only', 'No changes', 'No seat selection', 'Last boarding'], isActive: true, pricingRules: { baseMarkup: 0, demandMultiplier: 1 } },
-    { id: '2', name: 'Standard', cabin: 'economy', fareClasses: ['L', 'K', 'Q'], features: ['Carry-on included', 'Seat selection', '10kg baggage', 'Priority boarding'], isActive: true, pricingRules: { baseMarkup: 15, demandMultiplier: 1.1 } },
-    { id: '3', name: 'Flex', cabin: 'economy', fareClasses: ['M', 'B'], features: ['Full baggage', 'Free changes', 'Seat selection', 'Priority boarding', 'Lounge access'], isActive: true, pricingRules: { baseMarkup: 30, demandMultiplier: 1.2 } },
-    { id: '4', name: 'Premium', cabin: 'business', fareClasses: ['J', 'C', 'D'], features: ['Full flat bed', 'Lounge access', 'Priority everything', 'Full service', 'Spa access'], isActive: true, pricingRules: { baseMarkup: 150, demandMultiplier: 1.5 } },
-    { id: '5', name: 'First Class', cabin: 'first', fareClasses: ['F', 'A'], features: ['Private suites', 'Private terminal', 'Personal chef', 'Butler service', 'Chauffeur'], isActive: true, pricingRules: { baseMarkup: 400, demandMultiplier: 2 } },
-  ])
-  
   const [overbookingSettings, setOverbookingSettings] = useState({
     economy: 5,
     business: 2,
@@ -283,21 +307,10 @@ export default function PSSModule() {
     { id: '2', agentId: 'AGT002', agentName: 'Global Travel', seats: 5, route: 'JFK-LAX', date: '2024-02-16', expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(), fareClass: 'B', status: 'active' },
   ])
   
-  const [groupAllotments, setGroupAllotments] = useState<GroupAllotment[]>([
-    { id: '1', groupName: 'Corporate Summit', seats: 25, utilized: 18, route: 'JFK-LHR', date: '2024-03-01', deadline: '2024-02-15', status: 'active' },
-    { id: '2', groupName: 'Sports Team', seats: 30, utilized: 0, route: 'JFK-LAX', date: '2024-03-15', deadline: '2024-02-28', status: 'active' },
-    { id: '3', groupName: 'Wedding Party', seats: 15, utilized: 15, route: 'LHR-CDG', date: '2024-02-20', deadline: '2024-02-01', status: 'active' },
-  ])
-  
-  const [blackoutDates, setBlackoutDates] = useState<BlackoutDate[]>([
-    { id: '1', route: 'JFK-LHR', startDate: '2024-12-20', endDate: '2024-12-26', cabin: 'economy', reason: 'Holiday peak' },
-    { id: '2', route: 'JFK-LAX', startDate: '2024-12-24', endDate: '2024-12-31', cabin: undefined, reason: 'New Year' },
-    { id: '3', route: '*', startDate: '2024-07-01', endDate: '2024-08-31', cabin: 'economy', reason: 'Summer peak season' },
-  ])
-  
   // Seat map state with selection support
   const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set())
   const [blockedSeats, setBlockedSeats] = useState<Set<string>>(new Set(['10A', '10B', '11A', '11B']))
+  const [seatsOccupied, setSeatsOccupied] = useState<Set<string>>(new Set())
   
   // Seat configurations per aircraft type
   const [seatConfigurations, setSeatConfigurations] = useState<Record<string, {
@@ -374,6 +387,7 @@ export default function PSSModule() {
 
   // Dialog states
   const [showFareClassDialog, setShowFareClassDialog] = useState(false)
+  const [editingFareClass, setEditingFareClass] = useState<FareClassConfig | null>(null)
   const [showFareFamilyDialog, setShowFareFamilyDialog] = useState(false)
   const [showOverbookingDialog, setShowOverbookingDialog] = useState(false)
   const [showBlockInventoryDialog, setShowBlockInventoryDialog] = useState(false)
@@ -579,7 +593,9 @@ export default function PSSModule() {
         const isAisle = config.aisleIndices?.includes(config.columns.indexOf(col))
         const isPremium = row <= config.premiumRows
         
-        const status: SeatStatus = Math.random() > 0.7 ? 'occupied' : 
+        const status: SeatStatus = blockedSeats.has(`${row}${col}`) ? 'blocked' :
+                                    seatsOccupied.has(`${row}${col}`) ? 'occupied' :
+                                    Math.random() > 0.7 ? 'occupied' : 
                                     Math.random() > 0.9 ? 'blocked' : 
                                     isPremium ? 'premium' : 'available'
         
@@ -705,20 +721,37 @@ export default function PSSModule() {
     }
   }
   
+  // State for saved seat assignments
+  const [savedSeatAssignments, setSavedSeatAssignments] = useState<{seatId: string, pnrNumber: string, price: number, timestamp: string}[]>([])
+  
   const handleSaveSeatSelection = () => {
     if (selectedSeats.size === 0) {
-      alert('Please select at least one seat')
       return
     }
     
-    // Calculate total price
+    // Calculate total price and save seats
     const totalPrice = Array.from(selectedSeats).reduce((sum, seatId) => {
       const seat = seats.find(s => s.id === seatId)
       return sum + (seat?.price || 0)
     }, 0)
     
-    // Here you would save to PNR (in-memory)
-    alert(`Saved ${selectedSeats.size} seat(s) to PNR. Total: $${totalPrice}`)
+    // Save seats to state
+    const newAssignments = Array.from(selectedSeats).map(seatId => ({
+      seatId,
+      pnrNumber: selectedPNR?.pnrNumber || `PNR${Date.now()}`,
+      price: seats.find(s => s.id === seatId)?.price || 0,
+      timestamp: new Date().toISOString()
+    }))
+    
+    setSavedSeatAssignments([...savedSeatAssignments, ...newAssignments])
+    
+    // Mark seats as occupied in the seat map
+    setSeatsOccupied(prev => {
+      const newOccupied = new Set(prev)
+      selectedSeats.forEach(seatId => newOccupied.add(seatId))
+      return newOccupied
+    })
+    
     setSelectedSeats(new Set())
     setSelectedSeat(null)
   }
@@ -963,8 +996,15 @@ export default function PSSModule() {
         paymentMethod: 'credit_card',
         amount: total,
         currency: 'USD'
-      }
+      },
+      seats: Array.from(selectedSeats)
     })
+    setSeatsOccupied(prev => {
+      const newOccupied = new Set(prev)
+      selectedSeats.forEach(seat => newOccupied.add(seat))
+      return newOccupied
+    })
+    setSelectedSeats(new Set())
     setShowCreateDialog(false)
     resetForms()
   }
@@ -1358,8 +1398,18 @@ export default function PSSModule() {
 
     // In a real application, this would trigger a file download
     console.log('BSP Report Generated:', report)
-    alert(`BSP ${bspReportType} report generated for ${bspReportPeriod} period.\n\nTotal Tickets: ${report.summary.totalTickets}\nTotal Amount: $${report.summary.totalAmount.toFixed(2)}\n\nCheck console for full report data.`)
-
+    
+    // Generate CSV download
+    const headers = ['Period', 'Total Tickets', 'Total Amount', 'Issued', 'Voided', 'Refunded']
+    const rows = [[bspReportPeriod, report.summary.totalTickets, report.summary.totalAmount, report.summary.issued, report.summary.voided, report.summary.refunded]]
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `bsp-report-${bspReportType}-${bspReportPeriod}.csv`
+    link.click()
+    
+    toast({ title: 'BSP Report Generated', description: `Report for ${bspReportPeriod} downloaded` })
     setShowBSPReportingDialog(false)
   }
 
@@ -1449,7 +1499,7 @@ export default function PSSModule() {
     // Apply corporate fare rules
     if (accountId) {
       setGroupBookingDiscount(10) // 10% corporate discount
-      alert(`Corporate account ${accountId} selected. 10% discount applied.`)
+      toast({ title: 'Corporate Account', description: `Corporate account ${accountId} selected. 10% discount applied.` })
     } else {
       setGroupBookingDiscount(0)
     }
@@ -1517,9 +1567,9 @@ export default function PSSModule() {
           ssr: [...currentSSR, { code: ssrCode, name: ssrName, price, status: 'requested' }]
         }
         setPassengers(updatedPassengers)
-        alert(`SSR ${ssrName} added for passenger`)
+        toast({ title: 'SSR Added', description: `SSR ${ssrName} added for passenger` })
       } else {
-        alert('SSR already exists for this passenger')
+        toast({ title: 'SSR Exists', description: 'SSR already exists for this passenger', variant: 'destructive' })
       }
     }
   }
@@ -1547,21 +1597,21 @@ export default function PSSModule() {
       })
       setShowTimeLimitDialog(false)
       setNewTimeLimit('')
-      alert(`Time limit extended to ${newTimeLimit}`)
+      toast({ title: 'Time Limit Extended', description: `Time limit extended to ${newTimeLimit}` })
     }
   }
 
   // Married Segment Handler
   const handleValidateMarriedSegments = () => {
     if (segments.length < 2) {
-      alert('Married segments require at least 2 segments')
+      toast({ title: 'Validation Error', description: 'Married segments require at least 2 segments', variant: 'destructive' })
       return
     }
 
     // Validate segment connectivity
     for (let i = 0; i < segments.length - 1; i++) {
       if (segments[i].destination !== segments[i + 1].origin) {
-        alert(`Segment ${i + 1} destination (${segments[i].destination}) must match segment ${i + 2} origin (${segments[i + 1].origin})`)
+        toast({ title: 'Validation Error', description: `Segment ${i + 1} destination (${segments[i].destination}) must match segment ${i + 2} origin (${segments[i + 1].origin})`, variant: 'destructive' })
         return
       }
     }
@@ -1570,7 +1620,7 @@ export default function PSSModule() {
     const firstFareClass = segments[0].fareClass
     const hasDifferentClass = segments.some(s => s.fareClass !== firstFareClass)
     if (hasDifferentClass) {
-      alert('All married segments must have same fare class')
+      toast({ title: 'Validation Error', description: 'All married segments must have same fare class', variant: 'destructive' })
       return
     }
 
@@ -1589,7 +1639,7 @@ export default function PSSModule() {
       })
       setNewRemark('')
       setShowRemarksDialog(false)
-      alert('Remark added successfully')
+      toast({ title: 'Remark Added', description: 'Remark added successfully' })
     }
   }
 
@@ -1609,14 +1659,30 @@ export default function PSSModule() {
         status: 'open',
         createdAt: new Date().toISOString()
       })
-      alert(`EMD ${emdNumber} issued for ${selectedTicket.passengerName}`)
+      toast({ title: 'EMD Issued', description: `EMD ${emdNumber} issued for ${selectedTicket.passengerName}` })
     }
   }
 
   // Ticket Reprint Handler
   const handleReprintTicket = () => {
     if (selectedTicket) {
-      alert(`Reprinting ticket ${selectedTicket.ticketNumber}...\n(PDF generation would be triggered here)`)
+      const printContent = `
+        <html><head><title>Ticket ${selectedTicket.ticketNumber}</title>
+        <style>body { font-family: Arial; padding: 20px; }</style></head><body>
+          <h1>Electronic Ticket</h1>
+          <p><strong>Ticket Number:</strong> ${selectedTicket.ticketNumber}</p>
+          <p><strong>Passenger:</strong> ${selectedTicket.passengerName}</p>
+          <p><strong>PNR:</strong> ${selectedTicket.pnrNumber}</p>
+          <p><strong>Route:</strong> ${selectedTicket.route}</p>
+        </body></html>
+      `
+      const win = window.open('', '_blank')
+      if (win) {
+        win.document.write(printContent)
+        win.document.close()
+        win.print()
+      }
+      toast({ title: 'Ticket Reprinted', description: `Reprinting ticket ${selectedTicket.ticketNumber}` })
     }
   }
 
@@ -1625,9 +1691,9 @@ export default function PSSModule() {
     if (selectedTicket && selectedPNR) {
       const email = selectedPNR.contactInfo.email
       if (email) {
-        alert(`Ticket ${selectedTicket.ticketNumber} sent to ${email}`)
+        toast({ title: 'Ticket Sent', description: `Ticket ${selectedTicket.ticketNumber} sent to ${email}` })
       } else {
-        alert('No email address in PNR contact information')
+        toast({ title: 'Error', description: 'No email address in PNR contact information', variant: 'destructive' })
       }
     }
   }
@@ -1637,9 +1703,9 @@ export default function PSSModule() {
     if (selectedTicket && selectedPNR) {
       const phone = selectedPNR.contactInfo.phone
       if (phone) {
-        alert(`Mobile ticket sent to ${phone}\nQR Code: ${selectedTicket.ticketNumber}`)
+        toast({ title: 'Mobile Ticket Sent', description: `Ticket sent to ${phone}` })
       } else {
-        alert('No phone number in PNR contact information')
+        toast({ title: 'Error', description: 'No phone number in PNR contact information', variant: 'destructive' })
       }
     }
   }
@@ -1658,19 +1724,19 @@ export default function PSSModule() {
         }
       }
     })
-    alert(`Checked time limits. ${expiredCount} PNR(s) auto-cancelled due to expired time limits.`)
+    toast({ title: 'Time Limits Checked', description: `${expiredCount} PNR(s) auto-cancelled due to expired time limits` })
   }
 
   // Fare Class Management Handlers
   const handleSaveFareClass = () => {
     if (!newFareClass.code || !newFareClass.name) {
-      alert('Please enter fare class code and name')
+      toast({ title: 'Validation Error', description: 'Please enter fare class code and name', variant: 'destructive' })
       return
     }
 
     const existing = fareClasses.find(fc => fc.code === newFareClass.code)
     if (existing) {
-      alert('Fare class code already exists')
+      toast({ title: 'Validation Error', description: 'Fare class code already exists', variant: 'destructive' })
       return
     }
 
@@ -1690,29 +1756,56 @@ export default function PSSModule() {
       price: 0,
       restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }
     })
+    toast({ title: 'Fare Class Created', description: `Fare class ${newFareClass.code} created` })
   }
 
   const handleEditFareClass = (code: string) => {
-    alert(`Edit fare class ${code} - Feature to be implemented`)
+    const fareClass = fareClasses.find(fc => fc.code === code)
+    if (fareClass) {
+      setEditingFareClass(fareClass)
+      setShowFareClassDialog(true)
+    }
+  }
+
+  const handleUpdateFareClass = (originalCode: string) => {
+    if (!editingFareClass) return
+    
+    setFareClasses(fareClasses.map(fc => 
+      fc.code === originalCode ? editingFareClass : fc
+    ))
+    setShowFareClassDialog(false)
+    setEditingFareClass(null)
+    toast({ title: 'Fare Class Updated', description: `Fare class ${originalCode} updated` })
+    setNewFareClass({
+      code: '',
+      name: '',
+      hierarchy: 1,
+      capacity: 50,
+      price: 0,
+      restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }
+    })
   }
 
   const handleViewFareClassDetails = (code: string) => {
     const fareClass = fareClasses.find(fc => fc.code === code)
     if (fareClass) {
-      alert(`Fare Class: ${code}\nName: ${fareClass.name}\nHierarchy: ${fareClass.hierarchy}\nCapacity: ${fareClass.capacity}\nPrice: $${fareClass.price}`)
+      toast({ 
+        title: `Fare Class: ${code}`, 
+        description: `Name: ${fareClass.name}, Hierarchy: ${fareClass.hierarchy}, Capacity: ${fareClass.capacity}, Price: $${fareClass.price}` 
+      })
     }
   }
 
   // Block Inventory Handlers
   const handleBlockInventory = () => {
     if (!newBlockInventory.agentId || !newBlockInventory.route || !newBlockInventory.date || newBlockInventory.seats === 0) {
-      alert('Please fill all required fields')
+      toast({ title: 'Validation Error', description: 'Please fill all required fields', variant: 'destructive' })
       return
     }
 
     const agent = blockedInventory.find(b => b.agentId === newBlockInventory.agentId && b.route === newBlockInventory.route && b.date === newBlockInventory.date)
     if (agent) {
-      alert('Inventory already blocked for this agent on this route and date')
+      toast({ title: 'Validation Error', description: 'Inventory already blocked for this agent on this route and date', variant: 'destructive' })
       return
     }
 
@@ -1738,31 +1831,39 @@ export default function PSSModule() {
       fareClass: '',
       duration: 30
     })
-    alert(`${newBlockInventory.seats} seats blocked for ${newBlockInventory.agentId}`)
+    addInventoryBlock({
+      agentId: newBlockInventory.agentId,
+      route: newBlockInventory.route,
+      date: newBlockInventory.date,
+      cabin: 'economy',
+      seats: newBlockInventory.seats
+    })
+    toast({ title: 'Inventory Blocked', description: `${newBlockInventory.seats} seats blocked for ${newBlockInventory.agentId}` })
   }
 
   const handleUnblockInventory = (id: string) => {
     setBlockedInventory(blockedInventory.filter(b => b.id !== id))
-    alert('Inventory block released')
+    removeInventoryBlock(id)
+    toast({ title: 'Inventory Released', description: 'Inventory block released' })
   }
 
   // Group Allotment Handlers
   const handleCreateAllotment = () => {
     if (!newGroupAllotment.groupName || !newGroupAllotment.route || !newGroupAllotment.date || newGroupAllotment.seats === 0) {
-      alert('Please fill all required fields')
+      toast({ title: 'Validation Error', description: 'Please fill all required fields', variant: 'destructive' })
       return
     }
 
-    setGroupAllotments([...groupAllotments, {
-      id: `ALL-${Date.now()}`,
+    addGroupAllotment({
       groupName: newGroupAllotment.groupName,
-      seats: newGroupAllotment.seats,
-      utilized: 0,
+      corporateId: '',
       route: newGroupAllotment.route,
-      date: newGroupAllotment.date,
-      deadline: newGroupAllotment.deadline,
-      status: 'active'
-    }])
+      departureDate: newGroupAllotment.date,
+      returnDate: newGroupAllotment.deadline || newGroupAllotment.date,
+      cabin: 'economy',
+      totalSeats: newGroupAllotment.seats,
+      fareClass: newGroupAllotment.fareClass || 'Y'
+    })
     setShowGroupAllotmentDialog(false)
     setNewGroupAllotment({
       groupName: '',
@@ -1771,25 +1872,23 @@ export default function PSSModule() {
       seats: 0,
       deadline: ''
     })
-    alert(`Group allotment created for ${newGroupAllotment.groupName}`)
+    toast({ title: 'Group Allotment Created', description: `Group allotment created for ${newGroupAllotment.groupName}` })
   }
 
   // Blackout Date Handlers
   const handleAddBlackout = () => {
     if (!newBlackoutDate.route || !newBlackoutDate.startDate || !newBlackoutDate.endDate) {
-      alert('Please fill all required fields')
+      toast({ title: 'Validation Error', description: 'Please fill all required fields', variant: 'destructive' })
       return
     }
 
-    setBlackoutDates([...blackoutDates, {
-      id: `BLKOUT-${Date.now()}`,
+    addBlackoutDate({
       route: newBlackoutDate.route,
       startDate: newBlackoutDate.startDate,
       endDate: newBlackoutDate.endDate,
       cabin: newBlackoutDate.cabin,
-      fareClass: newBlackoutDate.fareClass || undefined,
       reason: newBlackoutDate.reason
-    }])
+    })
     setShowBlackoutDialog(false)
     setNewBlackoutDate({
       route: '',
@@ -1799,33 +1898,28 @@ export default function PSSModule() {
       fareClass: '',
       reason: ''
     })
-    alert('Blackout date added')
+    toast({ title: 'Blackout Date Added', description: 'Blackout date added' })
   }
 
   const handleDeleteBlackout = (id: string) => {
     setBlackoutDates(blackoutDates.filter(b => b.id !== id))
-    alert('Blackout date removed')
+    removeBlackoutDate(id)
+    toast({ title: 'Blackout Date Removed', description: 'Blackout date removed' })
   }
 
   // Fare Family Handlers
   const handleSaveFareFamily = () => {
     if (!newFareFamily.name || newFareFamily.fareClasses.length === 0) {
-      alert('Please enter family name and select at least one fare class')
+      toast({ title: 'Validation Error', description: 'Please enter family name and select at least one fare class', variant: 'destructive' })
       return
     }
 
-    setFareFamilies([...fareFamilies, {
-      id: `FF-${Date.now()}`,
+    addFareFamily({
       name: newFareFamily.name,
       cabin: newFareFamily.cabin,
       fareClasses: newFareFamily.fareClasses,
-      features: newFareFamily.features.split(',').map(f => f.trim()),
-      isActive: true,
-      pricingRules: {
-        baseMarkup: newFareFamily.baseMarkup,
-        demandMultiplier: newFareFamily.demandMultiplier
-      }
-    }])
+      features: newFareFamily.features.split(',').map(f => f.trim())
+    })
     setShowFareFamilyDialog(false)
     setNewFareFamily({
       name: '',
@@ -1835,17 +1929,32 @@ export default function PSSModule() {
       baseMarkup: 0,
       demandMultiplier: 1
     })
-    alert(`Fare family "${newFareFamily.name}" created`)
+    toast({ title: 'Fare Family Created', description: `Fare family "${newFareFamily.name}" created` })
   }
 
   const handleEditFareFamily = (id: string) => {
-    alert(`Edit fare family ${id} - Feature to be implemented`)
+    const family = fareFamilies.find(f => f.id === id)
+    if (family) {
+      setNewFareFamily({
+        name: family.name,
+        cabin: family.cabin,
+        fareClasses: family.fareClasses,
+        features: family.features.join(', '),
+        baseMarkup: 0,
+        demandMultiplier: 1
+      })
+      setEditingFareFamily(family)
+      setShowFareFamilyDialog(true)
+    }
   }
 
   const handleViewFareFamily = (id: string) => {
     const family = fareFamilies.find(f => f.id === id)
     if (family) {
-      alert(`Fare Family: ${family.name}\nCabin: ${family.cabin}\nFare Classes: ${family.fareClasses.join(', ')}\nFeatures: ${family.features.join(', ')}`)
+      toast({ 
+        title: `Fare Family: ${family.name}`, 
+        description: `Cabin: ${family.cabin}, Fare Classes: ${family.fareClasses.join(', ')}, Features: ${family.features.join(', ')}` 
+      })
     }
   }
 
@@ -4138,7 +4247,7 @@ export default function PSSModule() {
                   <h3 className="text-lg font-semibold">Fare Class Management</h3>
                   <p className="text-sm text-muted-foreground">Configure fare classes, hierarchy, and restrictions</p>
                 </div>
-                <Dialog open={showFareClassDialog} onOpenChange={setShowFareClassDialog}>
+                <Dialog open={showFareClassDialog} onOpenChange={(open) => { setShowFareClassDialog(open); if (!open) setEditingFareClass(null) }}>
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="h-4 w-4 mr-2" />
@@ -4147,51 +4256,90 @@ export default function PSSModule() {
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Configure Fare Class</DialogTitle>
+                      <DialogTitle>{editingFareClass ? 'Edit Fare Class' : 'Configure Fare Class'}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label>Fare Class Code</Label>
-                          <Input value={newFareClass.code} onChange={(e) => setNewFareClass({...newFareClass, code: e.target.value.toUpperCase()})} placeholder="e.g., Y, B, M" maxLength={1} />
+                          <Input 
+                            value={editingFareClass ? editingFareClass.code : newFareClass.code} 
+                            onChange={(e) => editingFareClass ? setEditingFareClass({...editingFareClass, code: e.target.value.toUpperCase()}) : setNewFareClass({...newFareClass, code: e.target.value.toUpperCase()})} 
+                            placeholder="e.g., Y, B, M" 
+                            maxLength={1} 
+                            disabled={!!editingFareClass}
+                          />
                         </div>
                         <div>
                           <Label>Name</Label>
-                          <Input value={newFareClass.name} onChange={(e) => setNewFareClass({...newFareClass, name: e.target.value})} placeholder="e.g., Economy Full" />
+                          <Input 
+                            value={editingFareClass ? editingFareClass.name : newFareClass.name} 
+                            onChange={(e) => editingFareClass ? setEditingFareClass({...editingFareClass, name: e.target.value}) : setNewFareClass({...newFareClass, name: e.target.value})} 
+                            placeholder="e.g., Economy Full" 
+                          />
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label>Hierarchy Level</Label>
-                          <Input type="number" value={newFareClass.hierarchy} onChange={(e) => setNewFareClass({...newFareClass, hierarchy: Number(e.target.value)})} placeholder="1-10" />
+                          <Input 
+                            type="number" 
+                            value={editingFareClass ? editingFareClass.hierarchy : newFareClass.hierarchy} 
+                            onChange={(e) => editingFareClass ? setEditingFareClass({...editingFareClass, hierarchy: Number(e.target.value)}) : setNewFareClass({...newFareClass, hierarchy: Number(e.target.value)})} 
+                            placeholder="1-10" 
+                          />
                         </div>
                         <div>
                           <Label>Capacity</Label>
-                          <Input type="number" value={newFareClass.capacity} onChange={(e) => setNewFareClass({...newFareClass, capacity: Number(e.target.value)})} placeholder="Number of seats" />
+                          <Input 
+                            type="number" 
+                            value={editingFareClass ? editingFareClass.capacity : newFareClass.capacity} 
+                            onChange={(e) => editingFareClass ? setEditingFareClass({...editingFareClass, capacity: Number(e.target.value)}) : setNewFareClass({...newFareClass, capacity: Number(e.target.value)})} 
+                            placeholder="Number of seats" 
+                          />
                         </div>
                       </div>
                       <div>
                         <Label>Price</Label>
-                        <Input type="number" value={newFareClass.price} onChange={(e) => setNewFareClass({...newFareClass, price: Number(e.target.value)})} placeholder="Base price" />
+                        <Input 
+                          type="number" 
+                          value={editingFareClass ? editingFareClass.price : newFareClass.price} 
+                          onChange={(e) => editingFareClass ? setEditingFareClass({...editingFareClass, price: Number(e.target.value)}) : setNewFareClass({...newFareClass, price: Number(e.target.value)})} 
+                          placeholder="Base price" 
+                        />
                       </div>
                       <div className="grid grid-cols-3 gap-4">
                         <div>
                           <Label>Advance Purchase (days)</Label>
-                          <Input type="number" value={newFareClass.restrictions.advancePurchase} onChange={(e) => setNewFareClass({...newFareClass, restrictions: {...newFareClass.restrictions, advancePurchase: Number(e.target.value)}})} defaultValue={0} />
+                          <Input 
+                            type="number" 
+                            value={editingFareClass ? editingFareClass.restrictions.advancePurchase : newFareClass.restrictions.advancePurchase} 
+                            onChange={(e) => editingFareClass ? setEditingFareClass({...editingFareClass, restrictions: {...editingFareClass.restrictions, advancePurchase: Number(e.target.value)}}) : setNewFareClass({...newFareClass, restrictions: {...newFareClass.restrictions, advancePurchase: Number(e.target.value)}})} 
+                          />
                         </div>
                         <div>
                           <Label>Min Stay (days)</Label>
-                          <Input type="number" value={newFareClass.restrictions.minStay} onChange={(e) => setNewFareClass({...newFareClass, restrictions: {...newFareClass.restrictions, minStay: Number(e.target.value)}})} defaultValue={0} />
+                          <Input 
+                            type="number" 
+                            value={editingFareClass ? editingFareClass.restrictions.minStay : newFareClass.restrictions.minStay} 
+                            onChange={(e) => editingFareClass ? setEditingFareClass({...editingFareClass, restrictions: {...editingFareClass.restrictions, minStay: Number(e.target.value)}}) : setNewFareClass({...newFareClass, restrictions: {...newFareClass.restrictions, minStay: Number(e.target.value)}})} 
+                          />
                         </div>
                         <div>
                           <Label>Max Stay (days)</Label>
-                          <Input type="number" value={newFareClass.restrictions.maxStay} onChange={(e) => setNewFareClass({...newFareClass, restrictions: {...newFareClass.restrictions, maxStay: Number(e.target.value)}})} defaultValue={365} />
+                          <Input 
+                            type="number" 
+                            value={editingFareClass ? editingFareClass.restrictions.maxStay : newFareClass.restrictions.maxStay} 
+                            onChange={(e) => editingFareClass ? setEditingFareClass({...editingFareClass, restrictions: {...editingFareClass.restrictions, maxStay: Number(e.target.value)}}) : setNewFareClass({...newFareClass, restrictions: {...newFareClass.restrictions, maxStay: Number(e.target.value)}})} 
+                          />
                         </div>
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setShowFareClassDialog(false)}>Cancel</Button>
-                      <Button onClick={handleSaveFareClass}>Save Fare Class</Button>
+                      <Button variant="outline" onClick={() => { setShowFareClassDialog(false); setEditingFareClass(null) }}>Cancel</Button>
+                      <Button onClick={() => editingFareClass ? handleUpdateFareClass(editingFareClass.code) : handleSaveFareClass()}>
+                        {editingFareClass ? 'Update Fare Class' : 'Save Fare Class'}
+                      </Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>

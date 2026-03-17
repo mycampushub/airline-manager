@@ -128,12 +128,12 @@ export default function DashboardModule() {
 
   const handleAcknowledgeAll = () => {
     setAlerts(alerts.map(a => ({ ...a, acknowledged: true })))
-    alert(`Acknowledged ${alerts.length} alerts`)
+    toast({ title: 'Alerts Acknowledged', description: `Acknowledged ${alerts.length} alerts` })
   }
 
   const handleClearResolved = () => {
     setAlerts(alerts.filter(a => !a.acknowledged || a.status !== 'resolved'))
-    alert('Cleared resolved alerts')
+    toast({ title: 'Resolved Alerts Cleared', description: 'Cleared resolved alerts' })
   }
 
   const handleAcknowledgeAlert = (alert: any) => {
@@ -205,12 +205,12 @@ export default function DashboardModule() {
       )}
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="operations">Operations</TabsTrigger>
           <TabsTrigger value="financial">Financial</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
-          <TabsTrigger value="alerts">Alerts Center</TabsTrigger>
+          <TabsTrigger value="alerts">Alerts</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}

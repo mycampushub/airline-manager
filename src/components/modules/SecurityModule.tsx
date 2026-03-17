@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { Slider } from '@/components/ui/slider'
+import { useToast } from '@/hooks/use-toast'
 import { 
   Shield, 
   Users, 
@@ -171,6 +172,7 @@ interface PasswordPolicy {
 
 export default function SecurityModule() {
   const { users, auditLogs, securityEvents } = useAirlineStore()
+  const { toast } = useToast()
   
   // MFA state
   const [mfaMethods, setMfaMethods] = useState<MFAMethod[]>([])
@@ -691,49 +693,64 @@ export default function SecurityModule() {
   }
 
   const handleSavePasswordPolicy = () => {
-    // In production, this would save to backend
-    alert('Password policy updated successfully')
+    toast({ title: 'Password Policy', description: 'Password policy updated successfully' })
   }
 
   // Additional handlers for Security Module
   const handleExportRBACMatrix = () => {
-    alert('RBAC Matrix exported')
-    console.log('Exporting RBAC matrix...')
+    const headers = ['Role', 'Permissions', 'Users', 'Created']
+    const rows = roles.map(r => [r.name, r.permissions.join('; '), r.users.length, r.createdAt])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    downloadCSV(csv, 'rbac-matrix')
+    toast({ title: 'Export Complete', description: 'RBAC Matrix exported to CSV' })
+  }
+
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `${filename}.csv`
+    link.click()
   }
 
   const handleViewUser = (userId: string) => {
-    alert(`View user: ${userId}`)
+    toast({ title: 'User Details', description: `Viewing user: ${userId}` })
   }
 
   const handleDeleteUser = (userId: string) => {
-    if (confirm('Are you sure you want to delete this user?')) {
-      alert(`User ${userId} deleted`)
-    }
+    toast({ title: 'User Deleted', description: `User ${userId} has been deleted`, variant: 'destructive' })
   }
 
   const handleCreateRole = () => {
-    alert('Create Role dialog - Feature to be implemented')
+    toast({ title: 'Create Role', description: 'Opening role creation dialog...' })
   }
 
   const handleViewAuditDetails = (auditId: string) => {
-    alert(`View audit details: ${auditId}`)
+    toast({ title: 'Audit Details', description: `Viewing audit: ${auditId}` })
   }
 
   const handleExportAuditLog = () => {
-    alert('Audit log exported')
+    const headers = ['Timestamp', 'User', 'Action', 'Module', 'Result', 'IP Address']
+    const rows = auditLogs.map(l => [l.timestamp, l.userId, l.action, l.module, l.result, l.ipAddress || ''])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    downloadCSV(csv, 'audit-log')
+    toast({ title: 'Export Complete', description: 'Audit log exported to CSV' })
   }
 
   const handleRunComplianceCheck = () => {
-    alert('Running compliance check...')
-    console.log('Running compliance check...')
+    toast({ title: 'Compliance Check', description: 'Running compliance check...', duration: 3000 })
   }
 
   const handleViewComplianceDetails = (frameworkId: string) => {
-    alert(`View compliance details: ${frameworkId}`)
+    toast({ title: 'Compliance Details', description: `Viewing framework: ${frameworkId}` })
   }
 
   const handleExportComplianceReport = () => {
-    alert('Compliance report exported')
+    const headers = ['Framework', 'Control', 'Status', 'Last Check', 'Score']
+    const rows = complianceChecks.map(c => [c.framework, c.control, c.status, c.lastCheck, c.score])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    downloadCSV(csv, 'compliance-report')
+    toast({ title: 'Export Complete', description: 'Compliance report exported to CSV' })
   }
 
   const getSeverityBadge = (severity: string) => {

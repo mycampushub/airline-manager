@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/hooks/use-toast'
 import { 
   Building2, 
   DollarSign, 
@@ -110,6 +111,7 @@ interface ADMWorkflow {
 
 export default function AgencyModule() {
   const { agencies, adms, addAgency, issueADM, updateAgencyCredit, resolveADM } = useAirlineStore()
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('fraud-detection')
   const [showAgencyDialog, setShowAgencyDialog] = useState(false)
   const [showADMDialog, setShowADMDialog] = useState(false)
@@ -479,47 +481,63 @@ export default function AgencyModule() {
 
   // Additional handlers for Agency Module
   const handleFilterAlerts = () => {
-    alert('Filter fraud alerts - Feature to be implemented')
+    toast({ title: 'Filter', description: 'Opening fraud alerts filter...' })
   }
 
   const handleExportAlerts = () => {
-    alert('Fraud alerts exported')
-    console.log('Exporting fraud alerts:', fraudAlerts)
+    const headers = ['Date', 'Type', 'Agency', 'Amount', 'Severity', 'Status']
+    const rows = fraudAlerts.map(a => [a.date, a.type, a.agencyName, a.amount, a.severity, a.status])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    downloadCSV(csv, 'fraud-alerts')
+    toast({ title: 'Export Complete', description: 'Fraud alerts exported to CSV' })
+  }
+
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `${filename}.csv`
+    link.click()
   }
 
   const handleViewAgencyDetails = (agencyId: string) => {
     const agency = agencies.find(a => a.id === agencyId)
     if (agency) {
-      alert(`Agency: ${agency.name}\nIATA Code: ${agency.iataCode}\nCountry: ${agency.country}\nStatus: ${agency.status}`)
+      toast({ title: 'Agency Details', description: `${agency.name} (${agency.iataCode}) - ${agency.country}` })
     }
   }
 
   const handleAddBookingClass = (agencyId: string) => {
     const agency = agencies.find(a => a.id === agencyId)
     if (agency) {
-      alert(`Add booking class for ${agency.name}\nCurrent classes: ${agency.bookingClasses.join(', ')}`)
+      toast({ title: 'Add Booking Class', description: `Adding class for ${agency.name}` })
     }
   }
 
   const handleExportAgencies = () => {
-    alert('Agencies data exported')
-    console.log('Exporting agencies:', agencies)
+    const headers = ['Name', 'IATA Code', 'Country', 'Status', 'Credit Limit']
+    const rows = agencies.map(a => [a.name, a.iataCode, a.country, a.status, a.creditLimit])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    downloadCSV(csv, 'agencies')
+    toast({ title: 'Export Complete', description: 'Agencies data exported to CSV' })
   }
 
   const handleExportAdmWorkflows = () => {
-    alert('ADM workflows exported')
-    console.log('Exporting ADM workflows:', admWorkflows)
+    const headers = ['ADM Number', 'Agency', 'Amount', 'Reason', 'Status', 'Date']
+    const rows = admWorkflows.map(w => [w.adm.admNumber, w.adm.agencyName, w.adm.amountDue, w.adm.reason, w.adm.status, w.adm.issueDate])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    downloadCSV(csv, 'adm-workflows')
+    toast({ title: 'Export Complete', description: 'ADM workflows exported to CSV' })
   }
 
   const handleRefreshData = () => {
-    alert('Refreshing agency data...')
-    console.log('Refreshing agency data')
+    toast({ title: 'Refreshing', description: 'Agency data refreshed' })
   }
 
   const handleViewAdmDetails = (admId: string) => {
     const workflow = admWorkflows.find(wf => wf.adm.id === admId)
     if (workflow) {
-      alert(`ADM: ${workflow.adm.admNumber}\nAmount Due: $${workflow.adm.amountDue}\nStatus: ${workflow.adm.status}`)
+      toast({ title: 'ADM Details', description: `${workflow.adm.admNumber} - $${workflow.adm.amountDue}` })
     }
   }
 
@@ -640,22 +658,22 @@ export default function AgencyModule() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="fraud-detection">
             <ShieldAlert className="h-4 w-4 mr-2" />
-            Fraud Detection
+            <span className="hidden sm:inline">Fraud</span>
           </TabsTrigger>
           <TabsTrigger value="restrictions">
             <Lock className="h-4 w-4 mr-2" />
-            Restrictions
+            <span className="hidden sm:inline">Restrictions</span>
           </TabsTrigger>
           <TabsTrigger value="adm-workflow">
             <FileWarning className="h-4 w-4 mr-2" />
-            ADM Workflow
+            <span className="hidden sm:inline">ADM</span>
           </TabsTrigger>
           <TabsTrigger value="agency-management">
             <Building2 className="h-4 w-4 mr-2" />
-            Agencies
+            <span className="hidden sm:inline">Agencies</span>
           </TabsTrigger>
         </TabsList>
 

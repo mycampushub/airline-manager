@@ -74,6 +74,7 @@ export interface PNR {
   remarks: string[]
   tickets: Ticket[]
   emds: EMD[]
+  seats?: string[]
   isGroup: boolean
   groupSize?: number
   linkedPNRs?: string[]
@@ -142,6 +143,49 @@ export interface FareClass {
   changeAllowed: boolean
   refundable: boolean
   fareRules: string[]
+}
+
+export interface InventoryBlock {
+  id: string
+  agentId: string
+  route: string
+  date: string
+  cabin: 'economy' | 'business' | 'first'
+  seats: number
+  createdAt: string
+  expiresAt: string
+}
+
+export interface GroupAllotment {
+  id: string
+  groupName: string
+  corporateId: string
+  route: string
+  departureDate: string
+  returnDate: string
+  cabin: 'economy' | 'business' | 'first'
+  totalSeats: number
+  bookedSeats: number
+  fareClass: string
+  status: 'active' | 'closed' | 'completed'
+}
+
+export interface BlackoutDate {
+  id: string
+  route: string
+  startDate: string
+  endDate: string
+  cabin?: 'economy' | 'business' | 'first'
+  reason: string
+}
+
+export interface FareFamily {
+  id: string
+  name: string
+  cabin: 'economy' | 'business' | 'first'
+  fareClasses: string[]
+  features: string[]
+  createdAt: string
 }
 
 export interface SeatMap {
@@ -1440,6 +1484,12 @@ interface AirlineStore {
   sustainabilityMetrics: SustainabilityMetrics[]
   carbonOffsets: CarbonOffset[]
   
+  // PSS Extended Data
+  inventoryBlocks: InventoryBlock[]
+  groupAllotments: GroupAllotment[]
+  blackoutDates: BlackoutDate[]
+  fareFamilies: FareFamily[]
+  
   // AI & Automation Data
   aiModels: AIModel[]
   aiPredictions: AIPrediction[]
@@ -1496,6 +1546,22 @@ interface AirlineStore {
   addFareBasis: (fare: Partial<FareBasis>) => FareBasis
   updateRevenueData: (route: string, date: string, data: Partial<RevenueData>) => RevenueData
   
+  // Inventory Block Actions
+  addInventoryBlock: (block: Partial<InventoryBlock>) => InventoryBlock
+  removeInventoryBlock: (id: string) => void
+  
+  // Group Allotment Actions
+  addGroupAllotment: (allotment: Partial<GroupAllotment>) => GroupAllotment
+  updateGroupAllotment: (id: string, updates: Partial<GroupAllotment>) => GroupAllotment
+  
+  // Blackout Date Actions
+  addBlackoutDate: (date: Partial<BlackoutDate>) => BlackoutDate
+  removeBlackoutDate: (id: string) => void
+  
+  // Fare Family Actions
+  addFareFamily: (family: Partial<FareFamily>) => FareFamily
+  updateFareFamily: (id: string, updates: Partial<FareFamily>) => FareFamily
+  
   // Agency Actions
   addAgency: (agency: Partial<Agency>) => Agency
   updateAgencyCredit: (agencyId: string, amount: number) => Agency
@@ -1532,6 +1598,10 @@ interface AirlineStore {
   addAIModel: (model: Partial<AIModel>) => AIModel
   generatePrediction: (modelId: string, input: Record<string, any>) => AIPrediction
   createAutomationRule: (rule: Partial<AutomationRule>) => AutomationRule
+  
+  // Global Actions
+  pendingAction: { action: string; data?: any } | null
+  setPendingAction: (action: { action: string; data?: any } | null) => void
 }
 
 // ============= STORE CREATION =============
@@ -1595,6 +1665,10 @@ export const useAirlineStore = create<AirlineStore>((set, get) => ({
   ulds: [],
   sustainabilityMetrics: [],
   carbonOffsets: [],
+  inventoryBlocks: [],
+  groupAllotments: [],
+  blackoutDates: [],
+  fareFamilies: [],
   aiModels: [],
   aiPredictions: [],
   automationRules: [],
@@ -2056,6 +2130,95 @@ export const useAirlineStore = create<AirlineStore>((set, get) => ({
     )!
   },
   
+  // Inventory Block Actions
+  addInventoryBlock: (block) => {
+    const newBlock: InventoryBlock = {
+      id: generateId(),
+      agentId: block.agentId || '',
+      route: block.route || '',
+      date: block.date || '',
+      cabin: block.cabin || 'economy',
+      seats: block.seats || 0,
+      createdAt: new Date().toISOString(),
+      expiresAt: block.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      ...block
+    }
+    set((state) => ({ inventoryBlocks: [...state.inventoryBlocks, newBlock] }))
+    return newBlock
+  },
+  removeInventoryBlock: (id) => {
+    set((state) => ({ inventoryBlocks: state.inventoryBlocks.filter(b => b.id !== id) }))
+  },
+  
+  // Group Allotment Actions
+  addGroupAllotment: (allotment) => {
+    const newAllotment: GroupAllotment = {
+      id: generateId(),
+      groupName: allotment.groupName || '',
+      corporateId: allotment.corporateId || '',
+      route: allotment.route || '',
+      departureDate: allotment.departureDate || '',
+      returnDate: allotment.returnDate || '',
+      cabin: allotment.cabin || 'economy',
+      totalSeats: allotment.totalSeats || 0,
+      bookedSeats: 0,
+      fareClass: allotment.fareClass || 'Y',
+      status: 'active',
+      ...allotment
+    }
+    set((state) => ({ groupAllotments: [...state.groupAllotments, newAllotment] }))
+    return newAllotment
+  },
+  updateGroupAllotment: (id, updates) => {
+    set((state) => ({
+      groupAllotments: state.groupAllotments.map(a => 
+        a.id === id ? { ...a, ...updates } : a
+      )
+    }))
+    return get().groupAllotments.find(a => a.id === id)!
+  },
+  
+  // Blackout Date Actions
+  addBlackoutDate: (date) => {
+    const newDate: BlackoutDate = {
+      id: generateId(),
+      route: date.route || '*',
+      startDate: date.startDate || '',
+      endDate: date.endDate || '',
+      cabin: date.cabin,
+      reason: date.reason || '',
+      ...date
+    }
+    set((state) => ({ blackoutDates: [...state.blackoutDates, newDate] }))
+    return newDate
+  },
+  removeBlackoutDate: (id) => {
+    set((state) => ({ blackoutDates: state.blackoutDates.filter(d => d.id !== id) }))
+  },
+  
+  // Fare Family Actions
+  addFareFamily: (family) => {
+    const newFamily: FareFamily = {
+      id: generateId(),
+      name: family.name || '',
+      cabin: family.cabin || 'economy',
+      fareClasses: family.fareClasses || [],
+      features: family.features || [],
+      createdAt: new Date().toISOString(),
+      ...family
+    }
+    set((state) => ({ fareFamilies: [...state.fareFamilies, newFamily] }))
+    return newFamily
+  },
+  updateFareFamily: (id, updates) => {
+    set((state) => ({
+      fareFamilies: state.fareFamilies.map(f => 
+        f.id === id ? { ...f, ...updates } : f
+      )
+    }))
+    return get().fareFamilies.find(f => f.id === id)!
+  },
+   
   // Agency Actions
   addAgency: (agency) => {
     const newAgency: Agency = {
@@ -2509,5 +2672,9 @@ export const useAirlineStore = create<AirlineStore>((set, get) => ({
     }
     set((state) => ({ automationRules: [...state.automationRules, newRule] }))
     return newRule
-  }
+  },
+  
+  // Global Actions
+  pendingAction: null,
+  setPendingAction: (action) => set({ pendingAction: action })
 }))

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useToast } from '@/hooks/use-toast'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -113,6 +114,7 @@ interface OffsetPurchase {
 
 export default function SustainabilityModule() {
   const { sustainabilityMetrics, carbonOffsets, sellCarbonOffset } = useAirlineStore()
+  const { toast } = useToast()
   
   // ESG Reports state
   const [esgReports, setEsgReports] = useState<ESGReport[]>([])
@@ -424,23 +426,44 @@ export default function SustainabilityModule() {
 
   // Additional handlers for Sustainability Module
   const handleRefreshSustainabilityData = () => {
-    alert('Sustainability data refreshed')
-    console.log('Refreshing sustainability metrics...')
+    setSustainabilityMetrics([...sustainabilityMetrics.map(m => ({ ...m, updatedAt: new Date().toISOString() }))])
+    toast({ title: 'Data Refreshed', description: 'Sustainability data refreshed' })
   }
 
   const handleExportESGReports = () => {
-    alert('ESG reports exported')
-    console.log('Exporting ESG reports:', esgReports)
+    const headers = ['Report', 'Period', 'Score', 'Status']
+    const rows = esgReports.map(r => [r.reportName, r.period, r.esgScore, r.status])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'esg-reports.csv'
+    link.click()
+    toast({ title: 'ESG Reports Exported', description: 'ESG reports exported to CSV' })
   }
 
   const handleExportOffsetPortfolio = () => {
-    alert('Offset portfolio exported')
-    console.log('Exporting offset portfolio:', offsetPortfolio)
+    const headers = ['Project', 'Type', 'Credits', 'Price']
+    const rows = offsetPortfolio.map(o => [o.projectName, o.type, o.credits, o.pricePerCredit])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'offset-portfolio.csv'
+    link.click()
+    toast({ title: 'Portfolio Exported', description: 'Offset portfolio exported to CSV' })
   }
 
   const handleExportSustainabilityData = () => {
-    alert('Sustainability data exported')
-    console.log('Exporting sustainability data...')
+    const headers = ['Metric', 'Value', 'Unit', 'Date']
+    const rows = sustainabilityMetrics.map(m => [m.metricName, m.value, m.unit, m.date])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'sustainability-data.csv'
+    link.click()
+    toast({ title: 'Data Exported', description: 'Sustainability data exported to CSV' })
   }
 
   // Utility functions
@@ -1071,8 +1094,22 @@ export default function SustainabilityModule() {
               const esgScore = ((selectedReport.environmental.co2Emissions * 0.4) + 
                                (selectedReport.social.employees * selectedReport.social.diversityInclusion * 0.3) + 
                                (selectedReport.governance.boardDiversity * 0.3)) * 100;
-              alert(`Downloading ESG Report: ${periodLabel}\nESG Score: ${Math.round(esgScore)}%`)
-              console.log('Downloading ESG report:', selectedReport)
+              const printContent = `
+                <html><head><title>ESG Report ${periodLabel}</title>
+                <style>body { font-family: Arial; padding: 20px; }</style></head><body>
+                  <h1>ESG Report - ${periodLabel}</h1>
+                  <p><strong>ESG Score:</strong> ${Math.round(esgScore)}%</p>
+                  <p><strong>CO2 Emissions:</strong> ${selectedReport.environmental.co2Emissions}</p>
+                  <p><strong>Employees:</strong> ${selectedReport.social.employees}</p>
+                </body></html>
+              `
+              const win = window.open('', '_blank')
+              if (win) {
+                win.document.write(printContent)
+                win.document.close()
+                win.print()
+              }
+              toast({ title: 'Report Downloaded', description: `ESG Report: ${periodLabel}, Score: ${Math.round(esgScore)}%` })
             }}>
               <Download className="h-4 w-4 mr-2" />
               Download Report

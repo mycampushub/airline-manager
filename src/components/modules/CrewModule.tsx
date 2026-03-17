@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -82,7 +82,39 @@ interface ComplianceAlert {
 }
 
 export default function CrewModule() {
-  const { crewMembers, crewSchedules, crewPairings, addCrewMember, assignCrewSchedule, createCrewPairing } = useAirlineStore()
+  const { crewMembers, crewSchedules, crewPairings, addCrewMember, assignCrewSchedule, createCrewPairing, pendingAction, setPendingAction } = useAirlineStore()
+  
+  // Handle pending actions from App header
+  useEffect(() => {
+    if (pendingAction) {
+      switch (pendingAction.action) {
+        case 'new':
+          setShowCrewDialog(true)
+          break
+        case 'print':
+          window.print()
+          break
+        case 'export':
+          handleExportData()
+          break
+      }
+      setPendingAction(null)
+    }
+  }, [pendingAction])
+
+  const handleExportData = () => {
+    const headers = ['ID', 'Name', 'Position', 'Base', 'Status', 'Flight Hours']
+    const rows = crewMembers.map(c => [
+      c.employeeId, `${c.firstName} ${c.lastName}`, c.position, c.base, c.status, c.flightHours
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'crew-export.csv'
+    link.click()
+  }
+
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('roster')
   const [showCrewDialog, setShowCrewDialog] = useState(false)

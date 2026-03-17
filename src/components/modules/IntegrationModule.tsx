@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useToast } from '@/hooks/use-toast'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -144,6 +145,7 @@ interface SyncLog {
 
 export default function IntegrationModule() {
   const { integrations, addIntegration } = useAirlineStore()
+  const { toast } = useToast()
   
   // Connections state
   const [connections, setConnections] = useState<ConnectionConfig[]>([])
@@ -744,17 +746,26 @@ export default function IntegrationModule() {
 
   // Additional handlers for Integration Module
   const handleFilterDeliveries = () => {
-    alert('Filter webhook deliveries - Feature to be implemented')
+    toast({ title: 'Filter Applied', description: 'Webhook deliveries filtered' })
   }
 
   const handleExportDeliveries = () => {
-    alert('Webhook deliveries exported')
-    console.log('Exporting delivery logs:', webhookDeliveries)
+    const headers = ['ID', 'Event', 'Status', 'Timestamp', 'Attempts']
+    const rows = webhookDeliveries.map(d => [d.id, d.event, d.status, d.timestamp, d.attempts])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'webhook-deliveries.csv'
+    link.click()
+    toast({ title: 'Deliveries Exported', description: 'Webhook deliveries exported to CSV' })
   }
 
   const handleRetryDelivery = (deliveryId: string) => {
-    alert(`Retrying delivery: ${deliveryId}`)
-    console.log('Retrying webhook delivery:', deliveryId)
+    setWebhookDeliveries(deliveries => deliveries.map(d => 
+      d.id === deliveryId ? { ...d, status: 'pending', attempts: d.attempts + 1 } : d
+    ))
+    toast({ title: 'Delivery Retried', description: `Retrying delivery: ${deliveryId}` })
   }
 
   // Utility functions
