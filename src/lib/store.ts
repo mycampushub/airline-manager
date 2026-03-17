@@ -48,79 +48,80 @@ export interface FareQuote {
 }
 
 export interface PNR {
-  pnrNumber: string
-  createdAt: string
-  createdBy: string
-  status: 'confirmed' | 'waitlist' | 'cancelled' | 'ticketed' | 'void'
-  passengers: Passenger[]
-  segments: FlightSegment[]
-  fareQuote: FareQuote
-  contactInfo: {
+  pnrNumber?: string
+  createdAt?: string
+  createdBy?: string
+  status?: 'confirmed' | 'waitlist' | 'cancelled' | 'ticketed' | 'void'
+  passengers?: Passenger[]
+  segments?: FlightSegment[]
+  fareQuote?: FareQuote
+  contactInfo?: {
     email: string
     phone: string
     address: string
   }
-  paymentInfo: {
+  paymentInfo?: {
     paymentMethod: string
     cardLastFour?: string
     amount: number
     currency: string
   }
-  bookingClass: string
-  agentId: string
-  agencyCode: string
+  bookingClass?: string
+  agentId?: string
+  agencyCode?: string
   corporateAccount?: string
   timeLimit?: string
-  remarks: string[]
-  tickets: Ticket[]
-  emds: EMD[]
+  remarks?: string[]
+  tickets?: Ticket[]
+  emds?: EMD[]
   seats?: string[]
-  isGroup: boolean
+  isGroup?: boolean
   groupSize?: number
   linkedPNRs?: string[]
-  source: 'web' | 'mobile' | 'api' | 'agent'
+  source?: 'web' | 'mobile' | 'api' | 'agent'
+  queuePosition?: number
 }
 
 // Ticketing Types
 export interface Ticket {
   ticketNumber: string
-  pnrNumber: string
-  passengerId: string
-  passengerName: string
-  issuedAt: string
-  issuedBy: string
-  status: 'open' | 'void' | 'refunded' | 'exchanged' | 'used'
-  fare: FareQuote
-  segments: FlightSegment[]
-  taxes: TaxBreakdown[]
-  commission: {
+  pnrNumber?: string
+  passengerId?: string
+  passengerName?: string
+  issuedAt?: string
+  issuedBy?: string
+  status?: 'open' | 'void' | 'refunded' | 'exchanged' | 'used'
+  fare?: FareQuote
+  segments?: FlightSegment[]
+  taxes?: TaxBreakdown[]
+  commission?: {
     amount: number
     rate: number
     paidTo: string
   }
-  validationAirline: string
+  validationAirline?: string
   interlinePartners?: string[]
-  isCodeshare: boolean
+  isCodeshare?: boolean
   operatingCarrier?: string
-  voidableUntil: string
-  refundable: boolean
-  changePenalty: number
-  fareRules: string[]
+  voidableUntil?: string
+  refundable?: boolean
+  changePenalty?: number
+  fareRules?: string[]
 }
 
 export interface EMD {
-  emdNumber: string
-  pnrNumber: string
-  passengerId: string
-  passengerName: string
-  type: 'seat' | 'baggage' | 'meal' | 'lounge' | 'insurance' | 'other'
-  description: string
-  amount: number
-  currency: string
-  issuedAt: string
-  status: 'active' | 'void' | 'refunded' | 'used'
+  emdNumber?: string
+  pnrNumber?: string
+  passengerId?: string
+  passengerName?: string
+  type?: 'seat' | 'baggage' | 'meal' | 'lounge' | 'insurance' | 'other'
+  description?: string
+  amount?: number
+  currency?: string
+  issuedAt?: string
+  status?: 'active' | 'void' | 'refunded' | 'used'
   associatedTicket?: string
-  serviceCode: string
+  serviceCode?: string
 }
 
 export interface TaxBreakdown {
@@ -224,27 +225,27 @@ export interface RouteInventory {
 
 // DCS Types
 export interface CheckInRecord {
-  id: string
-  pnrNumber: string
-  ticketNumber: string
-  passengerId: string
-  passengerName: string
-  flightNumber: string
-  date: string
-  checkInTime: string
-  checkInMethod: 'web' | 'mobile' | 'kiosk' | 'counter'
-  seatNumber: string
-  boardingPassIssued: boolean
+  id?: string
+  pnrNumber?: string
+  ticketNumber?: string
+  passengerId?: string
+  passengerName?: string
+  flightNumber?: string
+  date?: string
+  checkInTime?: string
+  checkInMethod?: 'web' | 'mobile' | 'kiosk' | 'counter'
+  seatNumber?: string
+  boardingPassIssued?: boolean
   boardingPassData?: {
     passNumber: string
     issuedAt: string
     barcode: string
   }
-  documentsVerified: boolean
-  visaValid: boolean
-  passportValid: boolean
-  bagsChecked: number
-  status: 'checked-in' | 'not-checked-in' | 'boarded' | 'no-show'
+  documentsVerified?: boolean
+  visaValid?: boolean
+  passportValid?: boolean
+  bagsChecked?: number
+  status?: 'checked-in' | 'not-checked-in' | 'boarded' | 'no-show'
 }
 
 export interface BoardingRecord {

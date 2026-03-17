@@ -33,7 +33,6 @@ import {
   RefreshCw,
   Wrench
 } from 'lucide-react'
-import { useAirlineStore } from '@/lib/store'
 
 interface StatCardProps {
   title: string
@@ -83,13 +82,13 @@ export default function DashboardModule() {
   const [showFiltersDialog, setShowFiltersDialog] = useState(false)
   const metrics = kpiDashboard.metrics
   const [selectedAlert, setSelectedAlert] = useState<any>(null)
-
-  const alerts = [
-    { id: 1, type: 'critical', title: 'Flight AA123 Delayed', message: 'Weather conditions at JFK causing 2h delay', time: '10 min ago', acknowledged: false },
-    { id: 2, type: 'warning', title: 'Low Inventory on JFK-LHR', message: 'Y class at 15% remaining', time: '25 min ago', acknowledged: false },
-    { id: 3, type: 'info', title: 'New GDS Integration', message: 'Travelport connection established', time: '1 hour ago', acknowledged: true },
-    { id: 4, type: 'warning', title: 'Crew Duty Time Alert', message: 'Crew member C123 approaching limit', time: '2 hours ago', acknowledged: false }
-  ]
+  const [activeTab, setActiveTab] = useState('overview')
+  const [alerts, setAlerts] = useState([
+    { id: 1, type: 'critical', title: 'Flight SQ321 Delayed', message: 'Weather conditions at SIN causing 2h delay', time: '10 min ago', acknowledged: false, status: 'open' },
+    { id: 2, type: 'warning', title: 'Low Inventory on SIN-LHR', message: 'Y class at 15% remaining', time: '25 min ago', acknowledged: false, status: 'open' },
+    { id: 3, type: 'info', title: 'New GDS Integration', message: 'Travelport connection established', time: '1 hour ago', acknowledged: true, status: 'resolved' },
+    { id: 4, type: 'warning', title: 'Crew Duty Time Alert', message: 'Crew member approaching duty limit', time: '2 hours ago', acknowledged: false, status: 'open' }
+  ])
 
   // Handlers for Dashboard Module
   const handleSetToday = () => {
@@ -108,10 +107,10 @@ export default function DashboardModule() {
 
   const handleDownloadReport = () => {
     const reportData = `AeroEnterprise Dashboard Report\nGenerated: ${new Date().toISOString()}\n\n` +
-      `Total Bookings: ${kpiDashboard.totalBookings}\n` +
-      `Total Passengers: ${kpiDashboard.totalPassengers}\n` +
-      `Total Revenue: $${kpiDashboard.totalRevenue.toLocaleString()}\n` +
-      `Load Factor: ${kpiDashboard.loadFactor}%`
+      `Total Bookings: ${kpiDashboard.metrics.bookings.total}\n` +
+      `Total Passengers: ${kpiDashboard.metrics.passengers.total}\n` +
+      `Total Revenue: $${kpiDashboard.metrics.revenue.total.toLocaleString()}\n` +
+      `Load Factor: ${kpiDashboard.metrics.loadFactor.value}%`
     
     const blob = new Blob([reportData], { type: 'text/plain' })
     const link = document.createElement('a')
@@ -195,7 +194,7 @@ export default function DashboardModule() {
                   </div>
                 </div>
               </div>
-              <Button size="sm" variant="destructive">
+              <Button size="sm" variant="destructive" onClick={() => setActiveTab('alerts')}>
                 <Bell className="h-4 w-4 mr-2" />
                 View Alerts
               </Button>
@@ -204,13 +203,13 @@ export default function DashboardModule() {
         </Card>
       )}
 
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="operations">Operations</TabsTrigger>
-          <TabsTrigger value="financial">Financial</TabsTrigger>
-          <TabsTrigger value="customers">Customers</TabsTrigger>
-          <TabsTrigger value="alerts">Alerts</TabsTrigger>
+          <TabsTrigger value="overview" onClick={() => setActiveTab('overview')}>Overview</TabsTrigger>
+          <TabsTrigger value="operations" onClick={() => setActiveTab('operations')}>Operations</TabsTrigger>
+          <TabsTrigger value="financial" onClick={() => setActiveTab('financial')}>Financial</TabsTrigger>
+          <TabsTrigger value="customers" onClick={() => setActiveTab('customers')}>Customers</TabsTrigger>
+          <TabsTrigger value="alerts" onClick={() => setActiveTab('alerts')}>Alerts</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -223,7 +222,7 @@ export default function DashboardModule() {
               change={metrics.bookings.change}
               trend={metrics.bookings.trend}
               icon={Plane}
-              detail={`${metrics.bookings.total * 0.03?.toFixed(0)} today`}
+              detail={`${(metrics.bookings.total * 0.03).toFixed(0)} today`}
             />
             <StatCard
               title="Passengers"
@@ -231,7 +230,7 @@ export default function DashboardModule() {
               change={metrics.passengers.change}
               trend={metrics.passengers.trend}
               icon={Users}
-              detail={`${metrics.passengers.total * 0.85?.toFixed(0)} boarded`}
+              detail={`${(metrics.passengers.total * 0.85).toFixed(0)} boarded`}
             />
             <StatCard
               title="Revenue"

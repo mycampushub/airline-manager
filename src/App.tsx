@@ -45,6 +45,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useToast } from './hooks/use-toast'
 import { useAirlineStore } from './lib/store'
 import { initializeAllMockData } from './lib/initialize-mock-data'
+import { initializeSingaporeAirlinesData } from './lib/singapore-airlines-data'
 import DashboardModule from './components/modules/DashboardModule'
 import PSSModule from './components/modules/PSSModule'
 import DCSModule from './components/modules/DCSModule'
@@ -211,6 +212,7 @@ function App() {
 
   useEffect(() => {
     initializeAllMockData()
+    initializeSingaporeAirlinesData()
     updateKPIDashboard('today')
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)

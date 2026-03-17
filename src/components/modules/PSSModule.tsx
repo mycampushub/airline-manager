@@ -168,8 +168,21 @@ interface BlackoutDate {
   reason: string
 }
 
+interface FareClassConfig {
+  code: string
+  name: string
+  hierarchy: number
+  capacity: number
+  price: number
+  restrictions: {
+    advancePurchase: number
+    minStay: number
+    maxStay: number
+  }
+}
+
 export default function PSSModule() {
-  const { pnrs, tickets, emds, createPNR, updatePNR, deletePNR, searchPNRs, issueTicket, voidTicket, refundTicket, issueEMD, pendingAction, setPendingAction, inventoryBlocks, groupAllotments, blackoutDates, fareFamilies, addInventoryBlock, removeInventoryBlock, addGroupAllotment, addBlackoutDate, removeBlackoutDate, addFareFamily } = useAirlineStore()
+  const { pnrs, tickets, emds, createPNR, updatePNR, deletePNR, searchPNRs, issueTicket, voidTicket, refundTicket, exchangeTicket, issueEMD, pendingAction, setPendingAction, inventoryBlocks, groupAllotments, blackoutDates, fareFamilies, addInventoryBlock, removeInventoryBlock, addGroupAllotment, addBlackoutDate, removeBlackoutDate, addFareFamily } = useAirlineStore()
   const { toast } = useToast()
   
   // Handle pending actions from App header
@@ -1113,9 +1126,7 @@ export default function PSSModule() {
       },
       status: 'confirmed',
       agencyCode: pnersToMerge[0].agencyCode,
-      createdAt: new Date().toISOString(),
-      queuePosition: pnersToMerge[0].queuePosition,
-      timeLimit: pnersToMerge[0].timeLimit
+      createdAt: new Date().toISOString()
     }
 
     // Delete original PNRs and create merged one
@@ -1902,7 +1913,6 @@ export default function PSSModule() {
   }
 
   const handleDeleteBlackout = (id: string) => {
-    setBlackoutDates(blackoutDates.filter(b => b.id !== id))
     removeBlackoutDate(id)
     toast({ title: 'Blackout Date Removed', description: 'Blackout date removed' })
   }
