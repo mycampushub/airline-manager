@@ -1713,7 +1713,7 @@ export default function CRMModule() {
                           </td>
                           <td className="font-medium text-green-600">${analytics.revenue.toLocaleString()}</td>
                           <td>
-                            <Button size="sm" variant="ghost">
+                            <Button size="sm" variant="ghost" onClick={() => alert(`Campaign Analytics: ${analytics.campaignName}\nSent: ${analytics.sent}\nOpened: ${analytics.opened}\nClicked: ${analytics.clicked}\nRevenue: $${analytics.revenue.toLocaleString()}`)}>
                               <Eye className="h-4 w-4" />
                             </Button>
                           </td>

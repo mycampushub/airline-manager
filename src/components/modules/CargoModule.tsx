@@ -910,7 +910,7 @@ export default function CargoModule() {
   const handleViewBookingDetails = (bookingId: string) => {
     const booking = bookings.find(b => b.id === bookingId)
     if (booking) {
-      alert(`Booking: ${booking.awbNumber}\nShipper: ${booking.shipper}\nRoute: ${booking.route}\nStatus: ${booking.status}`)
+      alert(`Booking: ${booking.awbNumber}\nShipper: ${booking.shipper.name}\nRoute: ${booking.flightDetails.origin} → ${booking.flightDetails.destination}\nStatus: ${booking.status}`)
     }
   }
 
@@ -925,13 +925,13 @@ export default function CargoModule() {
   const handlePrintInvoice = (revenueId: string) => {
     const revenue = revenues.find(r => r.id === revenueId)
     if (revenue) {
-      alert(`Printing Invoice: ${revenue.invoiceNumber}\nAmount: $${revenue.totalAmount}`)
+      alert(`Printing Invoice: ${revenue.invoiceNumber}\nAmount: $${revenue.amount}`)
       console.log('Printing invoice:', revenue)
     }
   }
 
   const handleViewULD = (uldId: string) => {
-    const uld = uldTracking.find(u => u.id === uldId)
+    const uld = uldTrackings.find(u => u.id === uldId)
     if (uld) {
       alert(`ULD: ${uld.uldNumber}\nType: ${uld.type}\nStatus: ${uld.status}\nLocation: ${uld.location}`)
     }

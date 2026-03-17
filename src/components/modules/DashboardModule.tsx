@@ -8,6 +8,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { useToast } from '@/hooks/use-toast'
+import { useAirlineStore } from '@/lib/store'
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -75,7 +77,10 @@ const StatCard = ({
 )
 
 export default function DashboardModule() {
-  const { kpiDashboard, pnrs, tickets, flightInstances, disruptions, crewMembers, maintenanceRecords } = useAirlineStore()
+  const { kpiDashboard, pnrs, tickets, flightInstances, disruptions, crewMembers, maintenanceRecords, updateKPIDashboard } = useAirlineStore()
+  const { toast } = useToast()
+  const [dateRange, setDateRange] = useState('today')
+  const [showFiltersDialog, setShowFiltersDialog] = useState(false)
   const metrics = kpiDashboard.metrics
   const [selectedAlert, setSelectedAlert] = useState<any>(null)
 
@@ -88,22 +93,33 @@ export default function DashboardModule() {
 
   // Handlers for Dashboard Module
   const handleSetToday = () => {
-    alert('Viewing today\'s operations')
-    console.log('Showing today\'s data')
+    setDateRange('today')
+    toast({ title: 'Date Range', description: 'Showing today\'s operations' })
   }
 
   const handleShowFilters = () => {
-    alert('Open filters dialog - Feature to be implemented')
+    setShowFiltersDialog(true)
   }
 
   const handleRefresh = () => {
-    alert('Refreshing dashboard data...')
-    console.log('Refreshing dashboard metrics')
+    updateKPIDashboard(dateRange)
+    toast({ title: 'Refreshing', description: 'Dashboard data refreshed' })
   }
 
   const handleDownloadReport = () => {
-    alert('Downloading dashboard report')
-    console.log('Downloading report as PDF...')
+    const reportData = `AeroEnterprise Dashboard Report\nGenerated: ${new Date().toISOString()}\n\n` +
+      `Total Bookings: ${kpiDashboard.totalBookings}\n` +
+      `Total Passengers: ${kpiDashboard.totalPassengers}\n` +
+      `Total Revenue: $${kpiDashboard.totalRevenue.toLocaleString()}\n` +
+      `Load Factor: ${kpiDashboard.loadFactor}%`
+    
+    const blob = new Blob([reportData], { type: 'text/plain' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `dashboard-report-${new Date().toISOString().split('T')[0]}.txt`
+    link.click()
+    
+    toast({ title: 'Download Complete', description: 'Dashboard report downloaded' })
   }
 
   const handleViewAlerts = () => {

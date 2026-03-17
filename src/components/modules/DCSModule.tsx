@@ -343,10 +343,9 @@ interface InterlineBaggage {
 }
 
 export default function DCSModule() {
-  const { 
-    checkInRecords, 
-    boardingRecords, 
-    loadSheets, 
+  const {
+    flightInstances,
+    checkInRecords,
     baggageRecords,
     createCheckIn,
     updateBoarding,
@@ -2935,7 +2934,7 @@ export default function DCSModule() {
                   <Calculator className="h-4 w-4 mr-2" />
                   Fee Calculator
                 </Button>
-                <Button variant="outline" onClick={handleViewExcessRules}>
+                <Button variant="outline" onClick={() => setShowExcessRulesDialog(true)}>
                   <Settings className="h-4 w-4 mr-2" />
                   Excess Rules
                 </Button>
@@ -3238,6 +3237,226 @@ export default function DCSModule() {
               </ScrollArea>
             </CardContent>
           </Card>
+
+          {/* Fee Calculator Dialog */}
+          <Dialog open={showFeeCalculatorDialog} onOpenChange={setShowFeeCalculatorDialog}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Baggage Fee Calculator</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label>Route Type</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select route type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="domestic">Domestic</SelectItem>
+                      <SelectItem value="international">International</SelectItem>
+                      <SelectItem value="transatlantic">Transatlantic</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Cabin Class</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select cabin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="economy">Economy</SelectItem>
+                      <SelectItem value="business">Business</SelectItem>
+                      <SelectItem value="first">First Class</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Baggage Weight (kg)</Label>
+                  <Input type="number" placeholder="23" />
+                </div>
+                <div>
+                  <Label>Number of Pieces</Label>
+                  <Input type="number" placeholder="1" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowFeeCalculatorDialog(false)}>Cancel</Button>
+                <Button onClick={() => { alert('Fee calculated'); setShowFeeCalculatorDialog(false) }}>Calculate</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Special Baggage Dialog */}
+          <Dialog open={showSpecialBaggageDialog} onOpenChange={setShowSpecialBaggageDialog}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Special Baggage Handling</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label>Special Item Type</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="golf">Golf Equipment</SelectItem>
+                      <SelectItem value="ski">Ski Equipment</SelectItem>
+                      <SelectItem value="surf">Surfboard</SelectItem>
+                      <SelectItem value="bicycle">Bicycle</SelectItem>
+                      <SelectItem value="instrument">Musical Instrument</SelectItem>
+                      <SelectItem value="pet">Pet</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Dimensions (cm)</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Input placeholder="Length" />
+                    <Input placeholder="Width" />
+                    <Input placeholder="Height" />
+                  </div>
+                </div>
+                <div>
+                  <Label>Weight (kg)</Label>
+                  <Input type="number" placeholder="Weight" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowSpecialBaggageDialog(false)}>Cancel</Button>
+                <Button onClick={() => { alert('Special baggage request submitted'); setShowSpecialBaggageDialog(false) }}>Submit</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Dangerous Goods Dialog */}
+          <Dialog open={showDangerousGoodsDialog} onOpenChange={setShowDangerousGoodsDialog}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Dangerous Goods Declaration</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label>UN Number</Label>
+                  <Input placeholder="UN 1993" />
+                </div>
+                <div>
+                  <Label>Proper Shipping Name</Label>
+                  <Input placeholder="Flammable liquid" />
+                </div>
+                <div>
+                  <Label>Class</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="3">Class 3 - Flammable Liquids</SelectItem>
+                      <SelectItem value="8">Class 8 - Corrosives</SelectItem>
+                      <SelectItem value="2.1">Class 2.1 - Flammable Gas</SelectItem>
+                      <SelectItem value="5.1">Class 5.1 - Oxidizers</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Quantity (kg)</Label>
+                  <Input type="number" placeholder="Weight" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowDangerousGoodsDialog(false)}>Cancel</Button>
+                <Button variant="destructive" onClick={() => { alert('Dangerous goods declared'); setShowDangerousGoodsDialog(false) }}>Declare</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Interline Dialog */}
+          <Dialog open={showInterlineDialog} onOpenChange={setShowInterlineDialog}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Interline Baggage Agreement</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label>Partner Airline</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select airline" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="aa">American Airlines</SelectItem>
+                      <SelectItem value="ua">United Airlines</SelectItem>
+                      <SelectItem value="dl">Delta Air Lines</SelectItem>
+                      <SelectItem value="ba">British Airways</SelectItem>
+                      <SelectItem value="lh">Lufthansa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Agreement Type</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="through">Through Check-in</SelectItem>
+                      <SelectItem value="transfer">Transfer Baggage</SelectItem>
+                      <SelectItem value="both">Both</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch id="active" />
+                  <Label htmlFor="active">Active Agreement</Label>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowInterlineDialog(false)}>Cancel</Button>
+                <Button onClick={() => { alert('Agreement saved'); setShowInterlineDialog(false) }}>Save</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Excess Baggage Rules Dialog */}
+          <Dialog open={showExcessRulesDialog} onOpenChange={setShowExcessRulesDialog}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Excess Baggage Rules</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label>Route</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select route" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="domestic">Domestic</SelectItem>
+                      <SelectItem value="international">International</SelectItem>
+                      <SelectItem value="all">All Routes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Excess Weight (per kg)</Label>
+                  <Input type="number" placeholder="15" />
+                </div>
+                <div>
+                  <Label>Excess Piece Fee</Label>
+                  <Input type="number" placeholder="200" />
+                </div>
+                <div>
+                  <Label>Max Weight per Piece (kg)</Label>
+                  <Input type="number" placeholder="32" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowExcessRulesDialog(false)}>Cancel</Button>
+                <Button onClick={() => { alert('Rules saved'); setShowExcessRulesDialog(false) }}>Save Rules</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
     </div>

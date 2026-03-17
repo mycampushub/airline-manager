@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
+import { useToast } from '@/hooks/use-toast'
 import { 
   Users, 
   Calendar, 
@@ -82,11 +83,21 @@ interface ComplianceAlert {
 
 export default function CrewModule() {
   const { crewMembers, crewSchedules, crewPairings, addCrewMember, assignCrewSchedule, createCrewPairing } = useAirlineStore()
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('roster')
   const [showCrewDialog, setShowCrewDialog] = useState(false)
   const [showScheduleDialog, setShowScheduleDialog] = useState(false)
   const [showBidDialog, setShowBidDialog] = useState(false)
   const [showGenerateRosterDialog, setShowGenerateRosterDialog] = useState(false)
+  const [showFilterDialog, setShowFilterDialog] = useState(false)
+
+  // Filter state
+  const [rosterFilter, setRosterFilter] = useState({
+    position: 'all',
+    base: 'all',
+    status: 'all',
+    searchTerm: ''
+  })
 
   // Enhanced state
   const [crewBids, setCrewBids] = useState<CrewBid[]>([
@@ -214,17 +225,37 @@ export default function CrewModule() {
 
   // Additional handlers
   const handleFilterRoster = () => {
-    alert('Filter roster - Feature to be implemented')
+    setShowFilterDialog(true)
   }
 
+  const applyRosterFilter = () => {
+    setShowFilterDialog(false)
+    toast({ title: 'Filter Applied', description: `Position: ${rosterFilter.position}, Base: ${rosterFilter.base}, Status: ${rosterFilter.status}` })
+  }
+
+  const clearRosterFilter = () => {
+    setRosterFilter({ position: 'all', base: 'all', status: 'all', searchTerm: '' })
+    setShowFilterDialog(false)
+    toast({ title: 'Filter Cleared', description: 'All filters have been reset' })
+  }
+
+  // Get filtered roster entries
+  const filteredRosterEntries = rosterEntries.filter(entry => {
+    if (rosterFilter.position !== 'all' && entry.position !== rosterFilter.position) return false
+    if (rosterFilter.base !== 'all' && entry.base !== rosterFilter.base) return false
+    if (rosterFilter.status !== 'all' && entry.status !== rosterFilter.status) return false
+    if (rosterFilter.searchTerm && !entry.crewName.toLowerCase().includes(rosterFilter.searchTerm.toLowerCase())) return false
+    return true
+  })
+
   const handleRefreshRoster = () => {
-    alert('Roster refreshed')
+    toast({ title: 'Roster Refreshed', description: 'Latest crew data loaded' })
   }
 
   const handleEditRosterEntry = (entryId: string) => {
     const entry = rosterEntries.find(r => r.id === entryId)
     if (entry) {
-      alert(`Edit Roster Entry: ${entry.crewName}\nPosition: ${entry.position}\nBase: ${entry.base}`)
+      toast({ title: 'Edit Roster', description: `Editing ${entry.crewName}` })
     }
   }
 
@@ -441,7 +472,7 @@ export default function CrewModule() {
                         </td>
                       </tr>
                     ) : (
-                      rosterEntries.map((entry) => (
+                      filteredRosterEntries.map((entry) => (
                         <tr key={entry.id}>
                           <td className="font-medium">{entry.crewName}</td>
                           <td className="capitalize text-sm">{entry.position.replace('_', ' ')}</td>
@@ -960,6 +991,67 @@ export default function CrewModule() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Filter Dialog */}
+      <Dialog open={showFilterDialog} onOpenChange={setShowFilterDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Filter Roster</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Search by Name</Label>
+              <Input 
+                placeholder="Enter crew name..." 
+                value={rosterFilter.searchTerm}
+                onChange={(e) => setRosterFilter({...rosterFilter, searchTerm: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label>Position</Label>
+              <Select value={rosterFilter.position} onValueChange={(v) => setRosterFilter({...rosterFilter, position: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Positions</SelectItem>
+                  <SelectItem value="Captain">Captain</SelectItem>
+                  <SelectItem value="First Officer">First Officer</SelectItem>
+                  <SelectItem value="Purser">Purser</SelectItem>
+                  <SelectItem value="Flight Attendant">Flight Attendant</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Base</Label>
+              <Select value={rosterFilter.base} onValueChange={(v) => setRosterFilter({...rosterFilter, base: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Bases</SelectItem>
+                  <SelectItem value="JFK">JFK</SelectItem>
+                  <SelectItem value="LAX">LAX</SelectItem>
+                  <SelectItem value="SFO">SFO</SelectItem>
+                  <SelectItem value="ORD">ORD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select value={rosterFilter.status} onValueChange={(v) => setRosterFilter({...rosterFilter, status: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={clearRosterFilter}>Clear All</Button>
+            <Button onClick={applyRosterFilter}>Apply Filter</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Generate Roster Dialog */}
       <Dialog open={showGenerateRosterDialog} onOpenChange={setShowGenerateRosterDialog}>

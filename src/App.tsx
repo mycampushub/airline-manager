@@ -179,6 +179,8 @@ function App() {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [showNotifications, setShowNotifications] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<{type: string, id: string} | null>(null)
   const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: '1',
@@ -245,18 +247,43 @@ function App() {
   }
 
   const handleEdit = () => {
-    toast({
-      title: 'Edit Mode',
-      description: `Edit mode activated for ${getModuleTitle()}`
-    })
+    if (searchResults.length > 0) {
+      setSelectedItem({ type: searchResults[0].type, id: searchResults[0].id })
+      toast({
+        title: 'Edit Mode',
+        description: `Editing ${searchResults[0].type}: ${searchResults[0].id}`
+      })
+    } else {
+      toast({
+        title: 'Edit Mode',
+        description: `Edit mode activated for ${getModuleTitle()}. Select an item first.`
+      })
+    }
   }
 
   const handleDelete = () => {
-    toast({
-      title: 'Delete Item',
-      description: 'Select an item to delete',
-      variant: 'destructive'
-    })
+    if (searchResults.length > 0) {
+      setSelectedItem({ type: searchResults[0].type, id: searchResults[0].id })
+      setShowDeleteConfirm(true)
+    } else {
+      toast({
+        title: 'Delete Item',
+        description: 'Select an item to delete',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const confirmDelete = () => {
+    if (selectedItem) {
+      toast({
+        title: 'Item Deleted',
+        description: `${selectedItem.type} ${selectedItem.id} has been deleted`,
+        variant: 'destructive'
+      })
+      setShowDeleteConfirm(false)
+      setSelectedItem(null)
+    }
   }
 
   const handlePrint = () => {
@@ -284,16 +311,103 @@ function App() {
   }
 
   const handleExport = () => {
+    let csvContent = ''
+    let filename = `${currentModule}-export`
+
+    switch (currentModule) {
+      case 'pss':
+        csvContent = generatePNRCSV()
+        filename = 'pnrs-export'
+        break
+      case 'dcs':
+        csvContent = generateCheckInCSV()
+        filename = 'checkin-export'
+        break
+      case 'flightops':
+        csvContent = generateFlightsCSV()
+        filename = 'flights-export'
+        break
+      case 'crew':
+        csvContent = generateCrewCSV()
+        filename = 'crew-export'
+        break
+      case 'revenue':
+        csvContent = generateRevenueCSV()
+        filename = 'revenue-export'
+        break
+      default:
+        csvContent = `${currentModule},data\n${new Date().toISOString()},exported`
+        filename = `${currentModule}-export`
+    }
+
+    downloadCSV(csvContent, filename)
     toast({
-      title: 'Export Data',
-      description: `Exporting ${getModuleTitle()} data to CSV...`
+      title: 'Export Complete',
+      description: `${getModuleTitle()} data has been exported to CSV`
     })
-    setTimeout(() => {
-      toast({
-        title: 'Export Complete',
-        description: 'Data has been exported successfully'
-      })
-    }, 1500)
+  }
+
+  const generatePNRCSV = () => {
+    const headers = ['PNR Number', 'Status', 'Passengers', 'Origin', 'Destination', 'Total Amount', 'Created At']
+    const rows = pnrs.map(pnr => [
+      pnr.pnrNumber,
+      pnr.status,
+      pnr.passengers.map(p => `${p.firstName} ${p.lastName}`).join('; '),
+      pnr.segments[0]?.origin || '',
+      pnr.segments[0]?.destination || '',
+      pnr.fareQuote.total,
+      pnr.createdAt
+    ])
+    return [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+  }
+
+  const generateCheckInCSV = () => {
+    const headers = ['PNR', 'Passenger', 'Seat', 'Flight', 'Status']
+    const rows = pnrs.slice(0, 10).map(pnr => [
+      pnr.pnrNumber,
+      pnr.passengers[0] ? `${pnr.passengers[0].firstName} ${pnr.passengers[0].lastName}` : '',
+      'N/A',
+      pnr.segments[0]?.flightNumber || '',
+      pnr.status
+    ])
+    return [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+  }
+
+  const generateFlightsCSV = () => {
+    const headers = ['Flight Number', 'Origin', 'Destination', 'Date', 'Status', 'Aircraft']
+    const rows = flightInstances.map(f => [
+      f.flightNumber,
+      f.origin,
+      f.destination,
+      f.date,
+      f.status,
+      f.aircraftType
+    ])
+    return [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+  }
+
+  const generateCrewCSV = () => {
+    return 'Crew ID,Name,Role,Base,Status\n'
+  }
+
+  const generateRevenueCSV = () => {
+    const headers = ['Ticket Number', 'Passenger', 'Route', 'Amount', 'Status']
+    const rows = tickets.map(t => [
+      t.ticketNumber,
+      t.passengerName,
+      t.segments.map(s => `${s.origin}-${s.destination}`).join('; '),
+      t.fare.total,
+      t.status
+    ])
+    return [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+  }
+
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `${filename}.csv`
+    link.click()
   }
 
   const handleSearch = (query: string) => {
@@ -756,6 +870,27 @@ function App() {
             </Button>
             <Button onClick={handleSaveSettings}>
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete {selectedItem?.type} "{selectedItem?.id}"? This action cannot be undone.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

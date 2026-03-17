@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
+import { useToast } from '@/hooks/use-toast'
+import { useAirlineStore } from '@/lib/store'
 import { 
   Calendar, 
   Clock, 
@@ -101,6 +103,7 @@ interface MaintenanceEvent {
 
 export default function FlightOpsModule() {
   const { flightSchedules, flightInstances, disruptions, createFlightSchedule, createDisruption } = useAirlineStore()
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('schedule')
   const [showScheduleDialog, setShowScheduleDialog] = useState(false)
   const [showDisruptionDialog, setShowDisruptionDialog] = useState(false)
@@ -386,12 +389,8 @@ export default function FlightOpsModule() {
 
   // Dispatch handlers
   const handleGenerateFlightRelease = () => {
+    toast({ title: 'Flight Release Generated', description: `Flight ${selectedFlightForDispatch?.flightNumber} release has been generated` })
     console.log('Generating flight release for:', selectedFlightForDispatch?.flightNumber)
-    // In a real system, this would:
-    // 1. Compile all flight data
-    // 2. Include weather and NOTAMs
-    // 3. Generate PDF release
-    // 4. Send to flight crew
   }
 
   const handleRefreshWeather = () => {
@@ -400,51 +399,64 @@ export default function FlightOpsModule() {
       departure: { ...dispatchWeather.departure, temp: Math.round(dispatchWeather.departure.temp + (Math.random() - 0.5) * 5) },
       destination: { ...dispatchWeather.destination, temp: Math.round(dispatchWeather.destination.temp + (Math.random() - 0.5) * 5) }
     })
+    toast({ title: 'Weather Refreshed', description: 'Latest weather information loaded' })
   }
 
   const handleRefreshNotams = () => {
     // Simulate NOTAM refresh
     console.log('Refreshing NOTAMs')
+    toast({ title: 'NOTAMs Refreshed', description: 'Latest NOTAM information loaded' })
   }
 
   const handleUpdateATC = () => {
     // Simulate ATC update
     console.log('Updating ATC restrictions')
+    toast({ title: 'ATC Updated', description: 'ATC restrictions have been updated' })
   }
 
   // Additional handlers for Edit buttons
   const handleEditRoute = (routeId: string) => {
     const route = routes.find(r => r.id === routeId)
     if (route) {
-      alert(`Edit Route: ${route.origin} → ${route.destination}\nDistance: ${route.distance} km\nFlight Time: ${route.flightTime} min`)
+      toast({ title: 'Edit Route', description: `Editing ${route.origin} → ${route.destination}` })
     }
   }
 
   const handleEditSchedule = (scheduleId: string) => {
     const schedule = flightSchedules.find(s => s.id === scheduleId)
     if (schedule) {
-      alert(`Edit Schedule: ${schedule.flightNumber}\nRoute: ${schedule.origin} → ${schedule.destination}`)
+      toast({ title: 'Edit Schedule', description: `Editing ${schedule.flightNumber}` })
     }
   }
 
   const handleEditSeasonalSchedule = (scheduleId: string) => {
     const schedule = seasonalSchedules.find(s => s.id === scheduleId)
     if (schedule) {
-      alert(`Edit Seasonal Schedule: ${schedule.season} Season\nPeriod: ${schedule.startDate} to ${schedule.endDate}`)
+      toast({ title: 'Edit Seasonal Schedule', description: `Editing ${schedule.season} Season` })
     }
   }
 
   const handleEditFleetAssignment = (assignmentId: string) => {
     const assignment = fleetAssignments.find(a => a.id === assignmentId)
     if (assignment) {
-      alert(`Edit Fleet Assignment: ${assignment.registration}\nAircraft: ${assignment.aircraftType}\nBase: ${assignment.base}`)
+      toast({ title: 'Edit Fleet Assignment', description: `Editing ${assignment.registration}` })
     }
   }
 
   const handleDownloadPDF = () => {
-    // Simulate PDF download
-    console.log('Downloading flight release PDF')
-    alert('Flight Release PDF downloaded')
+    const flightNum = selectedFlightForDispatch?.flightNumber || 'Unknown'
+    const origin = selectedFlightForDispatch?.origin || 'N/A'
+    const dest = selectedFlightForDispatch?.destination || 'N/A'
+    
+    const pdfContent = `Flight Release\nGenerated: ${new Date().toISOString()}\n\nFlight: ${flightNum}\nRoute: ${origin} → ${dest}\nStatus: Ready for departure`
+    
+    const blob = new Blob([pdfContent], { type: 'text/plain' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `flight-release-${flightNum}-${new Date().toISOString().split('T')[0]}.txt`
+    link.click()
+    
+    toast({ title: 'Download Complete', description: 'Flight release document downloaded' })
   }
 
   const totalFuel = fuelPlan.tripFuel + fuelPlan.reserve + fuelPlan.alternate + fuelPlan.taxi + fuelPlan.contingency

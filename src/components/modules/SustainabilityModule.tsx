@@ -1063,7 +1063,15 @@ export default function SustainabilityModule() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowReportDetails(false)}>Close</Button>
             <Button variant="outline" onClick={() => {
-              alert(`Downloading ESG Report: ${selectedReport.period} ${selectedReport.year}\nESG Score: ${Math.round(selectedReport.esgScore * 100)}%`)
+              const periodLabel = selectedReport.reportType === 'annual' 
+                ? `${selectedReport.year}` 
+                : selectedReport.quarter 
+                  ? `Q${selectedReport.quarter} ${selectedReport.year}`
+                  : `${selectedReport.month}/${selectedReport.year}`;
+              const esgScore = ((selectedReport.environmental.co2Emissions * 0.4) + 
+                               (selectedReport.social.employees * selectedReport.social.diversityInclusion * 0.3) + 
+                               (selectedReport.governance.boardDiversity * 0.3)) * 100;
+              alert(`Downloading ESG Report: ${periodLabel}\nESG Score: ${Math.round(esgScore)}%`)
               console.log('Downloading ESG report:', selectedReport)
             }}>
               <Download className="h-4 w-4 mr-2" />

@@ -188,6 +188,7 @@ export default function SecurityModule() {
   const [showAlertDialog, setShowAlertDialog] = useState(false)
   const [alertFilter, setAlertFilter] = useState<'all' | 'open' | 'investigating' | 'resolved' | 'false_positive'>('all')
   const [severityFilter, setSeverityFilter] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all')
+  const [newNote, setNewNote] = useState('')
   
   // Roles & Permissions state
   const [roles, setRoles] = useState<Role[]>([])
@@ -1429,7 +1430,7 @@ export default function SecurityModule() {
                       </ScrollArea>
                       <div className="flex gap-2 mt-2">
                         <Input
-                          value=""
+                          value={newNote}
                           onChange={(e) => setNewNote(e.target.value)}
                           placeholder="Add a note..."
                         />
