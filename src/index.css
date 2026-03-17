@@ -1,0 +1,233 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.25rem;
+  /* Enterprise Deep Blue Theme - Light Mode */
+  --background: #f8f9fa;
+  --foreground: #1a1a2e;
+  --card: #ffffff;
+  --card-foreground: #1a1a2e;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a2e;
+  --primary: #322971;
+  --primary-foreground: #ffffff;
+  --secondary: #e8e6f0;
+  --secondary-foreground: #322971;
+  --muted: #f1f1f4;
+  --muted-foreground: #6b6b7b;
+  --accent: #4a4190;
+  --accent-foreground: #ffffff;
+  --destructive: #dc2626;
+  --border: #d4d4d8;
+  --input: #e4e4e7;
+  --ring: #322971;
+  --chart-1: #322971;
+  --chart-2: #4a4190;
+  --chart-3: #6b5aa7;
+  --chart-4: #8c74be;
+  --chart-5: #a88ed3;
+  --sidebar: #2d264d;
+  --sidebar-foreground: #e8e6f0;
+  --sidebar-primary: #322971;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #3d3566;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #4a4190;
+  --sidebar-ring: #322971;
+}
+
+.dark {
+  /* Enterprise Deep Blue Theme - Dark Mode */
+  --background: #0f0d1a;
+  --foreground: #e8e6f0;
+  --card: #1a1630;
+  --card-foreground: #e8e6f0;
+  --popover: #1a1630;
+  --popover-foreground: #e8e6f0;
+  --primary: #322971;
+  --primary-foreground: #ffffff;
+  --secondary: #2d264d;
+  --secondary-foreground: #e8e6f0;
+  --muted: #1a1630;
+  --muted-foreground: #9ca3af;
+  --accent: #4a4190;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --border: #3d3566;
+  --input: #3d3566;
+  --ring: #322971;
+  --chart-1: #322971;
+  --chart-2: #4a4190;
+  --chart-3: #6b5aa7;
+  --chart-4: #8c74be;
+  --chart-5: #a88ed3;
+  --sidebar: #0f0d1a;
+  --sidebar-foreground: #e8e6f0;
+  --sidebar-primary: #322971;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2d264d;
+  --sidebar-accent-foreground: #e8e6f0;
+  --sidebar-border: #3d3566;
+  --sidebar-ring: #322971;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* Enterprise Software Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-sm;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+
+  /* Sidebar scrollbar with better visibility */
+  aside ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  aside ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  aside ::-webkit-scrollbar-thumb {
+    @apply bg-sidebar-foreground/30 rounded-sm;
+  }
+
+  aside ::-webkit-scrollbar-thumb:hover {
+    @apply bg-sidebar-foreground/50;
+  }
+
+  /* Radix UI ScrollArea scrollbar override */
+  [data-slot="scroll-area-viewport"]::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  [data-slot="scroll-area-viewport"]::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  [data-slot="scroll-area-viewport"]::-webkit-scrollbar-thumb {
+    background: rgba(232, 230, 240, 0.3);
+    border-radius: 3px;
+  }
+
+  [data-slot="scroll-area-viewport"]::-webkit-scrollbar-thumb:hover {
+    background: rgba(232, 230, 240, 0.5);
+  }
+
+  /* ScrollArea ScrollBar component styling */
+  [data-slot="scroll-area-scrollbar"] {
+    background-color: transparent;
+  }
+
+  [data-slot="scroll-area-thumb"] {
+    background-color: rgba(232, 230, 240, 0.4) !important;
+    border-radius: 3px;
+  }
+
+  [data-slot="scroll-area-thumb"]:hover {
+    background-color: rgba(232, 230, 240, 0.6) !important;
+  }
+}
+
+/* Enterprise-style table styling */
+.enterprise-table {
+  @apply w-full border-collapse text-sm;
+}
+
+.enterprise-table th {
+  @apply bg-primary/10 text-left px-3 py-2 font-semibold text-foreground border-b-2 border-primary/30;
+}
+
+.enterprise-table td {
+  @apply px-3 py-2 border-b border-border/50;
+}
+
+.enterprise-table tr:hover {
+  @apply bg-primary/5;
+}
+
+/* Enterprise card styling */
+.enterprise-card {
+  @apply bg-card border border-border rounded-sm shadow-sm;
+}
+
+/* Enterprise button styling */
+.enterprise-btn-primary {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-sm text-sm font-medium transition-colors;
+}
+
+.enterprise-btn-secondary {
+  @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 px-4 py-2 rounded-sm text-sm font-medium transition-colors;
+}
+
+/* Enterprise input styling */
+.enterprise-input {
+  @apply bg-background border border-border px-3 py-2 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-primary/50;
+}
+
+/* Enterprise ribbon bar */
+.enterprise-ribbon {
+  @apply bg-primary text-primary-foreground border-b border-primary/80;
+}
