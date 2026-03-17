@@ -531,7 +531,6 @@ export default function AIModule() {
       training: 'secondary',
       deployed: 'default',
       deprecated: 'outline',
-      failed: 'destructive',
       success: 'default',
       failed: 'destructive',
       processing: 'secondary',

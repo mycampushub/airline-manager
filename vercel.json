@@ -3,6 +3,7 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
-    { "source": "/:path*", "destination": "/index.html" }
+    { "source": "/airline-management/:path*", "destination": "/airline-management/index.html" },
+    { "source": "/airline-management", "destination": "/airline-management/index.html" }
   ]
 }
