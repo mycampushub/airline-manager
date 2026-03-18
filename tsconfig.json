@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
@@ -15,29 +18,31 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
-    }
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "allowJs": true
   },
-  "include": ["src"],
-  "exclude": [
-    "node_modules",
-    "src/app/api",
-    "src/app/layout.tsx",
-    "src/app/page.tsx",
-    "src/lib/db.ts",
-    "src/lib/engines/availability-engine.ts",
-    "src/lib/engines/baggage-engine.ts",
-    "src/lib/engines/boarding-engine.ts",
-    "src/lib/engines/commission-engine.ts",
-    "src/lib/engines/crew-compliance-engine.ts",
-    "src/lib/engines/flight-ops-engine.ts",
-    "src/lib/engines/loadbalance-engine.ts",
-    "src/lib/engines/pnr-engine.ts",
-    "src/lib/engines/pricing-engine.ts",
-    "src/lib/engines/settlement-engine.ts",
-    "src/lib/engines/tax-engine.ts"
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "exclude": [
+    "node_modules"
+  ]
 }

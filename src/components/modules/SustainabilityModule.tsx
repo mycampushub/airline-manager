@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
+// import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -138,229 +138,258 @@ export default function SustainabilityModule() {
 
   // Initialize mock data functions
   const initializeESGReports = () => {
-    const reports: ESGReport[] = [
-      {
-        id: 'esg-2024-q1',
-        reportType: 'quarterly',
-        year: 2024,
-        quarter: 1,
-        status: 'published',
+    const reports: ESGReport[] = Array.from({ length: 30 }, (_, i) => {
+      const year = 2024 - Math.floor(i / 4)
+      const quarter = (i % 4) + 1
+      return {
+        id: `esg-${year}-q${quarter}`,
+        reportType: i % 4 === 0 ? ('annual' as const) : ('quarterly' as const),
+        year,
+        quarter: i % 4 === 0 ? undefined : quarter,
+        status: ['published', 'published', 'review', 'draft'][i % 4] as 'draft' | 'review' | 'published',
         environmental: {
-          co2Emissions: 2450000,
-          fuelConsumption: 785000000,
-          energyConsumption: 125000000,
-          waterUsage: 4500000,
-          wasteGenerated: 8900,
-          wasteRecycled: 6700,
-          renewableEnergy: 0.35
+          co2Emissions: 2000000 + (i * 100000),
+          fuelConsumption: 600000000 + (i * 50000000),
+          energyConsumption: 100000000 + (i * 10000000),
+          waterUsage: 4000000 + (i * 500000),
+          wasteGenerated: 8000 + (i * 500),
+          wasteRecycled: 6000 + (i * 400),
+          renewableEnergy: 0.30 + (i * 0.02)
         },
         social: {
-          employees: 45000,
-          diversityInclusion: 0.42,
-          trainingHours: 125000,
-          healthSafetyIncidents: 3,
-          communityInvestment: 2500000,
-          customerSatisfaction: 0.87
+          employees: 40000 + (i * 500),
+          diversityInclusion: 0.35 + (i * 0.02),
+          trainingHours: 100000 + (i * 10000),
+          healthSafetyIncidents: 10 + (i % 5),
+          communityInvestment: 2000000 + (i * 200000),
+          customerSatisfaction: 0.80 + (i * 0.02)
         },
         governance: {
-          boardDiversity: 0.45,
-          ethicsCompliance: 0.98,
-          riskManagement: 0.95,
-          dataPrivacy: 0.94,
-          antiCorruption: 0.99
+          boardDiversity: 0.35 + (i * 0.03),
+          ethicsCompliance: 0.95 + (i * 0.01),
+          riskManagement: 0.90 + (i * 0.02),
+          dataPrivacy: 0.90 + (i * 0.01),
+          antiCorruption: 0.95 + (i * 0.01)
         },
-        createdAt: '2024-04-01',
-        publishedAt: '2024-04-15'
-      },
-      {
-        id: 'esg-2023-annual',
-        reportType: 'annual',
-        year: 2023,
-        status: 'published',
-        environmental: {
-          co2Emissions: 9800000,
-          fuelConsumption: 3120000000,
-          energyConsumption: 485000000,
-          waterUsage: 17500000,
-          wasteGenerated: 35000,
-          wasteRecycled: 24500,
-          renewableEnergy: 0.32
-        },
-        social: {
-          employees: 43500,
-          diversityInclusion: 0.40,
-          trainingHours: 450000,
-          healthSafetyIncidents: 12,
-          communityInvestment: 8500000,
-          customerSatisfaction: 0.85
-        },
-        governance: {
-          boardDiversity: 0.40,
-          ethicsCompliance: 0.97,
-          riskManagement: 0.93,
-          dataPrivacy: 0.92,
-          antiCorruption: 0.98
-        },
-        createdAt: '2024-01-15',
-        publishedAt: '2024-02-28'
+        createdAt: new Date(Date.now() - (i * 90) * 86400000).toISOString(),
+        publishedAt: i % 4 === 0 ? new Date(Date.now() - (i * 90 + 15) * 86400000).toISOString() : undefined
       }
-    ]
+    })
     setEsgReports(reports)
   }
 
   const initializeOptimizations = () => {
-    const opts: CarbonOptimization[] = [
-      {
-        id: 'opt-001',
-        name: 'Direct Route Optimization',
-        type: 'route_optimization',
-        status: 'in_progress',
-        priority: 'high',
-        description: 'Implement AI-powered direct routing for long-haul flights to reduce fuel consumption',
-        estimatedSavings: { co2: 85000, fuel: 27000000, cost: 21500000 },
-        actualSavings: { co2: 42000, fuel: 13500000, cost: 10750000 },
-        implementationCost: 3500000,
-        paybackPeriod: 6,
-        progress: 50,
-        startDate: '2024-01-01',
-        targetDate: '2024-12-31',
-        responsible: 'Flight Operations'
-      },
-      {
-        id: 'opt-002',
-        name: 'SAF Adoption Program',
-        type: 'saf_adoption',
-        status: 'proposed',
-        priority: 'high',
-        description: 'Blend 10% Sustainable Aviation Fuel across all flights from 2025',
-        estimatedSavings: { co2: 245000, fuel: 0, cost: -18500000 },
-        implementationCost: 45000000,
-        paybackPeriod: 3,
-        progress: 0,
-        startDate: '2025-01-01',
-        targetDate: '2027-12-31',
-        responsible: 'Fuel Management'
-      },
-      {
-        id: 'opt-003',
-        name: 'A320neo Fleet Upgrade',
-        type: 'fleet_upgrade',
-        status: 'in_progress',
-        priority: 'medium',
-        description: 'Replace 20 A320ceo with A320neo aircraft for 15% fuel efficiency improvement',
-        estimatedSavings: { co2: 125000, fuel: 40000000, cost: 32000000 },
-        actualSavings: { co2: 35000, fuel: 11000000, cost: 8800000 },
-        implementationCost: 1200000000,
-        paybackPeriod: 8,
-        progress: 35,
-        startDate: '2023-01-01',
-        targetDate: '2026-12-31',
-        responsible: 'Fleet Management'
-      },
-      {
-        id: 'opt-004',
-        name: 'Weight Reduction Initiative',
-        type: 'weight_reduction',
-        status: 'completed',
-        priority: 'medium',
-        description: 'Reduce aircraft weight through lightweight materials and optimized catering',
-        estimatedSavings: { co2: 28000, fuel: 9000000, cost: 7200000 },
-        actualSavings: { co2: 32000, fuel: 10200000, cost: 8160000 },
-        implementationCost: 4500000,
-        paybackPeriod: 2,
-        progress: 100,
-        startDate: '2023-01-01',
-        targetDate: '2023-12-31',
-        responsible: 'Operations'
-      }
+    const optNames = [
+      'Direct Route Optimization', 'SAF Adoption Program', 'A320neo Fleet Upgrade', 'Weight Reduction Initiative',
+      'B777X Fleet Modernization', 'Continuous Descent Approach', 'Single Engine Taxiing', 'Aerodynamic Winglets',
+      'Electric Ground Equipment', 'Solar Airport Installations', 'Waste Reduction Program', 'Water Conservation',
+      'Sustainable Catering', 'Paperless Operations', 'LED Lighting Upgrade', 'Hybrid Electric Aircraft',
+      'Hydrogen Fuel Research', 'Carbon Capture Program', 'Forest Restoration Project', 'Ocean Clean-up Initiative',
+      'Biodiesel Ground Vehicles', 'Smart Building Systems', 'Renewable Energy Contracts', 'Fuel Cell APU',
+      'Lightweight Materials', 'Efficient Flight Planning', 'Crew Scheduling Optimization', 'Aircraft Cleaning Protocol',
+      'Recycling Enhancement', 'Composting Program'
     ]
+    const types: ('route_optimization' | 'fleet_upgrade' | 'saf_adoption' | 'weight_reduction' | 'operational')[] = [
+      'route_optimization', 'saf_adoption', 'fleet_upgrade', 'weight_reduction',
+      'fleet_upgrade', 'operational', 'operational', 'operational',
+      'operational', 'operational', 'operational', 'operational',
+      'operational', 'operational', 'operational', 'fleet_upgrade',
+      'fleet_upgrade', 'operational', 'operational', 'operational',
+      'operational', 'operational', 'operational', 'operational',
+      'weight_reduction', 'route_optimization', 'operational', 'operational',
+      'operational', 'operational'
+    ]
+    const statuses: ('proposed' | 'in_progress' | 'implemented' | 'completed')[] = [
+      'in_progress', 'proposed', 'in_progress', 'completed',
+      'in_progress', 'proposed', 'implemented', 'completed',
+      'proposed', 'in_progress', 'implemented', 'completed',
+      'proposed', 'in_progress', 'implemented', 'proposed',
+      'in_progress', 'proposed', 'completed', 'completed',
+      'in_progress', 'implemented', 'completed', 'proposed',
+      'in_progress', 'completed', 'implemented', 'proposed',
+      'completed', 'implemented'
+    ]
+    const priorities: ('high' | 'medium' | 'low')[] = [
+      'high', 'high', 'medium', 'medium',
+      'high', 'medium', 'low', 'low',
+      'medium', 'high', 'low', 'medium',
+      'low', 'medium', 'low', 'high',
+      'high', 'medium', 'medium', 'low',
+      'medium', 'low', 'low', 'high',
+      'medium', 'low', 'high', 'medium',
+      'low', 'medium'
+    ]
+    const descriptions = [
+      'Implement AI-powered direct routing for long-haul flights to reduce fuel consumption',
+      'Blend 10% Sustainable Aviation Fuel across all flights from 2025',
+      'Replace 20 A320ceo with A320neo aircraft for 15% fuel efficiency improvement',
+      'Reduce aircraft weight through lightweight materials and optimized catering',
+      'Introduce B777X aircraft with 20% better fuel efficiency',
+      'Implement continuous descent approach procedures to reduce fuel burn',
+      'Use single engine taxiing where possible to reduce ground fuel consumption',
+      'Install winglet devices on all aircraft to improve aerodynamic efficiency',
+      'Replace diesel ground equipment with electric alternatives',
+      'Install solar panels at all major hub airports',
+      'Implement comprehensive waste reduction and recycling program',
+      'Reduce water consumption across all airport operations',
+      'Source sustainable and locally-produced catering options',
+      'Transition to fully paperless operational procedures',
+      'Replace all airport lighting with energy-efficient LEDs',
+      'Invest in hybrid-electric aircraft technology development',
+      'Research hydrogen fuel as potential aviation fuel source',
+      'Implement carbon capture technology at major facilities',
+      'Support forest restoration projects for carbon sequestration',
+      'Participate in ocean plastic clean-up initiatives',
+      'Transition ground vehicles to biodiesel fuel',
+      'Implement smart building management systems',
+      'Secure renewable energy contracts for all operations',
+      'Install fuel cell auxiliary power units',
+      'Replace aircraft interiors with lightweight materials',
+      'Implement AI-optimized flight planning',
+      'Optimize crew scheduling to reduce deadhead flights',
+      'Implement eco-friendly aircraft cleaning protocols',
+      'Enhance recycling and waste sorting capabilities',
+      'Implement food waste composting program'
+    ]
+    const responsible = [
+      'Flight Operations', 'Fuel Management', 'Fleet Management', 'Operations',
+      'Fleet Management', 'Flight Operations', 'Operations', 'Fleet Management',
+      'Ground Operations', 'Facilities', 'Operations', 'Facilities',
+      'Catering', 'IT', 'Facilities', 'Engineering',
+      'Research & Development', 'Research & Development', 'Sustainability', 'Sustainability',
+      'Ground Operations', 'Facilities', 'Facilities', 'Sustainability',
+      'Engineering', 'Flight Operations', 'Operations', 'Ground Operations',
+      'Operations', 'Catering'
+    ]
+
+    const opts: CarbonOptimization[] = Array.from({ length: 30 }, (_, i) => {
+      const status = statuses[i]
+      return {
+        id: `opt-${String(i + 1).padStart(3, '0')}`,
+        name: optNames[i],
+        type: types[i],
+        status,
+        priority: priorities[i],
+        description: descriptions[i],
+        estimatedSavings: {
+          co2: 10000 + (i * 5000) % 100000,
+          fuel: 5000000 + (i * 1000000) % 50000000,
+          cost: 1000000 + (i * 500000) % 20000000
+        },
+        actualSavings: (status === 'in_progress' || status === 'completed' || status === 'implemented') ? {
+          co2: (10000 + (i * 5000) % 100000) * (0.3 + (i * 0.05)),
+          fuel: (5000000 + (i * 1000000) % 50000000) * (0.3 + (i * 0.05)),
+          cost: (1000000 + (i * 500000) % 20000000) * (0.3 + (i * 0.05))
+        } : undefined,
+        implementationCost: 1000000 + (i * 2000000) % 10000000,
+        paybackPeriod: 1 + (i % 8),
+        progress: status === 'proposed' ? 0 : status === 'completed' || status === 'implemented' ? 100 : 30 + (i * 10) % 70,
+        startDate: new Date(Date.now() - (i * 180) * 86400000).toISOString(),
+        targetDate: new Date(Date.now() + ((i % 5) + 1) * 365 * 86400000).toISOString(),
+        responsible: responsible[i]
+      }
+    })
     setOptimizations(opts)
   }
 
   const initializeOffsetPortfolio = () => {
-    const portfolio: OffsetPortfolio[] = [
-      {
-        id: 'off-001',
-        projectName: 'Amazon Rainforest Preservation',
-        projectType: 'reforestation',
-        location: 'Amazon, Brazil',
-        certification: 'VCS, CCBS',
-        pricePerTonne: 15,
-        totalPurchased: 50000,
-        totalSpent: 750000,
-        totalRetired: 32000,
-        available: 18000,
-        vintage: 2023,
-        status: 'active',
-        purchaseHistory: [
-          { id: 'p-001', date: '2024-01-15', quantity: 20000, price: 15, totalCost: 300000, retirementDate: '2024-06-30' },
-          { id: 'p-002', date: '2024-07-01', quantity: 12000, price: 15, totalCost: 180000, retirementDate: '2024-12-31' },
-          { id: 'p-003', date: '2024-08-01', quantity: 18000, price: 15, totalCost: 270000 }
-        ],
-        coBenefits: ['Biodiversity Conservation', 'Community Development', 'Indigenous Rights'],
-        riskRating: 'low'
-      },
-      {
-        id: 'off-002',
-        projectName: 'Texas Wind Farm',
-        projectType: 'renewable_energy',
-        location: 'Texas, USA',
-        certification: 'Gold Standard',
-        pricePerTonne: 12,
-        totalPurchased: 75000,
-        totalSpent: 900000,
-        totalRetired: 45000,
-        available: 30000,
-        vintage: 2022,
-        status: 'active',
-        purchaseHistory: [
-          { id: 'p-004', date: '2023-06-01', quantity: 45000, price: 12, totalCost: 540000, retirementDate: '2024-03-31' },
-          { id: 'p-005', date: '2024-04-01', quantity: 30000, price: 12, totalCost: 360000 }
-        ],
-        coBenefits: ['Clean Energy', 'Job Creation', 'Energy Independence'],
-        riskRating: 'low'
-      },
-      {
-        id: 'off-003',
-        projectName: 'Solar Power India',
-        projectType: 'renewable_energy',
-        location: 'Rajasthan, India',
-        certification: 'VCS',
-        pricePerTonne: 10,
-        totalPurchased: 60000,
-        totalSpent: 600000,
-        totalRetired: 38000,
-        available: 22000,
-        vintage: 2023,
-        status: 'active',
-        purchaseHistory: [
-          { id: 'p-006', date: '2024-02-01', quantity: 38000, price: 10, totalCost: 380000, retirementDate: '2024-09-30' },
-          { id: 'p-007', date: '2024-10-01', quantity: 22000, price: 10, totalCost: 220000 }
-        ],
-        coBenefits: ['Clean Energy', 'Rural Development', 'Technology Transfer'],
-        riskRating: 'medium'
-      },
-      {
-        id: 'off-004',
-        projectName: 'Ocean Conservation Project',
-        projectType: 'blue_carbon',
-        location: 'Pacific Ocean',
-        certification: 'VCS, Blue Carbon',
-        pricePerTonne: 20,
-        totalPurchased: 30000,
-        totalSpent: 600000,
-        totalRetired: 15000,
-        available: 15000,
-        vintage: 2024,
-        status: 'active',
-        purchaseHistory: [
-          { id: 'p-008', date: '2024-05-01', quantity: 15000, price: 20, totalCost: 300000, retirementDate: '2024-11-30' },
-          { id: 'p-009', date: '2024-12-01', quantity: 15000, price: 20, totalCost: 300000 }
-        ],
-        coBenefits: ['Marine Biodiversity', 'Coastal Protection', 'Sustainable Fisheries'],
-        riskRating: 'medium'
-      }
+    const projectNames = [
+      'Amazon Rainforest Preservation', 'Texas Wind Farm', 'Solar Power India', 'Ocean Conservation Project',
+      'Borneo Reforestation', 'Norway Hydroelectric', 'Kenya Clean Cooking', 'Brazil Biogas Project',
+      'China Solar Farm', 'Australia Land Restoration', 'Indonesia Peatland Protection', 'Canada Forest Management',
+      'Chile Geothermal Energy', 'South Africa Wind Farm', 'Philippines Mangrove Restoration', 'India Biomass Energy',
+      'Colombia Biodiversity Project', 'Turkey Solar Park', 'Vietnam Hydro Project', 'Mexico Wind Energy',
+      'Peru Rainforest Protection', 'Thailand Solar Initiative', 'Malaysia Carbon Sequestration', 'Argentina Wind Farm',
+      'Nigeria Renewable Energy', 'Bangladesh Solar Home Systems', 'Pakistan Biogas Initiative', 'Ethiopia Clean Energy',
+      'Ghana Forest Project', 'Tanzania Wind Power'
     ]
+    const projectTypes: ('reforestation' | 'renewable_energy' | 'waste_management' | 'blue_carbon' | 'biochar')[] = [
+      'reforestation', 'renewable_energy', 'renewable_energy', 'blue_carbon',
+      'reforestation', 'renewable_energy', 'waste_management', 'biochar',
+      'renewable_energy', 'reforestation', 'blue_carbon', 'reforestation',
+      'renewable_energy', 'renewable_energy', 'blue_carbon', 'biochar',
+      'reforestation', 'renewable_energy', 'renewable_energy', 'renewable_energy',
+      'reforestation', 'renewable_energy', 'reforestation', 'renewable_energy',
+      'renewable_energy', 'renewable_energy', 'biochar', 'renewable_energy',
+      'reforestation', 'renewable_energy'
+    ]
+    const locations = [
+      'Amazon, Brazil', 'Texas, USA', 'Rajasthan, India', 'Pacific Ocean',
+      'Borneo, Indonesia', 'Western Norway', 'Rural Kenya', 'São Paulo, Brazil',
+      'Gansu, China', 'Western Australia', 'Sumatra, Indonesia', 'British Columbia, Canada',
+      'Northern Chile', 'Western Cape, South Africa', 'Palawan, Philippines', 'Punjab, India',
+      'Chocó, Colombia', 'Ankara, Turkey', 'Mekong Delta, Vietnam', 'Oaxaca, Mexico',
+      'Madre de Dios, Peru', 'Chiang Mai, Thailand', 'Sarawak, Malaysia', 'Patagonia, Argentina',
+      'Lagos, Nigeria', 'Dhaka, Bangladesh', 'Punjab, Pakistan', 'Addis Ababa, Ethiopia',
+      'Ashanti, Ghana', 'Dodoma, Tanzania'
+    ]
+    const certifications = [
+      'VCS, CCBS', 'Gold Standard', 'VCS', 'VCS, Blue Carbon',
+      'VCS, CCBS', 'Gold Standard', 'CDM', 'Gold Standard',
+      'VCS', 'VCS, CCBS', 'VCS, Blue Carbon', 'VCS',
+      'Gold Standard', 'VCS', 'VCS, Blue Carbon', 'Gold Standard',
+      'VCS, CCBS', 'VCS', 'CDM', 'VCS',
+      'VCS, CCBS', 'VCS', 'VCS, CCBS', 'Gold Standard',
+      'CDM', 'CDM', 'Gold Standard', 'CDM',
+      'VCS, CCBS', 'VCS'
+    ]
+    const coBenefits = [
+      ['Biodiversity Conservation', 'Community Development', 'Indigenous Rights'],
+      ['Clean Energy', 'Job Creation', 'Energy Independence'],
+      ['Clean Energy', 'Rural Development', 'Technology Transfer'],
+      ['Marine Biodiversity', 'Coastal Protection', 'Sustainable Fisheries'],
+      ['Biodiversity Conservation', 'Indigenous Rights', 'Forest Protection'],
+      ['Clean Energy', 'Carbon Storage', 'Hydrological Benefits'],
+      ['Health Benefits', 'Reduced Deforestation', 'Community Empowerment'],
+      ['Waste Reduction', 'Methane Capture', 'Soil Improvement'],
+      ['Clean Energy', 'Air Quality', 'Job Creation'],
+      ['Biodiversity', 'Soil Restoration', 'Water Conservation'],
+      ['Coastal Protection', 'Biodiversity', 'Fisheries Support'],
+      ['Sustainable Forestry', 'Biodiversity', 'Carbon Storage'],
+      ['Clean Energy', 'Grid Stability', 'Job Creation'],
+      ['Clean Energy', 'Rural Electrification', 'Technology Transfer'],
+      ['Biodiversity', 'Coastal Protection', 'Community Development'],
+      ['Agricultural Benefits', 'Waste Reduction', 'Rural Development'],
+      ['Biodiversity', 'Water Resources', 'Community Development'],
+      ['Clean Energy', 'Job Creation', 'Technology Transfer'],
+      ['Clean Energy', 'Grid Integration', 'Economic Development'],
+      ['Clean Energy', 'Economic Development', 'Technology Transfer'],
+      ['Forest Protection', 'Biodiversity', 'Indigenous Rights'],
+      ['Clean Energy', 'Job Creation', 'Rural Development'],
+      ['Biodiversity', 'Carbon Storage', 'Water Conservation'],
+      ['Clean Energy', 'Air Quality', 'Job Creation'],
+      ['Clean Energy', 'Rural Electrification', 'Health Benefits'],
+      ['Waste Reduction', 'Clean Energy', 'Rural Development'],
+      ['Clean Energy', 'Health Benefits', 'Economic Development'],
+      ['Forest Protection', 'Biodiversity', 'Community Development'],
+      ['Clean Energy', 'Job Creation', 'Grid Stability']
+    ]
+
+    const portfolio: OffsetPortfolio[] = Array.from({ length: 30 }, (_, i) => {
+      const totalPurchased = 10000 + (i * 5000) % 100000
+      const totalRetired = Math.floor(totalPurchased * (0.3 + (i * 0.02)))
+      return {
+        id: `off-${String(i + 1).padStart(3, '0')}`,
+        projectName: projectNames[i],
+        projectType: projectTypes[i],
+        location: locations[i],
+        certification: certifications[i],
+        pricePerTonne: 8 + (i * 2) % 25,
+        totalPurchased,
+        totalSpent: totalPurchased * (8 + (i * 2) % 25),
+        totalRetired,
+        available: totalPurchased - totalRetired,
+        vintage: 2020 + (i % 5),
+        status: ['active', 'active', 'active', 'retired'][i % 4] as 'active' | 'retired' | 'expired',
+        purchaseHistory: [
+          { id: `p-${i * 10 + 1}`, date: new Date(Date.now() - (i * 30) * 86400000).toISOString(), quantity: Math.floor(totalPurchased * 0.5), price: 8 + (i * 2) % 25, totalCost: Math.floor(totalPurchased * 0.5) * (8 + (i * 2) % 25), retirementDate: i % 4 === 3 ? new Date(Date.now() - (i * 30 + 180) * 86400000).toISOString() : undefined },
+          { id: `p-${i * 10 + 2}`, date: new Date(Date.now() - (i * 30 + 15) * 86400000).toISOString(), quantity: Math.floor(totalPurchased * 0.3), price: 8 + (i * 2) % 25, totalCost: Math.floor(totalPurchased * 0.3) * (8 + (i * 2) % 25), retirementDate: i % 4 === 3 ? new Date(Date.now() - (i * 30 + 195) * 86400000).toISOString() : undefined },
+          { id: `p-${i * 10 + 3}`, date: new Date(Date.now() - (i * 30 + 7) * 86400000).toISOString(), quantity: Math.floor(totalPurchased * 0.2), price: 8 + (i * 2) % 25, totalCost: Math.floor(totalPurchased * 0.2) * (8 + (i * 2) % 25) }
+        ],
+        coBenefits: coBenefits[i],
+        riskRating: ['low', 'low', 'medium', 'medium'][i % 4] as 'low' | 'medium' | 'high'
+      }
+    })
     setOffsetPortfolio(portfolio)
   }
 
@@ -610,7 +639,7 @@ export default function SustainabilityModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
+              <div className="overflow-y-auto h-96">
                 <div className="space-y-4">
                   {esgReports.map((report) => (
                     <Card key={report.id} className="enterprise-card">
@@ -668,7 +697,7 @@ export default function SustainabilityModule() {
                     </Card>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -685,7 +714,7 @@ export default function SustainabilityModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
+              <div className="overflow-y-auto h-96">
                 <div className="space-y-4">
                   {optimizations.map((opt) => (
                     <Card key={opt.id} className="enterprise-card">
@@ -759,7 +788,7 @@ export default function SustainabilityModule() {
                     </Card>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -780,7 +809,7 @@ export default function SustainabilityModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96 overflow-x-auto">
+              <div className="overflow-x-auto h-96">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -823,7 +852,7 @@ export default function SustainabilityModule() {
                     ))}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -837,52 +866,60 @@ export default function SustainabilityModule() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { name: 'Fleet Modernization', type: 'fleet', status: 'active', savings: { fuel: 45000, co2: 142000, cost: 12.5 }, progress: 75 },
-                  { name: 'Sustainable Aviation Fuel', type: 'fuel', status: 'active', savings: { fuel: 28000, co2: 88000, cost: 8.2 }, progress: 45 },
-                  { name: 'Weight Reduction', type: 'operations', status: 'active', savings: { fuel: 12000, co2: 38000, cost: 3.5 }, progress: 90 },
-                  { name: 'Electric Ground Equipment', type: 'ground', status: 'planned', savings: { fuel: 8000, co2: 25000, cost: 2.1 }, progress: 0 },
-                  { name: 'Route Optimization', type: 'operations', status: 'active', savings: { fuel: 15000, co2: 47000, cost: 4.8 }, progress: 60 },
-                  { name: 'Waste Recycling', type: 'ground', status: 'active', savings: { fuel: 0, co2: 5000, cost: 1.2 }, progress: 85 }
-                ].map((initiative, i) => (
-                  <div key={i} className="p-4 bg-secondary/30 rounded-sm space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center flex-wrap gap-2">
-                        {initiative.type === 'fleet' && <Plane className="h-5 w-5 text-blue-600" />}
-                        {initiative.type === 'fuel' && <Droplets className="h-5 w-5 text-blue-600" />}
-                        {initiative.type === 'operations' && <Zap className="h-5 w-5 text-yellow-600" />}
-                        {initiative.type === 'ground' && <Recycle className="h-5 w-5 text-green-600" />}
-                        <span className="font-medium">{initiative.name}</span>
+                {Array.from({ length: 30 }, (_, i) => {
+                  const types = ['fleet', 'fuel', 'operations', 'ground']
+                  const statuses = ['active', 'active', 'active', 'planned']
+                  const initiativeNames = [
+                    'Fleet Modernization', 'Sustainable Aviation Fuel', 'Weight Reduction', 'Electric Ground Equipment',
+                    'Route Optimization', 'Waste Recycling', 'Water Conservation', 'Energy Efficiency',
+                    'Solar Installations', 'Carbon Offsetting', 'Biodiversity Protection', 'Community Engagement',
+                    'Employee Training', 'Supply Chain Sustainability', 'Paperless Operations', 'Eco-friendly Catering',
+                    'Green Building Design', 'Renewable Energy Procurement', 'Sustainable Procurement', 'Noise Reduction',
+                    'Air Quality Improvement', 'Habitat Restoration', 'Climate Adaptation', 'Circular Economy',
+                    'Sustainable Packaging', 'Green Logistics', 'Eco-tourism Partnerships', 'Carbon-neutral Operations',
+                    'Sustainable Agriculture Sourcing', 'Marine Conservation', 'Urban Greening', 'Sustainable Water Management'
+                  ]
+                  const type = types[i % 4]
+                  return (
+                    <div key={i} className="p-4 bg-secondary/30 rounded-sm space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center flex-wrap gap-2">
+                          {type === 'fleet' && <Plane className="h-5 w-5 text-blue-600" />}
+                          {type === 'fuel' && <Droplets className="h-5 w-5 text-blue-600" />}
+                          {type === 'operations' && <Zap className="h-5 w-5 text-yellow-600" />}
+                          {type === 'ground' && <Recycle className="h-5 w-5 text-green-600" />}
+                          <span className="font-medium">{initiativeNames[i]}</span>
+                        </div>
+                        <Badge variant={statuses[i % 4] === 'active' ? 'default' : 'secondary'} className="capitalize">
+                          {statuses[i % 4]}
+                        </Badge>
                       </div>
-                      <Badge variant={initiative.status === 'active' ? 'default' : 'secondary'} className="capitalize">
-                        {initiative.status}
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Fuel:</span>
+                          <span className="ml-1 font-medium">{(5000 + (i * 2000)).toLocaleString()}L</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">CO2:</span>
+                          <span className="ml-1 font-medium text-green-600">{(10000 + (i * 3000)).toLocaleString()}t</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Savings:</span>
+                          <span className="ml-1 font-medium">${(1 + (i * 0.5)).toFixed(1)}M</span>
+                        </div>
+                      </div>
                       <div>
-                        <span className="text-muted-foreground">Fuel:</span>
-                        <span className="ml-1 font-medium">{initiative.savings.fuel.toLocaleString()}L</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">CO2:</span>
-                        <span className="ml-1 font-medium text-green-600">{initiative.savings.co2.toLocaleString()}t</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Savings:</span>
-                        <span className="ml-1 font-medium">${initiative.savings.cost}M</span>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">Progress</span>
+                          <span>{statuses[i % 4] === 'planned' ? 0 : 30 + (i * 2) % 70}%</span>
+                        </div>
+                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                          <div className="h-full bg-green-600 transition-all" style={{ width: `${statuses[i % 4] === 'planned' ? 0 : 30 + (i * 2) % 70}%` }} />
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Progress</span>
-                        <span>{initiative.progress}%</span>
-                      </div>
-                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                        <div className="h-full bg-green-600 transition-all" style={{ width: `${initiative.progress}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
@@ -897,43 +934,54 @@ export default function SustainabilityModule() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {[
-                  { name: 'Fuel Efficiency', current: 3.2, target: 3.0, unit: 'L/100km', year: 2025, color: 'blue' },
-                  { name: 'CO2 Reduction', current: 8, target: 20, unit: '%', year: 2025, color: 'green' },
-                  { name: 'Renewable Energy', current: 35, target: 50, unit: '%', year: 2025, color: 'yellow' },
-                  { name: 'Waste Recycling', current: 75, target: 90, unit: '%', year: 2026, color: 'purple' },
-                  { name: 'Board Diversity', current: 45, target: 50, unit: '%', year: 2025, color: 'pink' }
-                ].map((item, i) => (
-                  <div key={i} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{item.name}</span>
-                      <span className="text-sm text-muted-foreground">Target: {item.year}</span>
-                    </div>
-                    <div className="flex items-center flex-wrap gap-4">
-                      <div className="flex-1">
-                        <div className="h-4 bg-secondary rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full transition-all ${
-                              item.color === 'blue' ? 'bg-blue-600' :
-                              item.color === 'green' ? 'bg-green-600' :
-                              item.color === 'yellow' ? 'bg-yellow-600' :
-                              item.color === 'purple' ? 'bg-purple-600' : 'bg-pink-600'
-                            }`}
-                            style={{ width: `${(item.current / item.target) * 100}%` }}
-                          />
+                {Array.from({ length: 30 }, (_, i) => {
+                  const targetNames = [
+                    'Fuel Efficiency', 'CO2 Reduction', 'Renewable Energy', 'Waste Recycling', 'Board Diversity',
+                    'Water Usage Reduction', 'Employee Training', 'Community Investment', 'Supply Chain Sustainability',
+                    'Gender Equality', 'Ethics Compliance', 'Risk Management', 'Data Privacy', 'Anti-Corruption',
+                    'Biodiversity Protection', 'Air Quality', 'Noise Reduction', 'Paper Usage Reduction',
+                    'Single-use Plastic Elimination', 'Sustainable Sourcing', 'Carbon Neutrality', 'Employee Engagement',
+                    'Customer Satisfaction', 'Supplier Diversity', 'Local Community Support', 'Green Building Certification',
+                    'Circular Economy', 'Climate Resilience', 'Human Rights', 'Transparency Reporting'
+                  ]
+                  const units = ['L/100km', '%', '%', '%', '%', 'kL/pax', 'hrs/employee', '$M', '%',
+                    '%', '%', '%', '%', '%', 'ha', 'µg/m³', 'dB', 'tonnes',
+                    'tonnes', '%', 'tonnes', '%', '%', '%', '$M', 'Level',
+                    '%', 'Level', 'Score', '%']
+                  const colors = ['blue', 'green', 'yellow', 'purple', 'pink', 'cyan', 'orange', 'teal', 'indigo',
+                    'red', 'lime', 'amber', 'violet', 'rose', 'emerald', 'sky', 'fuchsia',
+                    'sage', 'coral', 'mint', 'gold', 'lavender', 'peach', 'bronze', 'silver',
+                    'platinum', 'diamond', 'crystal', 'pearl']
+                  const current = 20 + (i * 3) % 80
+                  const target = 50 + (i * 5) % 50
+                  const onTrack = current >= target
+                  return (
+                    <div key={i} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{targetNames[i]}</span>
+                        <span className="text-sm text-muted-foreground">Target: 202{4 + (i % 6)}</span>
+                      </div>
+                      <div className="flex items-center flex-wrap gap-4">
+                        <div className="flex-1">
+                          <div className="h-4 bg-secondary rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all bg-${colors[i % colors.length]}-600`}
+                              style={{ width: `${Math.min((current / target) * 100, 100)}%` }}
+                            />
+                          </div>
                         </div>
+                        <div className="text-sm">
+                          <span className="font-medium">{current}{units[i]}</span>
+                          <span className="text-muted-foreground mx-2">/</span>
+                          <span className="text-muted-foreground">{target}{units[i]}</span>
+                        </div>
+                        <Badge variant={onTrack ? 'default' : 'secondary'}>
+                          {onTrack ? 'On Track' : 'In Progress'}
+                        </Badge>
                       </div>
-                      <div className="text-sm">
-                        <span className="font-medium">{item.current}{item.unit}</span>
-                        <span className="text-muted-foreground mx-2">/</span>
-                        <span className="text-muted-foreground">{item.target}{item.unit}</span>
-                      </div>
-                      <Badge variant={item.current >= item.target ? 'default' : 'secondary'}>
-                        {item.current >= item.target ? 'On Track' : 'In Progress'}
-                      </Badge>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
@@ -984,7 +1032,7 @@ export default function SustainabilityModule() {
             <DialogTitle>ESG Report Details</DialogTitle>
           </DialogHeader>
           {selectedReport && (
-            <ScrollArea className="max-h-[70vh]">
+            <div className="overflow-y-auto max-h-[70vh]">
               <div className="space-y-4 py-4">
                 <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-sm">
                   <h4 className="font-medium mb-3 flex items-center flex-wrap gap-2">
@@ -1081,7 +1129,7 @@ export default function SustainabilityModule() {
                   </div>
                 </div>
               </div>
-            </ScrollArea>
+            </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowReportDetails(false)}>Close</Button>

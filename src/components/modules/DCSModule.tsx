@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { ScrollArea } from '@/components/ui/scroll-area'
+// import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -344,6 +344,8 @@ interface InterlineBaggage {
 }
 
 export default function DCSModule() {
+  const AIRCRAFT_REGISTRATIONS = ['N12345', 'N67890', 'N24680', 'N13579', 'N86420', 'N11223', 'N44556', 'N77889', 'N99001', 'N33445', 'N55667', 'N77880', 'N99002', 'N22334', 'N44557']
+  
   const {
     flightInstances,
     checkInRecords,
@@ -360,7 +362,15 @@ export default function DCSModule() {
   } = useAirlineStore()
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('checkin')
-  
+
+  // Utility function to format time consistently across server and client
+  const formatTime = (dateString: string): string => {
+    const date = new Date(dateString)
+    const hours = date.getHours().toString().padStart(2, '0')
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+    return `${hours}:${minutes}`
+  }
+
   // Fee calculation state
   const [calculatedFees, setCalculatedFees] = useState<{type: string, amount: number}[]>([])
 
@@ -381,6 +391,202 @@ export default function DCSModule() {
       setPendingAction(null)
     }
   }, [pendingAction])
+
+  // Generate demo data for boarding records and load sheets if needed
+  useEffect(() => {
+    const DCS_FLIGHT_NUMBERS = ['AA123', 'AA456', 'AA789', 'BA234', 'BA567', 'LH890']
+    const today = new Date().toISOString().split('T')[0]
+    
+    // Generate check-in records for DCS-specific flights if needed
+    const generateDemoCheckInRecords = () => {
+      // Count check-ins for DCS flights
+      const dcsFlightCheckIns = checkInRecords.filter(c => 
+        DCS_FLIGHT_NUMBERS.includes(c.flightNumber || '')
+      )
+      
+      // If we don't have enough check-ins for DCS flights, generate more
+      if (dcsFlightCheckIns.length < 30) {
+        const firstNames = ['James', 'Emma', 'Michael', 'Sarah', 'David', 'Jennifer', 'Robert', 'Lisa', 'William', 'Maria', 'Richard', 'Patricia', 'Joseph', 'Linda', 'Thomas', 'Elizabeth', 'Charles', 'Susan', 'Christopher', 'Karen']
+        const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin']
+        const checkInMethods: Array<'web' | 'mobile' | 'kiosk' | 'counter'> = ['web', 'mobile', 'kiosk', 'counter']
+        
+        DCS_FLIGHT_NUMBERS.forEach((flightNumber, flightIdx) => {
+          // Generate 5-6 check-ins per flight to reach 30+ total
+          for (let i = 0; i < 6; i++) {
+            const idx = flightIdx * 6 + i
+            const firstName = firstNames[idx % firstNames.length]
+            const lastName = lastNames[idx % lastNames.length]
+            const passengerId = `PAX-DCS-${idx}`
+            const pnrNumber = `ABC${String(idx + 100).padStart(3, '0')}`
+            const ticketNumber = `176${String(1234567 + idx).padStart(7, '0')}`
+            const seatRow = 10 + (idx % 25)
+            const seatCol = ['A', 'B', 'C', 'D', 'E', 'F'][idx % 6]
+            const seatNumber = `${seatRow}${seatCol}`
+            
+            createCheckIn({
+              id: `CI-DCS-${idx}`,
+              pnrNumber,
+              ticketNumber,
+              passengerId,
+              passengerName: `${firstName} ${lastName}`,
+              flightNumber,
+              date: today,
+              checkInTime: `${today}T${String(18 + (i % 6)).padStart(2, '0')}:${String(i * 10).padStart(2, '0')}:00Z`,
+              checkInMethod: checkInMethods[idx % 4],
+              seatNumber,
+              boardingPassIssued: true,
+              boardingPassData: {
+                passNumber: `BP${String(idx + 1000).padStart(6, '0')}`,
+                issuedAt: `${today}T${String(18 + (i % 6)).padStart(2, '0')}:${String(i * 10).padStart(2, '0')}:00Z`,
+                barcode: `M1${pnrNumber}${flightNumber}${seatNumber}`
+              },
+              documentsVerified: true,
+              visaValid: true,
+              passportValid: true,
+              bagsChecked: Math.floor(Math.random() * 3),
+              status: ['checked-in', 'boarded', 'no-show'][idx % 3] as any
+            })
+          }
+        })
+      }
+    }
+    
+    // Generate baggage records for DCS-specific flights if needed
+    const generateDemoBaggageRecords = () => {
+      // Count baggage for DCS flights
+      const dcsFlightBags = baggageRecords.filter(b => 
+        DCS_FLIGHT_NUMBERS.includes(b.flightNumber || '')
+      )
+      
+      // If we don't have enough baggage records for DCS flights, generate more
+      if (dcsFlightBags.length < 30) {
+        const firstNames = ['James', 'Emma', 'Michael', 'Sarah', 'David', 'Jennifer', 'Robert', 'Lisa', 'William', 'Maria', 'Richard', 'Patricia', 'Joseph', 'Linda', 'Thomas', 'Elizabeth', 'Charles', 'Susan', 'Christopher', 'Karen']
+        const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin']
+        
+        DCS_FLIGHT_NUMBERS.forEach((flightNumber, flightIdx) => {
+          const destinations = ['LHR', 'PAR', 'LAX', 'TYO', 'SIN', 'DXB']
+          const destination = destinations[flightIdx % destinations.length]
+          
+          // Generate 5-6 baggage records per flight to reach 30+ total
+          for (let i = 0; i < 6; i++) {
+            const idx = flightIdx * 6 + i
+            const firstName = firstNames[idx % firstNames.length]
+            const lastName = lastNames[idx % lastNames.length]
+            const passengerId = `PAX-DCS-${idx}`
+            const pnrNumber = `ABC${String(idx + 100).padStart(3, '0')}`
+            const ticketNumber = `176${String(1234567 + idx).padStart(7, '0')}`
+            const tagNumber = `AA${today.replace(/-/g, '')}${String(1000 + idx).padStart(4, '0')}`
+            
+            addBaggage({
+              tagNumber,
+              pnrNumber,
+              ticketNumber,
+              passengerId,
+              passengerName: `${firstName} ${lastName}`,
+              flightNumber,
+              origin: 'JFK',
+              destination,
+              weight: Math.floor(Math.random() * 17) + 15, // 15-32 kg
+              pieces: Math.floor(Math.random() * 2) + 1, // 1-2 pieces
+              status: ['checked', 'loaded', 'transferred', 'delivered'][idx % 4] as any,
+              routing: ['JFK', destination],
+              interline: false,
+              specialHandling: idx % 6 === 0 ? ['fragile'] : idx % 8 === 0 ? ['priority'] : undefined,
+              mishandledAt: idx % 15 === 0 ? destination : undefined,
+              resolvedAt: idx % 15 === 0 ? new Date(Date.now() - 86400000).toISOString().split('T')[0] : undefined,
+              fee: Math.floor(Math.random() * 100),
+              feePaid: true
+            })
+          }
+        })
+      }
+    }
+
+    const generateDemoBoardingRecords = () => {
+      if (boardingRecords.length >= 30) return
+
+      // Generate boarding records for multiple flights
+      DCS_FLIGHT_NUMBERS.forEach((flightNumber, idx) => {
+        const flightCheckIns = checkInRecords.filter(c => c.flightNumber === flightNumber)
+        if (flightCheckIns.length === 0) return
+
+        const boardedCount = Math.floor(flightCheckIns.length * 0.7)
+        const boardingRecord = {
+          id: `BRD-${Date.now()}-${idx}`,
+          flightNumber,
+          date: today,
+          gate: ['A12', 'B8', 'C15', 'D4', 'E7', 'F9'][idx % 6],
+          scheduledDeparture: `${10 + idx}:00`,
+          actualDeparture: `${10 + idx}:15`,
+          boardingStarted: `${9 + idx}:30`,
+          boardingCompleted: `${10 + idx}:10`,
+          boardedPassengers: boardedCount,
+          totalPassengers: flightCheckIns.length,
+          priorityBoarding: flightCheckIns.slice(0, 3).map(c => c.passengerName || ''),
+          standbyList: [],
+          gateChangeLog: []
+        }
+        updateBoarding(flightNumber, today, boardingRecord)
+      })
+    }
+
+    const generateDemoLoadSheets = () => {
+      if (loadSheets.length >= 30) return
+
+      // Generate load sheets for multiple flights
+      DCS_FLIGHT_NUMBERS.forEach((flightNumber, idx) => {
+        const flightCheckIns = checkInRecords.filter(c => c.flightNumber === flightNumber)
+        const flightBags = baggageRecords.filter(b => b.flightNumber === flightNumber)
+        
+        if (flightCheckIns.length === 0) return
+
+        const passengerWeight = flightCheckIns.length * 85 // Average 85kg per passenger
+        const baggageWeight = flightBags.reduce((sum, b) => sum + b.weight, 0)
+        const cargoWeight = Math.random() * 5000 + 2000
+        const fuelWeight = Math.floor(Math.random() * 30000 + 40000)
+        const operatingEmptyWeight = 42000
+        const zeroFuelWeight = operatingEmptyWeight + passengerWeight + baggageWeight + cargoWeight
+        const takeoffWeight = zeroFuelWeight + fuelWeight
+        const landingWeight = takeoffWeight - fuelWeight * 0.8
+        const centerOfGravity = (Math.random() * 10 + 20).toFixed(1)
+        const trimSetting = Math.floor(parseFloat(centerOfGravity) * 2 - 40)
+
+        const loadSheet = {
+          flightNumber,
+          date: today,
+          aircraftRegistration: AIRCRAFT_REGISTRATIONS[idx % AIRCRAFT_REGISTRATIONS.length],
+          aircraftType: ['B737-800', 'A320neo', 'B777-300ER', 'A350-900'][idx % 4],
+          totalWeight: takeoffWeight,
+          passengerWeight,
+          cargoWeight,
+          baggageWeight,
+          fuelWeight,
+          zeroFuelWeight,
+          takeoffWeight,
+          landingWeight,
+          trimSetting,
+          centerOfGravity,
+          distribution: {
+            forward: Math.round(passengerWeight * 0.4 + cargoWeight * 0.3 + baggageWeight * 0.3),
+            aft: Math.round(passengerWeight * 0.6 + cargoWeight * 0.7 + baggageWeight * 0.7)
+          },
+          generatedAt: new Date().toISOString(),
+          generatedBy: 'System'
+        }
+        generateLoadSheet(flightNumber, today)
+      })
+    }
+
+    // Wait a tick to ensure store data is available
+    const timer = setTimeout(() => {
+      generateDemoCheckInRecords()
+      generateDemoBaggageRecords()
+      generateDemoBoardingRecords()
+      generateDemoLoadSheets()
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [checkInRecords, baggageRecords, boardingRecords, loadSheets, updateBoarding, generateLoadSheet, createCheckIn, addBaggage])
 
   const handleExportData = () => {
     if (!flightInstances || flightInstances.length === 0) return
@@ -1978,7 +2184,7 @@ export default function DCSModule() {
                             {upgradeHistory[selectedUpgradePassenger.passengerId]?.length > 0 && (
                               <div>
                                 <Label className="mb-2 block">Upgrade History</Label>
-                                <ScrollArea className="h-32 border rounded-md p-2">
+                                <div className="overflow-y-auto h-32">
                                   {upgradeHistory[selectedUpgradePassenger.passengerId].map((upgrade, idx) => (
                                     <div key={idx} className="flex items-center justify-between py-1 border-b last:border-0">
                                       <span className="text-sm">{upgrade.requestedCabin.replace('_', ' ').toUpperCase()}</span>
@@ -1988,7 +2194,7 @@ export default function DCSModule() {
                                       </div>
                                     </div>
                                   ))}
-                                </ScrollArea>
+                                </div>
                               </div>
                             )}
                           </>
@@ -2088,7 +2294,7 @@ export default function DCSModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96 overflow-x-auto">
+              <div className="overflow-x-auto h-96">
                 <table className="enterprise-table min-w-[800px]">
                   <thead>
                     <tr>
@@ -2118,7 +2324,7 @@ export default function DCSModule() {
                           <td className="font-mono text-sm">{checkIn.pnrNumber}</td>
                           <td className="font-mono">{checkIn.seatNumber}</td>
                           <td><Badge variant="outline" className="capitalize">{checkIn.checkInMethod}</Badge></td>
-                          <td className="text-sm">{new Date(checkIn.checkInTime).toLocaleTimeString()}</td>
+                          <td className="text-sm">{formatTime(checkIn.checkInTime)}</td>
                           <td>
                             <div className="flex items-center flex-wrap gap-1">
                               {checkIn.documentsVerified ? (
@@ -2183,7 +2389,7 @@ export default function DCSModule() {
                     )}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
 
@@ -2391,7 +2597,7 @@ export default function DCSModule() {
                     {ssrRequests[selectedSSRPassenger.passengerId]?.length > 0 && (
                       <div>
                         <Label className="mb-2 block">Existing Requests</Label>
-                        <ScrollArea className="h-32 border rounded-md p-2">
+                        <div className="overflow-y-auto h-32">
                           {ssrRequests[selectedSSRPassenger.passengerId].map((ssr) => (
                             <div key={ssr.id} className="flex items-center justify-between py-2 border-b last:border-0">
                               <div>
@@ -2404,7 +2610,7 @@ export default function DCSModule() {
                               </div>
                             </div>
                           ))}
-                        </ScrollArea>
+                        </div>
                       </div>
                     )}
                   </>
@@ -2497,7 +2703,7 @@ export default function DCSModule() {
                     {documentInfo[selectedDocumentPassenger.passengerId]?.length > 0 && (
                       <div>
                         <Label className="text-base font-medium mb-2 block">Document Checklist</Label>
-                        <ScrollArea className="h-48 border rounded-md">
+                        <div className="overflow-y-auto h-48">
                           <table className="w-full">
                             <thead className="bg-secondary/50">
                               <tr>
@@ -2530,7 +2736,7 @@ export default function DCSModule() {
                               ))}
                             </tbody>
                           </table>
-                        </ScrollArea>
+                        </div>
                       </div>
                     )}
 
@@ -2711,7 +2917,7 @@ export default function DCSModule() {
                   <CardTitle>Boarding Passengers ({boardingPassengers.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-64 overflow-x-auto">
+                  <div className="overflow-x-auto h-64">
                     <table className="enterprise-table min-w-[600px]">
                       <thead>
                         <tr>
@@ -2743,7 +2949,7 @@ export default function DCSModule() {
                                 {passenger.status}
                               </Badge>
                             </td>
-                            <td className="text-sm">{passenger.boardingTime ? new Date(passenger.boardingTime).toLocaleTimeString() : '-'}</td>
+                            <td className="text-sm">{passenger.boardingTime ? formatTime(passenger.boardingTime) : '-'}</td>
                             <td>
                               <div className="flex items-center flex-wrap gap-1">
                                 {passenger.status === 'not-boarded' && (
@@ -2762,7 +2968,7 @@ export default function DCSModule() {
                         ))}
                       </tbody>
                     </table>
-                  </ScrollArea>
+                  </div>
                 </CardContent>
               </Card>
             </>
@@ -3155,7 +3361,7 @@ export default function DCSModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80 overflow-x-auto">
+              <div className="overflow-x-auto h-80">
                 <table className="enterprise-table min-w-[700px]">
                   <thead>
                     <tr>
@@ -3222,7 +3428,7 @@ export default function DCSModule() {
                     ))}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
 
@@ -3243,7 +3449,7 @@ export default function DCSModule() {
                   </div>
                 </div>
 
-                <ScrollArea className="max-h-60">
+                <div className="overflow-y-auto max-h-60">
                   <div className="space-y-2">
                     {reconciledBags.map((bag, i) => (
                       <div key={bag.id} className="flex items-center justify-between p-3 bg-green-50 border-green-200 rounded">
@@ -3265,7 +3471,7 @@ export default function DCSModule() {
                       </div>
                     ))}
                   </div>
-                </ScrollArea>
+                </div>
 
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setShowBaggageReconciliationDialog(false)}>
@@ -3291,7 +3497,7 @@ export default function DCSModule() {
                 </p>
 
                 {mishandledBaggage.length > 0 ? (
-                  <ScrollArea className="max-h-60">
+                  <div className="overflow-y-auto max-h-60">
                     <div className="space-y-2">
                       {mishandledBaggage.map((bag, i) => (
                         <div key={bag.id} className="p-3 border border-red-200 bg-red-50 rounded flex items-center justify-between">
@@ -3315,7 +3521,7 @@ export default function DCSModule() {
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 ) : (
                   <p className="text-center text-muted-foreground py-8">No mishandled baggage reported</p>
                 )}
@@ -3385,7 +3591,7 @@ export default function DCSModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96 overflow-x-auto">
+              <div className="overflow-x-auto h-96">
                 <table className="enterprise-table min-w-[700px]">
                   <thead>
                     <tr>
@@ -3436,7 +3642,7 @@ export default function DCSModule() {
                     )}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
 
@@ -3916,7 +4122,7 @@ export default function DCSModule() {
                         <div><span className="text-muted-foreground">Flight:</span> {segment.flightNumber}</div>
                         <div><span className="text-muted-foreground">Route:</span> {segment.origin} → {segment.destination}</div>
                         {segment.trackedAt && (
-                          <div><span className="text-muted-foreground">Tracked:</span> {new Date(segment.trackedAt).toLocaleTimeString()}</div>
+                          <div><span className="text-muted-foreground">Tracked:</span> {formatTime(segment.trackedAt)}</div>
                         )}
                       </div>
                     </div>

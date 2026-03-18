@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
+// import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   BarChart3, 
@@ -79,14 +79,38 @@ export default function AnalyticsModule() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(false)
   
-  // KPI Alerts Data
+  // KPI Alerts Data - 30 items
   const kpiAlerts = [
     { id: 'alert-1', type: 'warning', kpi: 'On-Time Performance', currentValue: 92.8, threshold: 95, message: 'On-time performance fell below 95% threshold on LAX-TYO route', time: '10 min ago', status: 'active', route: 'LAX-TYO', trend: 'declining' },
     { id: 'alert-2', type: 'critical', kpi: 'Load Factor', currentValue: 75.2, threshold: 80, message: 'Load factor below 80% threshold on SFO-HKG route', time: '25 min ago', status: 'active', route: 'SFO-HKG', trend: 'declining' },
     { id: 'alert-3', type: 'info', kpi: 'Revenue', currentValue: 4250000, threshold: 4000000, message: 'Revenue target exceeded by 6.25%', time: '1 hour ago', status: 'acknowledged', route: 'All', trend: 'increasing' },
     { id: 'alert-4', type: 'warning', kpi: 'Cancellation Rate', currentValue: 3.79, threshold: 3.0, message: 'OTA cancellation rate above 3% threshold', time: '2 hours ago', status: 'active', route: 'All Channels', trend: 'increasing' },
     { id: 'alert-5', type: 'critical', kpi: 'Crew Fatigue', currentValue: 6.8, threshold: 5.0, message: 'Flight Attendant fatigue risk above 5% threshold', time: '3 hours ago', status: 'resolved', route: 'All Bases', trend: 'stable' },
-    { id: 'alert-6', type: 'info', kpi: 'Fuel Efficiency', currentValue: 2.75, threshold: 2.90, message: 'A320 fleet fuel efficiency improved by 5.2%', time: '4 hours ago', status: 'acknowledged', route: 'A320 Fleet', trend: 'improving' }
+    { id: 'alert-6', type: 'info', kpi: 'Fuel Efficiency', currentValue: 2.75, threshold: 2.90, message: 'A320 fleet fuel efficiency improved by 5.2%', time: '4 hours ago', status: 'acknowledged', route: 'A320 Fleet', trend: 'improving' },
+    { id: 'alert-7', type: 'warning', kpi: 'Revenue Per ASM', currentValue: 12.8, threshold: 14.0, message: 'RASM below target on JFK-LHR route', time: '30 min ago', status: 'active', route: 'JFK-LHR', trend: 'declining' },
+    { id: 'alert-8', type: 'critical', kpi: 'Yield', currentValue: 14.2, threshold: 15.0, message: 'Yield dropped on DXB-LHR route', time: '45 min ago', status: 'active', route: 'DXB-LHR', trend: 'declining' },
+    { id: 'alert-9', type: 'info', kpi: 'Baggage Handling', currentValue: 99.5, threshold: 98.0, message: 'Baggage handling exceeds 98% target', time: '50 min ago', status: 'acknowledged', route: 'All', trend: 'stable' },
+    { id: 'alert-10', type: 'warning', kpi: 'No-Show Rate', currentValue: 4.2, threshold: 3.5, message: 'No-show rate increased on corporate bookings', time: '1.5 hours ago', status: 'active', route: 'Corporate', trend: 'increasing' },
+    { id: 'alert-11', type: 'critical', kpi: 'Cost Per ASM', currentValue: 9.8, threshold: 9.0, message: 'CASM above target on SIN-SYD route', time: '2 hours ago', status: 'investigating', route: 'SIN-SYD', trend: 'increasing' },
+    { id: 'alert-12', type: 'info', kpi: 'Customer Satisfaction', currentValue: 4.5, threshold: 4.3, message: 'NPS score improved by 0.2 points', time: '2.5 hours ago', status: 'acknowledged', route: 'All', trend: 'improving' },
+    { id: 'alert-13', type: 'warning', kpi: 'Ancillary Revenue', currentValue: 28.5, threshold: 32.0, message: 'Ancillary revenue penetration below 32%', time: '3 hours ago', status: 'active', route: 'All', trend: 'declining' },
+    { id: 'alert-14', type: 'critical', kpi: 'Flight Disruptions', currentValue: 12, threshold: 8, message: 'High number of flight disruptions this week', time: '3.5 hours ago', status: 'investigating', route: 'All', trend: 'increasing' },
+    { id: 'alert-15', type: 'info', kpi: 'Employee Utilization', currentValue: 89.2, threshold: 85.0, message: 'Crew utilization above 85% target', time: '4 hours ago', status: 'acknowledged', route: 'All', trend: 'stable' },
+    { id: 'alert-16', type: 'warning', kpi: 'Inventory Utilization', currentValue: 76.5, threshold: 80.0, message: 'Seat inventory underutilized on JFK-PAR route', time: '5 hours ago', status: 'active', route: 'JFK-PAR', trend: 'declining' },
+    { id: 'alert-17', type: 'critical', kpi: 'Maintenance Cost', currentValue: 125000, threshold: 100000, message: 'Monthly maintenance cost exceeded budget', time: '6 hours ago', status: 'investigating', route: 'All', trend: 'increasing' },
+    { id: 'alert-18', type: 'info', kpi: 'Direct Bookings', currentValue: 52.3, threshold: 50.0, message: 'Direct booking channel share above 50% target', time: '7 hours ago', status: 'acknowledged', route: 'All', trend: 'increasing' },
+    { id: 'alert-19', type: 'warning', kpi: 'Loyalty Redemption', currentValue: 18.5, threshold: 20.0, message: 'Loyalty points redemption below 20% target', time: '8 hours ago', status: 'active', route: 'All', trend: 'stable' },
+    { id: 'alert-20', type: 'critical', kpi: 'Fuel Hedging', currentValue: 78, threshold: 85, message: 'Fuel hedging coverage below 85%', time: '9 hours ago', status: 'investigating', route: 'All', trend: 'declining' },
+    { id: 'alert-21', type: 'info', kpi: 'Online Check-in', currentValue: 94.8, threshold: 90.0, message: 'Online check-in rate exceeds 90% target', time: '10 hours ago', status: 'acknowledged', route: 'All', trend: 'improving' },
+    { id: 'alert-22', type: 'warning', kpi: 'Turnaround Time', currentValue: 48, threshold: 45, message: 'Average turnaround time increased', time: '11 hours ago', status: 'active', route: 'All', trend: 'increasing' },
+    { id: 'alert-23', type: 'critical', kpi: 'Unaccompanied Minors', currentValue: 12, threshold: 5, message: 'High volume of unaccompanied minor bookings', time: '12 hours ago', status: 'investigating', route: 'All', trend: 'increasing' },
+    { id: 'alert-24', type: 'info', kpi: 'Pet Transport', currentValue: 45, threshold: 40, message: 'Pet transport bookings above target', time: '13 hours ago', status: 'acknowledged', route: 'All', trend: 'increasing' },
+    { id: 'alert-25', type: 'warning', kpi: 'Upgrade Revenue', currentValue: 8.5, threshold: 10.0, message: 'Upgrade revenue penetration below 10%', time: '14 hours ago', status: 'active', route: 'All', trend: 'stable' },
+    { id: 'alert-26', type: 'critical', kpi: 'Fraud Attempts', currentValue: 8, threshold: 3, message: 'High number of fraud attempts detected', time: '15 hours ago', status: 'investigating', route: 'All', trend: 'increasing' },
+    { id: 'alert-27', type: 'info', kpi: 'Carbon Efficiency', currentValue: 88, threshold: 85, message: 'Carbon efficiency score above 85%', time: '16 hours ago', status: 'acknowledged', route: 'All', trend: 'improving' },
+    { id: 'alert-28', type: 'warning', kpi: 'Overbooking Rate', currentValue: 2.1, threshold: 3.0, message: 'Overbooking rate below optimal level', time: '17 hours ago', status: 'active', route: 'All', trend: 'declining' },
+    { id: 'alert-29', type: 'critical', kpi: 'Cargo Utilization', currentValue: 65, threshold: 75, message: 'Cargo belly hold utilization below 75%', time: '18 hours ago', status: 'investigating', route: 'All', trend: 'declining' },
+    { id: 'alert-30', type: 'info', kpi: 'Partner Revenue', currentValue: 450000, threshold: 400000, message: 'Partner revenue exceeded target', time: '19 hours ago', status: 'acknowledged', route: 'All', trend: 'increasing' }
   ]
   
   const [alerts, setAlerts] = useState(kpiAlerts)
@@ -238,14 +262,38 @@ export default function AnalyticsModule() {
     }
   ]
 
+  // Route Profitability Data - 30 items using DEMO_ROUTES pattern
   const routeProfitabilityData = [
     { route: 'JFK-LHR', flights: 120, pax: 21500, lf: 89.5, revenue: 4250000, costs: 3400000, profit: 850000, margin: 20, predictedLF: 91.2, predictedRevenue: 4580000, growth: 12.5 },
-    { route: 'JFK-PAR', flights: 95, pax: 16800, lf: 86.2, revenue: 3120000, costs: 2540000, profit: 580000, margin: 18.6, predictedLF: 88.5, predictedRevenue: 3380000, growth: 8.3 },
-    { route: 'LAX-TYO', flights: 85, pax: 14200, lf: 82.8, revenue: 3800000, costs: 3180000, profit: 620000, margin: 16.3, predictedLF: 85.0, predictedRevenue: 4020000, growth: -2.1 },
-    { route: 'SIN-SYD', flights: 110, pax: 18900, lf: 84.5, revenue: 2980000, costs: 2530000, profit: 450000, margin: 15.1, predictedLF: 86.8, predictedRevenue: 3180000, growth: 5.7 },
+    { route: 'JFK-CDG', flights: 95, pax: 16800, lf: 86.2, revenue: 3120000, costs: 2540000, profit: 580000, margin: 18.6, predictedLF: 88.5, predictedRevenue: 3380000, growth: 8.3 },
+    { route: 'LAX-NRT', flights: 85, pax: 14200, lf: 82.8, revenue: 3800000, costs: 3180000, profit: 620000, margin: 16.3, predictedLF: 85.0, predictedRevenue: 4020000, growth: -2.1 },
+    { route: 'SFO-HKG', flights: 110, pax: 18900, lf: 84.5, revenue: 2980000, costs: 2530000, profit: 450000, margin: 15.1, predictedLF: 86.8, predictedRevenue: 3180000, growth: 5.7 },
     { route: 'DXB-LHR', flights: 100, pax: 17800, lf: 87.2, revenue: 3560000, costs: 2880000, profit: 680000, margin: 19.1, predictedLF: 89.0, predictedRevenue: 3850000, growth: 10.2 },
-    { route: 'SFO-HKG', flights: 75, pax: 12500, lf: 79.3, revenue: 2650000, costs: 2380000, profit: 270000, margin: 10.2, predictedLF: 82.5, predictedRevenue: 2850000, growth: 3.4 },
-    { route: 'FRA-JFK', flights: 90, pax: 15600, lf: 83.7, revenue: 2890000, costs: 2420000, profit: 470000, margin: 16.3, predictedLF: 85.9, predictedRevenue: 3090000, growth: 6.8 }
+    { route: 'SIN-SYD', flights: 75, pax: 12500, lf: 79.3, revenue: 2650000, costs: 2380000, profit: 270000, margin: 10.2, predictedLF: 82.5, predictedRevenue: 2850000, growth: 3.4 },
+    { route: 'JFK-MIA', flights: 90, pax: 15600, lf: 83.7, revenue: 2890000, costs: 2420000, profit: 470000, margin: 16.3, predictedLF: 85.9, predictedRevenue: 3090000, growth: 6.8 },
+    { route: 'ORD-LAX', flights: 85, pax: 14250, lf: 85.2, revenue: 2950000, costs: 2450000, profit: 500000, margin: 16.9, predictedLF: 87.5, predictedRevenue: 3180000, growth: 7.8 },
+    { route: 'ATL-LHR', flights: 105, pax: 18200, lf: 88.3, revenue: 3650000, costs: 2980000, profit: 670000, margin: 18.4, predictedLF: 90.5, predictedRevenue: 3980000, growth: 11.2 },
+    { route: 'DFW-NRT', flights: 70, pax: 11800, lf: 78.5, revenue: 2950000, costs: 2550000, profit: 400000, margin: 13.6, predictedLF: 81.2, predictedRevenue: 3120000, growth: -1.5 },
+    { route: 'LHR-DXB', flights: 95, pax: 16500, lf: 86.8, revenue: 3350000, costs: 2750000, profit: 600000, margin: 17.9, predictedLF: 89.0, predictedRevenue: 3620000, growth: 9.5 },
+    { route: 'CDG-SIN', flights: 88, pax: 15400, lf: 84.2, revenue: 3050000, costs: 2520000, profit: 530000, margin: 17.4, predictedLF: 86.8, predictedRevenue: 3300000, growth: 8.2 },
+    { route: 'JFK-SFO', flights: 92, pax: 16100, lf: 85.5, revenue: 2750000, costs: 2280000, profit: 470000, margin: 17.1, predictedLF: 88.0, predictedRevenue: 2980000, growth: 7.5 },
+    { route: 'LAX-HNL', flights: 110, pax: 19500, lf: 89.2, revenue: 2450000, costs: 1950000, profit: 500000, margin: 20.4, predictedLF: 91.5, predictedRevenue: 2680000, growth: 12.8 },
+    { route: 'MIA-GRU', flights: 65, pax: 11000, lf: 76.5, revenue: 2850000, costs: 2450000, profit: 400000, margin: 14.0, predictedLF: 79.2, predictedRevenue: 3020000, growth: 4.5 },
+    { route: 'FRA-JFK', flights: 98, pax: 17200, lf: 87.8, revenue: 3220000, costs: 2650000, profit: 570000, margin: 17.7, predictedLF: 90.0, predictedRevenue: 3480000, growth: 10.5 },
+    { route: 'AMS-LAX', flights: 72, pax: 12400, lf: 81.2, revenue: 2880000, costs: 2420000, profit: 460000, margin: 16.0, predictedLF: 84.0, predictedRevenue: 3120000, growth: 6.2 },
+    { route: 'HKG-SYD', flights: 102, pax: 17800, lf: 86.5, revenue: 2920000, costs: 2380000, profit: 540000, margin: 18.5, predictedLF: 88.8, predictedRevenue: 3150000, growth: 9.8 },
+    { route: 'BKK-LHR', flights: 68, pax: 11600, lf: 79.8, revenue: 2980000, costs: 2520000, profit: 460000, margin: 15.4, predictedLF: 82.5, predictedRevenue: 3220000, growth: 5.5 },
+    { route: 'JFK-LAS', flights: 135, pax: 24500, lf: 92.1, revenue: 1850000, costs: 1450000, profit: 400000, margin: 21.6, predictedLF: 94.0, predictedRevenue: 1980000, growth: 14.2 },
+    { route: 'ORD-MIA', flights: 115, pax: 20500, lf: 89.5, revenue: 1950000, costs: 1520000, profit: 430000, margin: 22.1, predictedLF: 91.5, predictedRevenue: 2080000, growth: 11.8 },
+    { route: 'LAX-MEX', flights: 95, pax: 16800, lf: 88.2, revenue: 2250000, costs: 1780000, profit: 470000, margin: 20.9, predictedLF: 90.5, predictedRevenue: 2420000, growth: 10.5 },
+    { route: 'SFO-ICN', flights: 78, pax: 13200, lf: 82.5, revenue: 3450000, costs: 2920000, profit: 530000, margin: 15.4, predictedLF: 85.2, predictedRevenue: 3720000, growth: 6.8 },
+    { route: 'DXB-SYD', flights: 52, pax: 9200, lf: 78.5, revenue: 3550000, costs: 3050000, profit: 500000, margin: 14.1, predictedLF: 81.5, predictedRevenue: 3820000, growth: 3.2 },
+    { route: 'LHR-JFK', flights: 118, pax: 20800, lf: 88.2, revenue: 4120000, costs: 3320000, profit: 800000, margin: 19.4, predictedLF: 90.5, predictedRevenue: 4450000, growth: 12.8 },
+    { route: 'CDG-FRA', flights: 145, pax: 25800, lf: 91.5, revenue: 880000, costs: 680000, profit: 200000, margin: 22.7, predictedLF: 93.5, predictedRevenue: 945000, growth: 15.5 },
+    { route: 'SIN-NRT', flights: 88, pax: 15500, lf: 85.8, revenue: 2680000, costs: 2200000, profit: 480000, margin: 17.9, predictedLF: 88.2, predictedRevenue: 2900000, growth: 8.5 },
+    { route: 'HKG-LAX', flights: 68, pax: 11800, lf: 79.2, revenue: 3520000, costs: 3020000, profit: 500000, margin: 14.2, predictedLF: 82.5, predictedRevenue: 3780000, growth: 4.8 },
+    { route: 'MIA-MAD', flights: 62, pax: 10800, lf: 77.5, revenue: 2980000, costs: 2520000, profit: 460000, margin: 15.4, predictedLF: 80.5, predictedRevenue: 3220000, growth: 5.2 },
+    { route: 'JFK-BCN', flights: 75, pax: 13200, lf: 84.5, revenue: 3080000, costs: 2550000, profit: 530000, margin: 17.2, predictedLF: 87.2, predictedRevenue: 3350000, growth: 7.8 }
   ]
 
   // Enhanced Agent Performance Data
@@ -848,7 +896,7 @@ export default function AnalyticsModule() {
               <CardDescription>Performance metrics with AI predictions</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96 overflow-x-auto">
+              <div className="overflow-x-auto h-96">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -883,7 +931,7 @@ export default function AnalyticsModule() {
                     ))}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -937,7 +985,7 @@ export default function AnalyticsModule() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-96 overflow-x-auto">
+                <div className="overflow-x-auto h-96">
                   <table className="enterprise-table min-w-[1300px]">
                     <thead>
                       <tr>
@@ -1008,7 +1056,7 @@ export default function AnalyticsModule() {
                       ))}
                     </tbody>
                   </table>
-                </ScrollArea>
+                </div>
               </CardContent>
             </Card>
 
@@ -1155,7 +1203,7 @@ export default function AnalyticsModule() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-96">
+                <div className="overflow-y-auto h-96">
                   <div className="space-y-4">
                     {sampleAIModels.map((model) => (
                       <div key={model.id} className="p-4 border rounded-sm hover:bg-secondary/50 transition-colors">
@@ -1213,7 +1261,7 @@ export default function AnalyticsModule() {
                       </div>
                     ))}
                   </div>
-                </ScrollArea>
+                </div>
               </CardContent>
             </Card>
 
@@ -1352,7 +1400,7 @@ export default function AnalyticsModule() {
                 <CardDescription>Latest AI-generated predictions and outcomes</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-80 overflow-x-auto">
+                <div className="overflow-x-auto h-80">
                   <table className="enterprise-table min-w-[1000px]">
                     <thead>
                       <tr>
@@ -1395,7 +1443,7 @@ export default function AnalyticsModule() {
                       ))}
                     </tbody>
                   </table>
-                </ScrollArea>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -1414,7 +1462,7 @@ export default function AnalyticsModule() {
                   <CardDescription>Demographics by travel purpose</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-72">
+                  <div className="overflow-y-auto h-72">
                     <div className="space-y-4">
                       {passengerAnalytics.demographics.map((segment, i) => (
                         <div key={i} className="p-4 border rounded-sm">
@@ -1453,7 +1501,7 @@ export default function AnalyticsModule() {
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1466,7 +1514,7 @@ export default function AnalyticsModule() {
                   <CardDescription>Member distribution by tier</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-72 overflow-x-auto">
+                  <div className="overflow-x-auto h-72">
                     <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
@@ -1491,7 +1539,7 @@ export default function AnalyticsModule() {
                         ))}
                       </tbody>
                     </table>
-                  </ScrollArea>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -1507,7 +1555,7 @@ export default function AnalyticsModule() {
                   <CardDescription>Passenger behavior on key routes</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-72 overflow-x-auto">
+                  <div className="overflow-x-auto h-72">
                     <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
@@ -1534,7 +1582,7 @@ export default function AnalyticsModule() {
                         ))}
                       </tbody>
                     </table>
-                  </ScrollArea>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1635,7 +1683,7 @@ export default function AnalyticsModule() {
                 <CardDescription>Detailed metrics by aircraft</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-80 overflow-x-auto">
+                <div className="overflow-x-auto h-80">
                   <table className="enterprise-table min-w-[1000px]">
                     <thead>
                       <tr>
@@ -1680,7 +1728,7 @@ export default function AnalyticsModule() {
                       ))}
                     </tbody>
                   </table>
-                </ScrollArea>
+                </div>
               </CardContent>
             </Card>
 
@@ -1694,7 +1742,7 @@ export default function AnalyticsModule() {
                 <CardDescription>Fleet metrics grouped by aircraft type</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-64 overflow-x-auto">
+                <div className="overflow-x-auto h-64">
                   <table className="enterprise-table min-w-[1000px]">
                     <thead>
                       <tr>
@@ -1721,7 +1769,7 @@ export default function AnalyticsModule() {
                       ))}
                     </tbody>
                   </table>
-                </ScrollArea>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -1787,7 +1835,7 @@ export default function AnalyticsModule() {
                   <CardDescription>Crew metrics by role</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-72 overflow-x-auto">
+                  <div className="overflow-x-auto h-72">
                     <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
@@ -1816,7 +1864,7 @@ export default function AnalyticsModule() {
                         ))}
                       </tbody>
                     </table>
-                  </ScrollArea>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1890,7 +1938,7 @@ export default function AnalyticsModule() {
                 <CardDescription>Overall: {operationalKPIs.onTimePerformance.overall}% on-time</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-72 overflow-x-auto">
+                <div className="overflow-x-auto h-72">
                   <table className="enterprise-table min-w-[900px]">
                     <thead>
                       <tr>
@@ -1917,7 +1965,7 @@ export default function AnalyticsModule() {
                       ))}
                     </tbody>
                   </table>
-                </ScrollArea>
+                </div>
               </CardContent>
             </Card>
 
@@ -1932,7 +1980,7 @@ export default function AnalyticsModule() {
                   <CardDescription>Total delays: {operationalKPIs.delayAnalysis.totalDelays}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-64 overflow-x-auto">
+                  <div className="overflow-x-auto h-64">
                     <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
@@ -1965,7 +2013,7 @@ export default function AnalyticsModule() {
                         ))}
                       </tbody>
                     </table>
-                  </ScrollArea>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -2094,7 +2142,7 @@ export default function AnalyticsModule() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-96">
+                <div className="overflow-y-auto h-96">
                   <div className="space-y-3">
                     {alerts.map((alert) => (
                       <div key={alert.id} className={`p-4 border rounded-sm ${
@@ -2173,7 +2221,7 @@ export default function AnalyticsModule() {
                       </div>
                     ))}
                   </div>
-                </ScrollArea>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -2243,7 +2291,7 @@ export default function AnalyticsModule() {
                   <CardDescription>Primary reasons for booking cancellations</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-72">
+                  <div className="overflow-y-auto h-72">
                     <div className="space-y-3">
                       {cancellationAnalysis.byReason.map((item, i) => (
                         <div key={i} className="p-3 border rounded-sm">
@@ -2275,7 +2323,7 @@ export default function AnalyticsModule() {
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -2289,7 +2337,7 @@ export default function AnalyticsModule() {
                   <CardDescription>Route-specific cancellation rates</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-72 overflow-x-auto">
+                  <div className="overflow-x-auto h-72">
                     <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
@@ -2314,7 +2362,7 @@ export default function AnalyticsModule() {
                         ))}
                       </tbody>
                     </table>
-                  </ScrollArea>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -2328,7 +2376,7 @@ export default function AnalyticsModule() {
                   <CardDescription>Channel breakdown and refund amounts</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-72 overflow-x-auto">
+                  <div className="overflow-x-auto h-72">
                     <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
@@ -2353,7 +2401,7 @@ export default function AnalyticsModule() {
                         ))}
                       </tbody>
                     </table>
-                  </ScrollArea>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -2418,7 +2466,7 @@ export default function AnalyticsModule() {
                   {/* Demand by Route */}
                   <div className="lg:col-span-2">
                     <h4 className="font-semibold mb-4">Demand by Route</h4>
-                    <ScrollArea className="h-64 overflow-x-auto">
+                    <div className="overflow-x-auto h-64">
                       <table className="enterprise-table min-w-[900px]">
                         <thead>
                           <tr>
@@ -2450,7 +2498,7 @@ export default function AnalyticsModule() {
                           ))}
                         </tbody>
                       </table>
-                    </ScrollArea>
+                    </div>
                   </div>
 
                   {/* Demand by Cabin */}

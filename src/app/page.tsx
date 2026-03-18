@@ -560,42 +560,42 @@ export default function Home() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Ribbon Header */}
-        <header className="enterprise-ribbon h-12 flex items-center justify-between px-4 flex-shrink-0 relative">
-          <div className="flex items-center gap-4">
-            <h1 className="text-base font-semibold text-primary-foreground">
+        <header className="enterprise-ribbon h-12 flex items-center justify-between px-2 sm:px-4 flex-shrink-0 relative overflow-x-auto">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <h1 className="text-sm sm:text-base font-semibold text-primary-foreground truncate">
               {getModuleTitle()}
             </h1>
-            <Separator orientation="vertical" className="h-6 bg-primary-foreground/30" />
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={handleNew} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
-                <FileText className="h-3.5 w-3.5 mr-1" />
-                New
+            <Separator orientation="vertical" className="h-6 bg-primary-foreground/30 flex-shrink-0" />
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+              <Button variant="ghost" size="sm" onClick={handleNew} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs px-2 sm:px-3">
+                <FileText className="h-3.5 w-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">New</span>
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleEdit} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
-                Edit
+              <Button variant="ghost" size="sm" onClick={handleEdit} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs px-2 sm:px-3">
+                <span className="hidden sm:inline">Edit</span>
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleDelete} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
-                Delete
+              <Button variant="ghost" size="sm" onClick={handleDelete} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs px-2 sm:px-3">
+                <span className="hidden sm:inline">Delete</span>
               </Button>
-              <Button variant="ghost" size="sm" onClick={handlePrint} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
-                <Printer className="h-3.5 w-3.5 mr-1" />
-                Print
+              <Button variant="ghost" size="sm" onClick={handlePrint} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs px-2 sm:px-3">
+                <Printer className="h-3.5 w-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">Print</span>
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleExport} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
-                <Download className="h-3.5 w-3.5 mr-1" />
-                Export
+              <Button variant="ghost" size="sm" onClick={handleExport} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs px-2 sm:px-3">
+                <Download className="h-3.5 w-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">Export</span>
               </Button>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <div className="relative hidden sm:block">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search PNR, Ticket, Passenger..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="w-64 h-8 pl-8 bg-background/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 text-sm"
+                className="w-48 sm:w-64 h-8 pl-8 bg-background/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 text-sm"
               />
               {/* Search Results Dropdown */}
               {searchResults.length > 0 && (
@@ -620,24 +620,24 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <Separator orientation="vertical" className="h-6 bg-primary-foreground/30" />
+            <Separator orientation="vertical" className="h-6 bg-primary-foreground/30 hidden sm:block" />
             <div className="relative">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="text-primary-foreground hover:bg-primary-foreground/10 h-8 relative"
+                className="text-primary-foreground hover:bg-primary-foreground/10 h-8 relative px-2"
               >
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
-                  <Badge className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-red-500 absolute -top-1 -right-1">
+                  <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-red-500 absolute -top-1 -right-1">
                     {unreadCount}
                   </Badge>
                 )}
               </Button>
               {/* Notifications Dropdown */}
               {showNotifications && (
-                <div className="absolute top-full right-0 mt-1 w-80 bg-background border border-border rounded-md shadow-lg z-50">
+                <div className="absolute top-full right-0 mt-1 w-80 sm:w-96 bg-background border border-border rounded-md shadow-lg z-50">
                   <div className="p-3 border-b border-border flex items-center justify-between">
                     <h3 className="font-semibold text-sm">Notifications</h3>
                     {unreadCount > 0 && (
@@ -686,25 +686,25 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <Button variant="ghost" size="sm" onClick={handleSettings} className="text-primary-foreground hover:bg-primary-foreground/10 h-8">
+            <Button variant="ghost" size="sm" onClick={handleSettings} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 px-2">
               <Settings className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-primary-foreground hover:bg-primary-foreground/10 h-8">
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 px-2">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </header>
 
         {/* Breadcrumb Bar */}
-        <div className="h-8 bg-secondary/50 border-b border-border flex items-center px-4 flex-shrink-0">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-medium">AeroEnterprise</span>
-            <ChevronRight className="h-3 w-3" />
-            <span>{getModuleTitle()}</span>
+        <div className="h-8 bg-secondary/50 border-b border-border flex items-center px-2 sm:px-4 flex-shrink-0 overflow-hidden">
+          <div className="flex items-center gap-1 sm:gap-2 text-xs text-muted-foreground min-w-0">
+            <span className="font-medium truncate hidden sm:inline">AeroEnterprise</span>
+            <ChevronRight className="h-3 w-3 flex-shrink-0 hidden sm:inline" />
+            <span className="truncate font-medium">{getModuleTitle()}</span>
             {currentView !== 'overview' && (
               <>
-                <ChevronRight className="h-3 w-3" />
-                <span className="text-foreground capitalize">{currentView}</span>
+                <ChevronRight className="h-3 w-3 flex-shrink-0" />
+                <span className="text-foreground capitalize truncate">{currentView}</span>
               </>
             )}
           </div>
@@ -716,29 +716,28 @@ export default function Home() {
         </main>
 
         {/* Status Bar */}
-        <footer className="h-6 bg-sidebar border-t border-sidebar-border flex items-center justify-between px-4 flex-shrink-0">
-          <div className="flex items-center gap-4 text-xs text-sidebar-foreground">
-            <span>Ready</span>
-            <span>•</span>
-            <span>Server: Online</span>
-            <span>•</span>
+        <footer className="h-6 bg-sidebar border-t border-sidebar-border flex items-center justify-between px-2 sm:px-4 flex-shrink-0 text-[10px] sm:text-xs">
+          <div className="flex items-center gap-2 sm:gap-4 text-sidebar-foreground overflow-hidden">
+            <span className="hidden xs:inline">Ready</span>
+            <span className="hidden sm:inline">•</span>
+            <span className="hidden sm:inline">Server: Online</span>
+            <span className="hidden sm:inline">•</span>
             <span>DB: Connected</span>
           </div>
-          <div className="flex items-center gap-4 text-xs text-sidebar-foreground">
-            {currentTime && <span suppressHydrationWarning>{currentTime.toLocaleString()}</span>}
-            <span>•</span>
-            <span>v2.5.1</span>
+          <div className="flex items-center gap-2 sm:gap-4 text-sidebar-foreground flex-shrink-0">
+            <span className="hidden xs:inline">v2.5.1</span>
+            {currentTime && <span suppressHydrationWarning className="hidden sm:inline">{currentTime.toLocaleString()}</span>}
           </div>
         </footer>
       </div>
 
       {/* Settings Dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-w-[95vw]">
           <DialogHeader>
             <DialogTitle>Settings</DialogTitle>
           </DialogHeader>
-          <div className="py-4 space-y-4">
+          <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto">
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Appearance</h3>
               <div className="flex items-center justify-between">

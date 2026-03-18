@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
+// import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -56,6 +56,7 @@ import {
   AlertOctagon
 } from 'lucide-react'
 import { useAirlineStore } from '@/lib/store'
+import { DEMO_FLIGHTS } from '@/lib/demoData'
 
 // Extended interfaces for Cargo features
 interface CargoBookingWorkflow {
@@ -233,7 +234,7 @@ export default function CargoModule() {
 
   const handleExportData = () => {
     const headers = ['AWB', 'Shipper', 'Consignee', 'Origin', 'Destination', 'Weight', 'Status']
-    const rows = cargoBookings.map(b => [
+    const rows = bookings.map(b => [
       b.awbNumber, b.shipper.name, b.consignee.name, 
       b.flightDetails.origin, b.flightDetails.destination,
       b.goods.weight, b.status
@@ -298,439 +299,365 @@ export default function CargoModule() {
   
   const initializedRef = useRef(false)
 
-  // Initialize mock data functions
-  const initializeBookings = () => {
-    const bookingData: CargoBookingWorkflow[] = [
-      {
-        id: 'cb-001',
-        awbNumber: '176-12345678',
-        status: 'in_transit',
-        workflowStep: 'transit',
+  // Initialize demo data functions
+  const initializeCargoBookings = (): CargoBookingWorkflow[] => {
+    const statuses: Array<'pending' | 'confirmed' | 'accepted' | 'rejected' | 'in_transit' | 'arrived' | 'delivered' | 'cancelled'> = ['pending', 'confirmed', 'accepted', 'in_transit', 'arrived', 'delivered']
+    const workflowSteps: Record<string, 'booking' | 'acceptance' | 'documentation' | 'loading' | 'transit' | 'unloading' | 'delivery' | 'completed'> = {
+      'pending': 'booking',
+      'confirmed': 'acceptance',
+      'accepted': 'documentation',
+      'in_transit': 'transit',
+      'arrived': 'unloading',
+      'delivered': 'delivery'
+    }
+    const shippers = ['Global Logistics Inc', 'Express Cargo Services', 'World Freight Co', 'FastShip International', 'Prime Cargo Solutions']
+    const consignees = ['Amazon Distribution Center', 'Walmart Supply Chain', 'Target Logistics', 'Best Buy Distribution', 'Home Depot Fulfillment']
+    const goodsDescriptions = ['Electronics components', 'Automotive parts', 'Pharmaceutical products', 'Textile materials', 'Food products', 'Machinery parts', 'Chemical supplies', 'Medical equipment']
+
+    return Array.from({ length: 30 }, (_, i) => {
+      const flight = DEMO_FLIGHTS[i]
+      const status = statuses[i % statuses.length]
+      return {
+        id: `cb-${i + 1}`,
+        awbNumber: `001-${String(1000000 + i).slice(-9)}`,
+        status: status,
+        workflowStep: workflowSteps[status] || 'booking',
         shipper: {
-          name: 'ABC Electronics Ltd',
-          address: '123 Tech Park, Singapore',
-          contact: 'John Tan',
-          email: 'john@abcelectronics.com',
-          phone: '+65 6789 0123'
+          name: shippers[i % shippers.length],
+          address: `${100 + i} Cargo Street, Logistics City`,
+          contact: `contact${i}@shipper.com`,
+          email: `shipper${i}@email.com`,
+          phone: `+1-555-${String(2000 + i).padStart(4, '0')}`
         },
         consignee: {
-          name: 'Tech Solutions Inc',
-          address: '456 Innovation Dr, San Francisco, CA',
-          contact: 'Sarah Johnson',
-          email: 'sarah@techsolutions.com',
-          phone: '+1 415 555 0123'
+          name: consignees[i % consignees.length],
+          address: `${200 + i} Warehouse Blvd, Distribution Park`,
+          contact: `receiver${i}@consignee.com`,
+          email: `consignee${i}@email.com`,
+          phone: `+1-555-${String(3000 + i).padStart(4, '0')}`
         },
         flightDetails: {
-          flightNumber: 'SQ123',
-          date: '2024-01-18',
-          origin: 'SIN',
-          destination: 'SFO',
-          routing: ['SIN', 'HKG', 'SFO'],
-          etd: '2024-01-18T23:30:00Z',
-          eta: '2024-01-19T15:45:00Z'
+          flightNumber: flight.flightNumber,
+          date: flight.scheduledDeparture.split('T')[0],
+          origin: flight.origin,
+          destination: flight.destination,
+          routing: [flight.origin, flight.destination],
+          etd: flight.scheduledDeparture,
+          eta: flight.scheduledArrival
         },
         goods: {
-          description: 'Electronic components - Class 9',
-          pieces: 50,
-          weight: 450,
-          volume: 2.5,
-          weightUnit: 'kg',
-          dangerousGoods: false,
-          perishable: false,
-          temperatureControlled: false,
-          specialHandling: ['fragile', 'high_value'],
-          declaredValue: 125000,
-          hsCode: '85423100'
+          description: goodsDescriptions[i % goodsDescriptions.length],
+          pieces: 5 + (i * 3) % 20,
+          weight: 100 + (i * 50) % 1000,
+          volume: 0.5 + (i * 0.2) % 3,
+          weightUnit: 'kg' as const,
+          dangerousGoods: i % 10 === 0,
+          perishable: i % 7 === 0,
+          temperatureControlled: i % 5 === 0,
+          specialHandling: i % 10 === 0 ? ['Fragile'] : [],
+          declaredValue: 5000 + (i * 1000) % 25000,
+          hsCode: `HS${String(1000 + i).padStart(4, '0')}`
         },
         charges: {
-          freight: 2450,
-          fuel: 320,
+          freight: (100 + (i * 50) % 1000) * 5,
+          fuel: Math.round((100 + (i * 50) % 1000) * 0.5),
           security: 85,
           handling: 120,
-          other: 0,
-          total: 2975,
+          other: (i % 3) * 50,
+          total: 0,
           currency: 'USD'
         },
         documents: {
           awbIssued: true,
-          commercialInvoice: true,
-          certificateOfOrigin: true,
-          dangerousGoodsDeclaration: false,
-          phytosanitary: false
+          commercialInvoice: i % 2 === 0,
+          certificateOfOrigin: i % 3 === 0,
+          dangerousGoodsDeclaration: i % 10 === 0,
+          phytosanitary: i % 7 === 0
         },
-        history: [
-          { id: 'wh-001', timestamp: '2024-01-17T10:00:00Z', action: 'Booking Created', status: 'pending', performedBy: 'system' },
-          { id: 'wh-002', timestamp: '2024-01-17T11:30:00Z', action: 'Booking Confirmed', status: 'confirmed', performedBy: 'cargo_agent' },
-          { id: 'wh-003', timestamp: '2024-01-18T20:00:00Z', action: 'Documentation Complete', status: 'accepted', performedBy: 'documentation' },
-          { id: 'wh-004', timestamp: '2024-01-18T22:00:00Z', action: 'Cargo Loaded', status: 'in_transit', performedBy: 'ramp_agent' }
-        ],
-        createdAt: '2024-01-17T10:00:00Z',
-        updatedAt: '2024-01-18T22:00:00Z'
-      },
-      {
-        id: 'cb-002',
-        awbNumber: '176-87654321',
-        status: 'delivered',
-        workflowStep: 'completed',
-        shipper: {
-          name: 'Fresh Produce Co',
-          address: '789 Farm Road, Kenya',
-          contact: 'James Omondi',
-          email: 'james@freshproduce.co.ke',
-          phone: '+254 712 345 678'
-        },
-        consignee: {
-          name: 'Global Foods Ltd',
-          address: '321 Market St, London, UK',
-          contact: 'Emma Smith',
-          email: 'emma@globalfoods.com',
-          phone: '+44 20 7123 4567'
-        },
-        flightDetails: {
-          flightNumber: 'KQ456',
-          date: '2024-01-15',
-          origin: 'NBO',
-          destination: 'LHR',
-          routing: ['NBO', 'LHR'],
-          etd: '2024-01-15T06:00:00Z',
-          eta: '2024-01-15T14:30:00Z'
-        },
-        goods: {
-          description: 'Fresh flowers - Temperature controlled',
-          pieces: 200,
-          weight: 800,
-          volume: 6.0,
-          weightUnit: 'kg',
-          dangerousGoods: false,
-          perishable: true,
-          temperatureControlled: true,
-          specialHandling: ['perishable', 'temperature_controlled'],
-          declaredValue: 45000,
-          hsCode: '06031100'
-        },
-        charges: {
-          freight: 3200,
-          fuel: 450,
-          security: 120,
-          handling: 180,
-          other: 50,
-          total: 4000,
-          currency: 'USD'
-        },
-        documents: {
-          awbIssued: true,
-          commercialInvoice: true,
-          certificateOfOrigin: true,
-          dangerousGoodsDeclaration: false,
-          phytosanitary: true
-        },
-        history: [
-          { id: 'wh-005', timestamp: '2024-01-14T08:00:00Z', action: 'Booking Created', status: 'pending', performedBy: 'system' },
-          { id: 'wh-006', timestamp: '2024-01-14T09:00:00Z', action: 'Booking Confirmed', status: 'confirmed', performedBy: 'cargo_agent' },
-          { id: 'wh-007', timestamp: '2024-01-15T04:00:00Z', action: 'Cargo Loaded', status: 'in_transit', performedBy: 'ramp_agent' },
-          { id: 'wh-008', timestamp: '2024-01-15T15:00:00Z', action: 'Cargo Unloaded', status: 'arrived', performedBy: 'ramp_agent' },
-          { id: 'wh-009', timestamp: '2024-01-15T17:00:00Z', action: 'Cargo Delivered', status: 'delivered', performedBy: 'delivery_agent' }
-        ],
-        createdAt: '2024-01-14T08:00:00Z',
-        updatedAt: '2024-01-15T17:00:00Z'
-      },
-      {
-        id: 'cb-003',
-        awbNumber: '176-11223344',
-        status: 'pending',
-        workflowStep: 'booking',
-        shipper: {
-          name: 'ChemCorp International',
-          address: '555 Industrial Ave, Germany',
-          contact: 'Hans Mueller',
-          email: 'hans@chemcorp.de',
-          phone: '+49 30 1234 5678'
-        },
-        consignee: {
-          name: 'Pharma Distributors SA',
-          address: '888 Blvd du Commerce, Belgium',
-          contact: 'Marie Dubois',
-          email: 'marie@pharmadist.be',
-          phone: '+32 2 345 6789'
-        },
-        flightDetails: {
-          flightNumber: 'LH789',
-          date: '2024-01-19',
-          origin: 'FRA',
-          destination: 'BRU',
-          routing: ['FRA', 'BRU'],
-          etd: '2024-01-19T10:00:00Z',
-          eta: '2024-01-19T11:15:00Z'
-        },
-        goods: {
-          description: 'Chemical reagents - Class 3 Dangerous Goods',
-          pieces: 30,
-          weight: 600,
-          volume: 1.8,
-          weightUnit: 'kg',
-          dangerousGoods: true,
-          perishable: false,
-          temperatureControlled: false,
-          specialHandling: ['dangerous_goods', 'hazardous'],
-          declaredValue: 85000,
-          hsCode: '38220000'
-        },
-        charges: {
-          freight: 1800,
-          fuel: 240,
-          security: 150,
-          handling: 200,
-          other: 75,
-          total: 2465,
-          currency: 'USD'
-        },
-        documents: {
-          awbIssued: false,
-          commercialInvoice: false,
-          certificateOfOrigin: false,
-          dangerousGoodsDeclaration: false,
-          phytosanitary: false
-        },
-        history: [
-          { id: 'wh-010', timestamp: '2024-01-18T14:00:00Z', action: 'Booking Created', status: 'pending', performedBy: 'system' }
-        ],
-        createdAt: '2024-01-18T14:00:00Z',
-        updatedAt: '2024-01-18T14:00:00Z'
+        history: [{
+          id: `wh-${i}-0`,
+          timestamp: flight.scheduledDeparture,
+          action: 'Booking Created',
+          status: status,
+          performedBy: 'system',
+          notes: 'Initial booking created'
+        }],
+        createdAt: flight.scheduledDeparture,
+        updatedAt: flight.scheduledDeparture
       }
-    ]
-    setBookings(bookingData)
+    }).map(booking => {
+      booking.charges.total = booking.charges.freight + booking.charges.fuel + booking.charges.security + booking.charges.handling + booking.charges.other
+      return booking
+    })
   }
 
-  const initializeULDTrackings = () => {
-    const uldData: ULDTracking[] = [
-      {
-        id: 'uld-001',
-        uldNumber: 'AKE12345AA',
-        type: 'AKE',
-        owner: 'SQ',
-        status: 'in_transit',
-        location: 'In Flight - SQ123',
-        currentFlight: 'SQ123',
+  const initializeULDTrackings = (): ULDTracking[] => {
+    const uldTypes: Array<'AKE' | 'DPE' | 'ALP' | 'AAP' | 'AGA' | 'AAU'> = ['AKE', 'DPE', 'ALP', 'AAP', 'AGA', 'AAU']
+    const owners = ['Own', 'LH', 'AF', 'EK', 'QR', 'CX']
+    const statuses: Array<'available' | 'loaded' | 'in_transit' | 'unloaded' | 'damaged'> = ['available', 'loaded', 'in_transit', 'unloaded', 'damaged']
+
+    return Array.from({ length: 30 }, (_, i) => {
+      const flight = DEMO_FLIGHTS[i]
+      const status = statuses[i % statuses.length]
+      return {
+        id: `uld-${i + 1}`,
+        uldNumber: `AKE${String(10000 + i).slice(-5)}AA`,
+        type: uldTypes[i % uldTypes.length],
+        owner: owners[i % owners.length],
+        status: status,
+        location: ['JFK', 'LAX', 'ORD', 'DFW', 'MIA'][i % 5],
+        currentFlight: status === 'in_transit' ? flight.flightNumber : undefined,
         contents: {
-          awbNumbers: ['176-12345678'],
-          totalPieces: 50,
-          totalWeight: 450
+          awbNumbers: [`001-${String(1000000 + i).slice(-9)}`],
+          totalPieces: 5 + (i * 3) % 20,
+          totalWeight: 100 + (i * 50) % 1000
         },
         specifications: {
-          tareWeight: 85,
+          tareWeight: 80,
           maxGrossWeight: 1588,
           internalVolume: 4.3,
-          dimensions: { length: 153, width: 156, height: 163 }
+          dimensions: {
+            length: 153,
+            width: 156,
+            height: 163
+          }
         },
-        movements: [
-          { id: 'm-001', timestamp: '2024-01-18T20:00:00Z', fromLocation: 'SIN Cargo Terminal', toLocation: 'SQ123', flightNumber: 'SQ123', type: 'loading', performedBy: 'ramp_agent_s' },
-          { id: 'm-002', timestamp: '2024-01-18T22:30:00Z', fromLocation: 'SIN', toLocation: 'HKG', flightNumber: 'SQ123', type: 'transfer', performedBy: 'system' }
-        ],
-        lastInspection: '2024-01-15',
-        nextInspection: '2024-04-15'
-      },
-      {
-        id: 'uld-002',
-        uldNumber: 'AKE67890BB',
-        type: 'AKE',
-        owner: 'SQ',
-        status: 'available',
-        location: 'SIN Cargo Terminal - Bay 12',
-        contents: {
-          awbNumbers: [],
-          totalPieces: 0,
-          totalWeight: 0
-        },
-        specifications: {
-          tareWeight: 85,
-          maxGrossWeight: 1588,
-          internalVolume: 4.3,
-          dimensions: { length: 153, width: 156, height: 163 }
-        },
-        movements: [
-          { id: 'm-003', timestamp: '2024-01-18T14:00:00Z', fromLocation: 'SQ456', toLocation: 'SIN Cargo Terminal', flightNumber: 'SQ456', type: 'unloading', performedBy: 'ramp_agent_s' }
-        ],
-        lastInspection: '2024-01-10',
-        nextInspection: '2024-04-10'
-      },
-      {
-        id: 'uld-003',
-        uldNumber: 'DPE11111CC',
-        type: 'DPE',
-        owner: 'LH',
-        status: 'damaged',
-        location: 'FRA Maintenance Facility',
-        contents: {
-          awbNumbers: [],
-          totalPieces: 0,
-          totalWeight: 0
-        },
-        specifications: {
-          tareWeight: 135,
-          maxGrossWeight: 2268,
-          internalVolume: 7.1,
-          dimensions: { length: 200, width: 153, height: 163 }
-        },
-        damage: {
-          type: 'Structural Damage',
-          description: 'Dent on bottom panel - forklift impact',
-          reportedDate: '2024-01-17',
-          reportedBy: 'ramp_agent_f',
-          severity: 'moderate',
+        damage: status === 'damaged' ? {
+          type: 'Dent',
+          description: 'Minor dent on side panel',
+          reportedDate: `2024-01-${String((i % 30) + 1).padStart(2, '0')}`,
+          reportedBy: 'Station Agent',
+          severity: 'minor' as const,
           repaired: false
-        },
-        movements: [
-          { id: 'm-004', timestamp: '2024-01-17T16:00:00Z', fromLocation: 'LH789', toLocation: 'FRA Cargo Terminal', flightNumber: 'LH789', type: 'unloading', performedBy: 'ramp_agent_f' },
-          { id: 'm-005', timestamp: '2024-01-17T17:00:00Z', fromLocation: 'FRA Cargo Terminal', toLocation: 'FRA Maintenance Facility', type: 'loading', performedBy: 'maintenance' }
-        ],
-        lastInspection: '2024-01-17',
-        nextInspection: '2024-01-24'
+        } : undefined,
+        movements: [{
+          id: `m-${i}-0`,
+          timestamp: flight.scheduledDeparture,
+          fromLocation: 'JFK',
+          toLocation: flight.destination,
+          flightNumber: flight.flightNumber,
+          type: 'loading' as const,
+          performedBy: 'cargo_agent'
+        }],
+        lastInspection: `2024-01-${String((i % 30) + 1).padStart(2, '0')}`,
+        nextInspection: `2024-${String((i % 12) + 1).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}`
       }
-    ]
-    setUldTrackings(uldData)
+    })
   }
 
-  const initializeRevenues = () => {
-    const revenueData: CargoRevenue[] = [
-      {
-        id: 'rev-001',
-        awbNumber: '176-12345678',
-        bookingId: 'cb-001',
-        amount: 2975,
+  const initializeCargoRevenues = (): CargoRevenue[] => {
+    const statuses: Array<'pending' | 'invoiced' | 'paid' | 'overdue' | 'cancelled'> = ['pending', 'invoiced', 'paid', 'overdue']
+
+    return Array.from({ length: 30 }, (_, i) => {
+      const flight = DEMO_FLIGHTS[i]
+      const status = statuses[i % statuses.length]
+      const weight = 100 + (i * 50) % 1000
+      const freight = weight * 5
+      return {
+        id: `rev-${i + 1}`,
+        awbNumber: `001-${String(1000000 + i).slice(-9)}`,
+        bookingId: `cb-${i + 1}`,
+        amount: freight + Math.round(weight * 0.5) + 85 + 120,
         currency: 'USD',
-        status: 'invoiced',
-        invoiceNumber: 'INV-2024-012345',
-        invoiceDate: '2024-01-17',
-        dueDate: '2024-02-16',
+        status: status,
+        invoiceNumber: status !== 'pending' ? `INV-2024-${String(i + 1).padStart(6, '0')}` : undefined,
+        invoiceDate: status !== 'pending' ? flight.scheduledDeparture.split('T')[0] : undefined,
+        dueDate: `2024-02-${String((i % 28) + 1).padStart(2, '0')}`,
+        paidDate: status === 'paid' ? `2024-01-${String((i % 30) + 15).padStart(2, '0')}` : undefined,
+        paymentMethod: status === 'paid' ? ['credit_card', 'bank_transfer', 'check'][i % 3] as any : undefined,
         charges: {
-          freight: 2450,
-          fuelSurcharge: 320,
+          freight: freight,
+          fuelSurcharge: Math.round(weight * 0.5),
           securityFee: 85,
           handlingFee: 120,
           customsFee: 0,
-          otherCharges: 0,
+          otherCharges: (i % 3) * 50,
           tax: 0
         },
         discount: {
-          amount: 0,
-          reason: ''
+          amount: i % 5 === 0 ? 100 : 0,
+          reason: i % 5 === 0 ? 'Volume discount' : ''
         },
         appliedRates: {
-          ratePerKg: 5.44,
+          ratePerKg: 5,
           minimumCharge: 50,
-          weightChargeable: 450
+          weightChargeable: weight
         },
-        createdAt: '2024-01-17T11:30:00Z',
-        updatedAt: '2024-01-17T11:30:00Z'
-      },
-      {
-        id: 'rev-002',
-        awbNumber: '176-87654321',
-        bookingId: 'cb-002',
-        amount: 4000,
-        currency: 'USD',
-        status: 'paid',
-        invoiceNumber: 'INV-2024-012346',
-        invoiceDate: '2024-01-14',
-        dueDate: '2024-02-13',
-        paidDate: '2024-01-20',
-        paymentMethod: 'bank_transfer',
-        charges: {
-          freight: 3200,
-          fuelSurcharge: 450,
-          securityFee: 120,
-          handlingFee: 180,
-          customsFee: 0,
-          otherCharges: 50,
-          tax: 0
-        },
-        discount: {
-          amount: 100,
-          reason: 'Volume discount - 20+ shipments Q4 2023'
-        },
-        appliedRates: {
-          ratePerKg: 4.00,
-          minimumCharge: 50,
-          weightChargeable: 800
-        },
-        createdAt: '2024-01-14T09:00:00Z',
-        updatedAt: '2024-01-20T10:00:00Z'
-      },
-      {
-        id: 'rev-003',
-        awbNumber: '176-99887766',
-        bookingId: 'cb-004',
-        amount: 1850,
-        currency: 'USD',
-        status: 'overdue',
-        invoiceNumber: 'INV-2024-011990',
-        invoiceDate: '2024-01-01',
-        dueDate: '2024-01-31',
-        charges: {
-          freight: 1500,
-          fuelSurcharge: 200,
-          securityFee: 65,
-          handlingFee: 85,
-          customsFee: 0,
-          otherCharges: 0,
-          tax: 0
-        },
-        discount: {
-          amount: 0,
-          reason: ''
-        },
-        appliedRates: {
-          ratePerKg: 3.70,
-          minimumCharge: 50,
-          weightChargeable: 500
-        },
-        createdAt: '2024-01-01T08:00:00Z',
-        updatedAt: '2024-01-01T08:00:00Z'
-      },
-      {
-        id: 'rev-004',
-        awbNumber: '176-55443322',
-        bookingId: 'cb-005',
-        amount: 5600,
-        currency: 'USD',
-        status: 'pending',
-        charges: {
-          freight: 4500,
-          fuelSurcharge: 600,
-          securityFee: 200,
-          handlingFee: 300,
-          customsFee: 0,
-          otherCharges: 0,
-          tax: 0
-        },
-        discount: {
-          amount: 0,
-          reason: ''
-        },
-        appliedRates: {
-          ratePerKg: 5.60,
-          minimumCharge: 50,
-          weightChargeable: 1000
-        },
-        createdAt: '2024-01-18T16:00:00Z',
-        updatedAt: '2024-01-18T16:00:00Z',
-        dueDate: '2024-02-17'
+        createdAt: flight.scheduledDeparture,
+        updatedAt: flight.scheduledDeparture
       }
-    ]
-    setRevenues(revenueData)
+    })
   }
 
-  // Initialize all mock data on component mount
+  // Initialize local state from store data
   useEffect(() => {
     if (initializedRef.current) return
     initializedRef.current = true
-    
-    setTimeout(() => {
-      initializeBookings()
-      initializeULDTrackings()
-      initializeRevenues()
-    }, 0)
-  }, [])
+
+    // Transform store cargoBookings to CargoBookingWorkflow format
+    const transformedBookings: CargoBookingWorkflow[] = cargoBookings.map((cb, index) => {
+      const workflowSteps: Record<string, any> = {
+        'booked': 'booking',
+        'accepted': 'acceptance',
+        'received': 'documentation',
+        'loaded': 'loading',
+        'in_transit': 'transit',
+        'arrived': 'unloading',
+        'delivered': 'delivery'
+      }
+
+      const history: WorkflowHistory[] = cb.tracking.map((t, i) => ({
+        id: `wh-${index}-${i}`,
+        timestamp: t.timestamp,
+        action: t.status,
+        status: cb.status,
+        performedBy: t.userId || 'system',
+        notes: t.remarks
+      }))
+
+      if (history.length === 0 || history[0].action !== 'Booking Created') {
+        history.unshift({
+          id: `wh-${index}-init`,
+          timestamp: cb.bookedAt,
+          action: 'Booking Created',
+          status: 'booked',
+          performedBy: cb.bookedBy
+        })
+      }
+
+      return {
+        id: cb.id,
+        awbNumber: cb.awbNumber,
+        status: cb.status as any,
+        workflowStep: workflowSteps[cb.status] || 'booking',
+        shipper: {
+          name: cb.shipper.name,
+          address: cb.shipper.address,
+          contact: cb.shipper.contact,
+          email: '',
+          phone: ''
+        },
+        consignee: {
+          name: cb.consignee.name,
+          address: cb.consignee.address,
+          contact: cb.consignee.contact,
+          email: '',
+          phone: ''
+        },
+        flightDetails: {
+          flightNumber: cb.flightDetails.flightNumber,
+          date: cb.flightDetails.date,
+          origin: cb.flightDetails.origin,
+          destination: cb.flightDetails.destination,
+          routing: cb.flightDetails.routing,
+          etd: '',
+          eta: ''
+        },
+        goods: {
+          description: cb.goods.description,
+          pieces: cb.goods.pieces,
+          weight: cb.goods.weight,
+          volume: cb.goods.volume,
+          weightUnit: cb.goods.weightUnit,
+          dangerousGoods: cb.goods.dangerousGoods,
+          perishable: cb.goods.perishable,
+          temperatureControlled: cb.goods.temperatureControlled,
+          specialHandling: cb.goods.specialHandling,
+          declaredValue: 0,
+          hsCode: ''
+        },
+        charges: {
+          freight: cb.charges.freight,
+          fuel: cb.charges.fuelSurcharge,
+          security: cb.charges.securitySurcharge,
+          handling: 0,
+          other: cb.charges.otherCharges,
+          total: cb.charges.total,
+          currency: cb.charges.currency
+        },
+        documents: {
+          awbIssued: true,
+          commercialInvoice: true,
+          certificateOfOrigin: false,
+          dangerousGoodsDeclaration: cb.goods.dangerousGoods,
+          phytosanitary: cb.goods.perishable
+        },
+        history: history,
+        createdAt: cb.bookedAt,
+        updatedAt: cb.bookedAt
+      }
+    })
+
+    // Transform store ulds to ULDTracking format
+    const transformedULDs: ULDTracking[] = ulds.map((u, index) => {
+      const linkedBookings = cargoBookings.filter(cb => cb.uld === u.uldNumber)
+
+      return {
+        id: u.id,
+        uldNumber: u.uldNumber,
+        type: u.type as any,
+        owner: u.owner,
+        status: u.condition === 'serviceable' ? 'available' : 'damaged',
+        location: u.location,
+        currentFlight: u.currentFlight,
+        contents: {
+          awbNumbers: linkedBookings.map(cb => cb.awbNumber),
+          totalPieces: linkedBookings.reduce((sum, cb) => sum + cb.goods.pieces, 0),
+          totalWeight: linkedBookings.reduce((sum, cb) => sum + cb.goods.weight, 0)
+        },
+        specifications: {
+          tareWeight: 80,
+          maxGrossWeight: u.dimensions.maxWeight,
+          internalVolume: 4.3,
+          dimensions: {
+            length: u.dimensions.length,
+            width: u.dimensions.width,
+            height: u.dimensions.height
+          }
+        },
+        movements: [],
+        lastInspection: u.lastInspection,
+        nextInspection: u.nextInspectionDue
+      }
+    })
+
+    // Generate revenue data from cargo bookings
+    const transformedRevenues: CargoRevenue[] = cargoBookings.map((cb, index) => ({
+      id: `rev-${index}`,
+      awbNumber: cb.awbNumber,
+      bookingId: cb.id,
+      amount: cb.charges.total,
+      currency: cb.charges.currency,
+      status: cb.status === 'delivered' ? 'paid' : cb.status === 'in_transit' ? 'invoiced' : 'pending' as any,
+      invoiceNumber: cb.status !== 'booked' ? `INV-2024-${String(index + 1).padStart(6, '0')}` : undefined,
+      invoiceDate: cb.status !== 'booked' ? cb.bookedAt : undefined,
+      dueDate: new Date(new Date(cb.bookedAt).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      charges: {
+        freight: cb.charges.freight,
+        fuelSurcharge: cb.charges.fuelSurcharge,
+        securityFee: cb.charges.securitySurcharge,
+        handlingFee: 0,
+        customsFee: 0,
+        otherCharges: cb.charges.otherCharges,
+        tax: 0
+      },
+      discount: {
+        amount: 0,
+        reason: ''
+      },
+      appliedRates: {
+        ratePerKg: cb.goods.weight > 0 ? Math.round(cb.charges.freight / cb.goods.weight * 100) / 100 : 0,
+        minimumCharge: 50,
+        weightChargeable: cb.goods.weight
+      },
+      createdAt: cb.bookedAt,
+      updatedAt: cb.bookedAt
+    }))
+
+    setBookings(transformedBookings)
+    setUldTrackings(transformedULDs)
+    setRevenues(transformedRevenues)
+  }, [cargoBookings, ulds])
 
   // Handlers for Bookings
   const handleCreateBooking = () => {
@@ -1089,9 +1016,8 @@ export default function CargoModule() {
         </div>
         <div className="flex items-center flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => {
-            initializeBookings()
-            initializeULDTrackings()
-            initializeRevenues()
+            initializedRef.current = false
+            window.location.reload()
           }}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh Data
@@ -1194,7 +1120,7 @@ export default function CargoModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96 overflow-x-auto">
+              <div className="overflow-x-auto h-96">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -1284,7 +1210,7 @@ export default function CargoModule() {
                     )}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1425,7 +1351,7 @@ export default function CargoModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96 overflow-x-auto">
+              <div className="overflow-x-auto h-96">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -1491,7 +1417,7 @@ export default function CargoModule() {
                     )}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1637,7 +1563,7 @@ export default function CargoModule() {
             <DialogTitle>Booking Details - {selectedBooking?.awbNumber}</DialogTitle>
           </DialogHeader>
           {selectedBooking && (
-            <ScrollArea className="max-h-[70vh]">
+            <div className="overflow-y-auto max-h-[70vh]">
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   <div>
@@ -1734,7 +1660,7 @@ export default function CargoModule() {
 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Workflow History</h4>
-                  <ScrollArea className="h-48 border rounded-sm p-2">
+                  <div className="overflow-y-auto h-48">
                     <div className="space-y-2">
                       {selectedBooking.history.map((hist) => (
                         <div key={hist.id} className="text-sm">
@@ -1749,10 +1675,10 @@ export default function CargoModule() {
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 </div>
               </div>
-            </ScrollArea>
+            </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowBookingDetails(false)}>Close</Button>
@@ -1771,7 +1697,7 @@ export default function CargoModule() {
             <DialogTitle>ULD Details - {selectedULD?.uldNumber}</DialogTitle>
           </DialogHeader>
           {selectedULD && (
-            <ScrollArea className="max-h-[70vh]">
+            <div className="overflow-y-auto max-h-[70vh]">
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
@@ -1867,7 +1793,7 @@ export default function CargoModule() {
 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Movement History</h4>
-                  <ScrollArea className="h-48 border rounded-sm p-2">
+                  <div className="overflow-y-auto h-48">
                     <div className="space-y-2">
                       {selectedULD.movements.map((movement) => (
                         <div key={movement.id} className="text-sm">
@@ -1883,7 +1809,7 @@ export default function CargoModule() {
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -1897,7 +1823,7 @@ export default function CargoModule() {
                   </div>
                 </div>
               </div>
-            </ScrollArea>
+            </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowULDDetails(false)}>Close</Button>

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
+// import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -140,289 +140,213 @@ export default function AIModule() {
 
   // Initialize mock data functions
   const initializeModels = () => {
-    const modelData: AIModel[] = [
-      {
-        id: 'model-001',
-        name: 'Dynamic Pricing Engine v3',
-        type: 'pricing',
-        version: '3.2.1',
-        status: 'deployed',
-        accuracy: 94.5,
-        precision: 93.2,
-        recall: 95.8,
-        f1Score: 94.5,
-        lastTrained: '2024-01-15',
-        predictionsToday: 24500,
-        totalPredictions: 12500000,
-        modelSize: 256,
-        hyperparameters: {
-          learning_rate: 0.001,
-          epochs: 100,
-          batch_size: 32,
-          optimizer: 'adam',
-          hidden_layers: 4
-        },
-        features: ['demand', 'competitor_prices', 'seasonality', 'events', 'booking_lead_time'],
-        deployment: {
-          endpoint: '/api/models/pricing',
-          latency: 45,
-          uptime: 99.98
-        }
-      },
-      {
-        id: 'model-002',
-        name: 'Demand Forecast Pro',
-        type: 'demand_forecast',
-        version: '2.1.0',
-        status: 'deployed',
-        accuracy: 92.8,
-        precision: 91.5,
-        recall: 94.0,
-        f1Score: 92.7,
-        lastTrained: '2024-01-10',
-        predictionsToday: 18200,
-        totalPredictions: 8900000,
-        modelSize: 180,
-        hyperparameters: {
-          learning_rate: 0.01,
-          epochs: 150,
-          batch_size: 64,
-          optimizer: 'rmsprop',
-          hidden_layers: 3
-        },
-        features: ['historical_bookings', 'seasonality', 'economic_indicators', 'events', 'weather'],
-        deployment: {
-          endpoint: '/api/models/demand',
-          latency: 65,
-          uptime: 99.95
-        }
-      },
-      {
-        id: 'model-003',
-        name: 'Predictive Maintenance AI',
-        type: 'maintenance_predictive',
-        version: '1.5.0',
-        status: 'deployed',
-        accuracy: 91.2,
-        precision: 89.8,
-        recall: 92.5,
-        f1Score: 91.1,
-        lastTrained: '2024-01-08',
-        predictionsToday: 8500,
-        totalPredictions: 4500000,
-        modelSize: 145,
-        hyperparameters: {
-          learning_rate: 0.005,
-          epochs: 200,
-          batch_size: 128,
-          optimizer: 'adam',
-          hidden_layers: 5
-        },
-        features: ['sensor_data', 'flight_hours', 'maintenance_history', 'environmental_conditions'],
-        deployment: {
-          endpoint: '/api/models/maintenance',
-          latency: 80,
-          uptime: 99.99
-        }
-      },
-      {
-        id: 'model-004',
-        name: 'Fraud Detection Neural Net',
-        type: 'fraud_detection',
-        version: '4.0.0',
-        status: 'deployed',
-        accuracy: 96.3,
-        precision: 97.1,
-        recall: 95.5,
-        f1Score: 96.3,
-        lastTrained: '2024-01-16',
-        predictionsToday: 45200,
-        totalPredictions: 25000000,
-        modelSize: 320,
-        hyperparameters: {
-          learning_rate: 0.001,
-          epochs: 300,
-          batch_size: 256,
-          optimizer: 'adam',
-          hidden_layers: 6
-        },
-        features: ['booking_patterns', 'payment_behavior', 'user_history', 'ip_geolocation', 'device_fingerprint'],
-        deployment: {
-          endpoint: '/api/models/fraud',
-          latency: 35,
-          uptime: 99.99
-        }
-      }
+    const modelNames = [
+      'Dynamic Pricing Engine v3', 'Demand Forecast Pro', 'Predictive Maintenance AI', 'Fraud Detection Neural Net',
+      'Customer Churn Predictor', 'Revenue Optimization AI', 'Crew Scheduling AI', 'Fuel Efficiency Model',
+      'Baggage Handling AI', 'Flight Delay Predictor', 'Customer Sentiment Analyzer', 'Ancillary Sales AI',
+      'Route Optimization Engine', 'Inventory Management AI', 'Network Disruption AI', 'Personalization Engine',
+      'Customer Lifetime Value AI', 'Pricing Elasticity Model', 'No-Show Predictor', 'Overbooking Optimization AI',
+      'Ancillary Revenue AI', 'Loyalty Program AI', 'Customer Segmentation AI', 'Flight Performance AI',
+      'Crew Fatigue Predictor', 'Maintenance Scheduler AI', 'Weather Impact Model', 'Competitor Intelligence AI',
+      'Dynamic Pricing AI v4', 'Revenue Management AI'
     ]
+    const modelTypes: ('pricing' | 'demand_forecast' | 'maintenance_predictive' | 'fraud_detection' | 'personalization' | 'disruption_recovery' | 'crew_optimization' | 'revenue_optimization')[] = [
+      'pricing', 'demand_forecast', 'maintenance_predictive', 'fraud_detection',
+      'personalization', 'revenue_optimization', 'crew_optimization', 'revenue_optimization',
+      'revenue_optimization', 'disruption_recovery', 'personalization', 'revenue_optimization',
+      'disruption_recovery', 'revenue_optimization', 'disruption_recovery', 'personalization',
+      'personalization', 'pricing', 'demand_forecast', 'demand_forecast',
+      'revenue_optimization', 'personalization', 'personalization', 'demand_forecast',
+      'crew_optimization', 'maintenance_predictive', 'demand_forecast', 'pricing',
+      'pricing', 'revenue_optimization'
+    ]
+    const statuses: ('training' | 'deployed' | 'deprecated' | 'failed')[] = [
+      'deployed', 'deployed', 'deployed', 'deployed',
+      'deployed', 'deployed', 'training', 'deployed',
+      'deployed', 'deployed', 'deployed', 'deployed',
+      'deployed', 'deployed', 'training', 'deployed',
+      'deployed', 'deployed', 'deployed', 'deployed',
+      'deployed', 'training', 'deployed', 'deployed',
+      'deployed', 'deployed', 'deployed', 'deployed',
+      'training', 'deployed'
+    ]
+
+    const modelData: AIModel[] = Array.from({ length: 30 }, (_, i) => ({
+      id: `model-${String(i + 1).padStart(3, '0')}`,
+      name: modelNames[i],
+      type: modelTypes[i],
+      version: `${Math.floor(Math.random() * 5) + 1}.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}`,
+      status: statuses[i],
+      accuracy: 85 + (Math.random() * 14),
+      precision: 83 + (Math.random() * 16),
+      recall: 85 + (Math.random() * 14),
+      f1Score: 84 + (Math.random() * 15),
+      lastTrained: new Date(Date.now() - (i * 2) * 86400000).toISOString().split('T')[0],
+      predictionsToday: Math.floor(5000 + Math.random() * 50000),
+      totalPredictions: Math.floor(1000000 + Math.random() * 50000000),
+      modelSize: Math.floor(100 + Math.random() * 400),
+      trainingProgress: statuses[i] === 'training' ? Math.floor(Math.random() * 100) : undefined,
+      hyperparameters: {
+        learning_rate: Math.pow(10, -3 - Math.floor(Math.random() * 3)),
+        epochs: 50 + Math.floor(Math.random() * 500),
+        batch_size: [16, 32, 64, 128, 256][Math.floor(Math.random() * 5)],
+        optimizer: ['adam', 'rmsprop', 'sgd', 'adagrad'][Math.floor(Math.random() * 4)],
+        hidden_layers: 2 + Math.floor(Math.random() * 6)
+      },
+      features: ['feature_1', 'feature_2', 'feature_3', 'feature_4', 'feature_5'].slice(0, 3 + Math.floor(Math.random() * 3)),
+      deployment: {
+        endpoint: `/api/models/${modelTypes[i]}`,
+        latency: Math.floor(20 + Math.random() * 100),
+        uptime: 99.5 + Math.random() * 0.49
+      }
+    }))
     setModels(modelData)
   }
 
   const initializePredictions = () => {
-    const predictionData: Prediction[] = [
-      {
-        id: 'pred-001',
-        modelId: 'model-001',
-        modelName: 'Dynamic Pricing Engine v3',
-        type: 'pricing',
-        timestamp: '2024-01-18T15:30:00Z',
-        input: { route: 'JFK-LHR', date: '2024-02-01', days_to_departure: 14, current_load: 0.75 },
-        output: { recommended_price: 850, confidence_interval: [820, 880], demand_forecast: 0.82 },
-        confidence: 0.92,
-        status: 'success',
-        executed: true,
-        actionTaken: 'Price adjusted to $850',
-        recommendedActions: ['Increase price by 5%', 'Monitor booking rate', 'Consider adding capacity'],
-        latency: 42
-      },
-      {
-        id: 'pred-002',
-        modelId: 'model-002',
-        modelName: 'Demand Forecast Pro',
-        type: 'demand_forecast',
-        timestamp: '2024-01-18T15:25:00Z',
-        input: { route: 'SIN-SYD', period: 'Q2-2024', historical_data: '12_months' },
-        output: { forecast_demand: 45000, growth_rate: 0.12, confidence: 0.88 },
-        confidence: 0.88,
-        status: 'success',
-        executed: false,
-        recommendedActions: ['Increase capacity on SIN-SYD', 'Consider additional frequencies', 'Monitor competitor pricing'],
-        latency: 68
-      },
-      {
-        id: 'pred-003',
-        modelId: 'model-003',
-        modelName: 'Predictive Maintenance AI',
-        type: 'maintenance_predictive',
-        timestamp: '2024-01-18T15:20:00Z',
-        input: { aircraft_id: 'N12345', component: 'engine_1', flight_hours: 4500, sensor_vibration: 0.045 },
-        output: { failure_probability: 0.78, predicted_failure_date: '2024-02-15', recommendation: 'Schedule maintenance' },
-        confidence: 0.91,
-        status: 'success',
-        executed: true,
-        actionTaken: 'Maintenance scheduled for 2024-02-01',
-        recommendedActions: ['Schedule engine inspection', 'Prepare spare parts', 'Reassign affected flights'],
-        latency: 75
-      },
-      {
-        id: 'pred-004',
-        modelId: 'model-004',
-        modelName: 'Fraud Detection Neural Net',
-        type: 'fraud_detection',
-        timestamp: '2024-01-18T15:15:00Z',
-        input: { booking_id: 'BK-12345', payment_amount: 2500, user_history_score: 0.3, ip_risk: 0.7 },
-        output: { fraud_probability: 0.92, risk_level: 'high', recommended_action: 'block_and_review' },
-        confidence: 0.96,
-        status: 'success',
-        executed: true,
-        actionTaken: 'Booking blocked for manual review',
-        recommendedActions: ['Flag user account', 'Request additional verification', 'Escalate to fraud team'],
-        latency: 33
+    const predictionData: Prediction[] = Array.from({ length: 30 }, (_, i) => {
+      const modelTypes = ['pricing', 'demand_forecast', 'maintenance_predictive', 'fraud_detection', 'personalization', 'disruption_recovery', 'crew_optimization', 'revenue_optimization']
+      const type = modelTypes[i % modelTypes.length]
+      const statusTypes: ('success' | 'failed' | 'processing')[] = ['success', 'success', 'success', 'processing', 'failed']
+      const status = statusTypes[i % statusTypes.length]
+      
+      return {
+        id: `pred-${String(i + 1).padStart(3, '0')}`,
+        modelId: `model-${String((i % 30) + 1).padStart(3, '0')}`,
+        modelName: ['Dynamic Pricing Engine v3', 'Demand Forecast Pro', 'Predictive Maintenance AI', 'Fraud Detection Neural Net', 'Customer Churn Predictor', 'Revenue Optimization AI', 'Crew Scheduling AI', 'Fuel Efficiency Model'][i % 8],
+        type,
+        timestamp: new Date(Date.now() - (i * 5) * 60000).toISOString(),
+        input: { 
+          flight_id: `FL${String((i % 30) + 1).padStart(4, '0')}`,
+          route: ['JFK-LHR', 'LAX-NRT', 'SFO-HKG', 'SIN-SYD', 'DXB-LHR', 'CDG-SIN', 'JFK-SFO', 'LAX-MIA'][i % 8],
+          passenger_count: 120 + (i * 3) % 100,
+          date: '2024-02-01',
+          days_to_departure: 1 + (i % 30)
+        },
+        output: {
+          prediction_value: Math.random() * 100,
+          confidence_interval: [Math.random() * 50, Math.random() * 50 + 50],
+          recommendation: 'Take action based on prediction'
+        },
+        confidence: 0.7 + (Math.random() * 0.29),
+        status,
+        executed: status === 'success' && Math.random() > 0.3,
+        actionTaken: status === 'success' && Math.random() > 0.3 ? 'Prediction executed' : undefined,
+        recommendedActions: status === 'success' ? ['Action 1', 'Action 2', 'Action 3'] : undefined,
+        latency: Math.floor(20 + Math.random() * 100)
       }
-    ]
+    })
     setPredictions(predictionData)
   }
 
   const initializeRules = () => {
-    const ruleData: AutomationRule[] = [
-      {
-        id: 'rule-001',
-        name: 'Auto Price Adjustment',
-        description: 'Automatically adjust prices based on demand threshold',
-        status: 'active',
-        priority: 'high',
-        trigger: {
-          type: 'condition',
-          source: 'pricing_engine',
-          condition: 'demand > 0.8'
-        },
-        conditions: [
-          { id: 'c-001', field: 'demand', operator: 'greater_than', value: 0.8 }
-        ],
-        actions: [
-          { id: 'a-001', type: 'update', target: 'price', parameters: { adjustment: 'increase', percentage: 5 } }
-        ],
-        executions: 1250,
-        successRate: 98.5,
-        lastExecuted: '2024-01-18T15:30:00Z',
-        enabled: true,
-        createdBy: 'revenue_manager',
-        createdAt: '2024-01-01'
-      },
-      {
-        id: 'rule-002',
-        name: 'Flight Delay Notification',
-        description: 'Notify passengers automatically when flight is delayed',
-        status: 'active',
-        priority: 'critical',
-        trigger: {
-          type: 'event',
-          source: 'flight_ops',
-          condition: 'flight.status == delayed'
-        },
-        conditions: [
-          { id: 'c-002', field: 'status', operator: 'equals', value: 'delayed' }
-        ],
-        actions: [
-          { id: 'a-002', type: 'notification', target: 'passenger', parameters: { channel: 'sms', template: 'delay_notification' } },
-          { id: 'a-003', type: 'email', target: 'passenger', parameters: { template: 'delay_email' } }
-        ],
-        executions: 85,
-        successRate: 100,
-        lastExecuted: '2024-01-18T14:15:00Z',
-        enabled: true,
-        createdBy: 'ops_manager',
-        createdAt: '2024-01-01'
-      },
-      {
-        id: 'rule-003',
-        name: 'Fraud Alert Escalation',
-        description: 'Escalate high-risk fraud alerts to security team',
-        status: 'active',
-        priority: 'critical',
-        trigger: {
-          type: 'event',
-          source: 'fraud_detection',
-          condition: 'fraud_probability > 0.9'
-        },
-        conditions: [
-          { id: 'c-003', field: 'fraud_probability', operator: 'greater_than', value: 0.9 }
-        ],
-        actions: [
-          { id: 'a-004', type: 'notification', target: 'security_team', parameters: { priority: 'urgent', channel: 'slack' } },
-          { id: 'a-005', type: 'webhook', target: 'security_system', parameters: { endpoint: '/api/security/alert', method: 'POST' } }
-        ],
-        executions: 320,
-        successRate: 95.2,
-        lastExecuted: '2024-01-18T15:15:00Z',
-        enabled: true,
-        createdBy: 'security_manager',
-        createdAt: '2024-01-01'
-      },
-      {
-        id: 'rule-004',
-        name: 'Crew Optimization',
-        description: 'Optimize crew assignments based on schedule changes',
-        status: 'active',
-        priority: 'medium',
-        trigger: {
-          type: 'event',
-          source: 'crew_management',
-          condition: 'schedule.changed == true'
-        },
-        conditions: [
-          { id: 'c-004', field: 'changed', operator: 'equals', value: true }
-        ],
-        actions: [
-          { id: 'a-006', type: 'update', target: 'crew_assignment', parameters: { action: 'reoptimize', consider_rest: true } }
-        ],
-        executions: 450,
-        successRate: 92.8,
-        lastExecuted: '2024-01-18T12:00:00Z',
-        enabled: true,
-        createdBy: 'crew_manager',
-        createdAt: '2024-01-05'
-      }
+    const ruleNames = [
+      'Auto Price Adjustment', 'Flight Delay Notification', 'Fraud Alert Escalation', 'Crew Optimization',
+      'Baggage Misrouting Alert', 'Maintenance Trigger', 'Customer Churn Prevention', 'Revenue Alert',
+      'Overbooking Adjustment', 'No-Show Optimization', 'Dynamic Inventory Update', 'Fare Class Adjustment',
+      'Ancillary Offer Trigger', 'Loyalty Point Bonus', 'Customer Re-engagement', 'Competitor Price Watch',
+      'Weather Disruption Response', 'Gate Assignment Optimization', 'Fuel Cost Alert', 'Route Performance Monitor',
+      'Agent Performance Alert', 'Queue Management', 'Booking Cancellation Follow-up', 'Waitlist Promotion',
+      'Group Booking Alert', 'Corporate Contract Enforcement', 'Agency Commission Adjustment', 'Payment Verification',
+      'Document Expiry Alert', 'Seasonal Campaign Trigger'
     ]
+    const ruleDescriptions = [
+      'Automatically adjust prices based on demand threshold',
+      'Notify passengers automatically when flight is delayed',
+      'Escalate high-risk fraud alerts to security team',
+      'Optimize crew assignments based on schedule changes',
+      'Detect and flag misrouted baggage for recovery',
+      'Trigger maintenance requests based on predictive data',
+      'Identify customers at risk of churning and send offers',
+      'Alert when revenue falls below expected thresholds',
+      'Adjust overbooking levels based on no-show predictions',
+      'Optimize no-show handling for better seat utilization',
+      'Dynamically update inventory based on demand patterns',
+      'Adjust fare class availability based on demand',
+      'Trigger personalized ancillary offers at booking',
+      'Award loyalty points for qualifying activities',
+      'Re-engage inactive customers with targeted offers',
+      'Monitor competitor pricing and adjust accordingly',
+      'Automatically respond to weather-related disruptions',
+      'Optimize gate assignments for efficient operations',
+      'Alert when fuel costs exceed budget thresholds',
+      'Monitor route performance and flag underperformers',
+      'Track agent performance and send alerts',
+      'Manage customer service queues efficiently',
+      'Follow up on booking cancellations for feedback',
+      'Promote waitlisted customers when seats become available',
+      'Alert on large group bookings for special handling',
+      'Enforce corporate contract rules and pricing',
+      'Adjust agency commissions based on performance',
+      'Verify high-value payments for fraud prevention',
+      'Alert on expiring travel documents',
+      'Trigger seasonal marketing campaigns'
+    ]
+    const triggerSources = [
+      'pricing_engine', 'flight_ops', 'fraud_detection', 'crew_management',
+      'baggage_system', 'maintenance_system', 'crm', 'revenue_system',
+      'inventory_system', 'booking_system', 'inventory_system', 'pricing_engine',
+      'booking_system', 'loyalty_system', 'crm', 'pricing_engine',
+      'flight_ops', 'airport_ops', 'finance', 'operations',
+      'customer_service', 'customer_service', 'crm', 'booking_system',
+      'sales_system', 'corporate_sales', 'agency_system', 'payment_system',
+      'document_system', 'marketing_system'
+    ]
+    const priorities: ('critical' | 'high' | 'medium' | 'low')[] = [
+      'high', 'critical', 'critical', 'medium',
+      'high', 'high', 'medium', 'high',
+      'medium', 'medium', 'medium', 'high',
+      'medium', 'low', 'medium', 'high',
+      'critical', 'medium', 'high', 'medium',
+      'low', 'medium', 'low', 'medium',
+      'high', 'medium', 'medium', 'critical',
+      'high', 'low'
+    ]
+    const statuses: ('active' | 'paused' | 'draft')[] = [
+      'active', 'active', 'active', 'active',
+      'active', 'active', 'active', 'active',
+      'active', 'active', 'active', 'active',
+      'active', 'paused', 'active', 'active',
+      'active', 'active', 'active', 'active',
+      'active', 'active', 'paused', 'active',
+      'active', 'active', 'active', 'active',
+      'active', 'active'
+    ]
+    const creators = [
+      'revenue_manager', 'ops_manager', 'security_manager', 'crew_manager',
+      'baggage_manager', 'maintenance_manager', 'crm_manager', 'revenue_manager',
+      'inventory_manager', 'booking_manager', 'inventory_manager', 'pricing_manager',
+      'booking_manager', 'loyalty_manager', 'crm_manager', 'pricing_manager',
+      'flight_ops_manager', 'airport_manager', 'finance_manager', 'operations_manager',
+      'customer_service_manager', 'customer_service_manager', 'crm_manager', 'booking_manager',
+      'sales_manager', 'corporate_sales_manager', 'agency_manager', 'payment_manager',
+      'document_manager', 'marketing_manager'
+    ]
+
+    const ruleData: AutomationRule[] = Array.from({ length: 30 }, (_, i) => ({
+      id: `rule-${String(i + 1).padStart(3, '0')}`,
+      name: ruleNames[i],
+      description: ruleDescriptions[i],
+      status: statuses[i],
+      priority: priorities[i],
+      trigger: {
+        type: ['event', 'condition', 'schedule'][i % 3] as 'event' | 'condition' | 'schedule',
+        source: triggerSources[i],
+        condition: 'condition based trigger'
+      },
+      conditions: [
+        { id: `c-${String(i + 1).padStart(3, '0')}`, field: 'field_name', operator: 'equals' as const, value: 'value' }
+      ],
+      actions: [
+        { id: `a-${String(i + 1).padStart(3, '0')}`, type: 'notification' as const, target: 'target_system', parameters: {} }
+      ],
+      executions: Math.floor(100 + Math.random() * 5000),
+      successRate: 90 + Math.random() * 10,
+      lastExecuted: new Date(Date.now() - (i * 60) * 60000).toISOString(),
+      enabled: statuses[i] === 'active',
+      createdBy: creators[i],
+      createdAt: new Date(Date.now() - (i + 30) * 86400000).toISOString().split('T')[0]
+    }))
     setRules(ruleData)
   }
 
@@ -670,7 +594,7 @@ export default function AIModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
+              <div className="overflow-y-auto h-96">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {models.map((model) => (
                     <Card key={model.id} className="enterprise-card">
@@ -728,7 +652,7 @@ export default function AIModule() {
                     </Card>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -756,7 +680,7 @@ export default function AIModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
+              <div className="overflow-y-auto h-96">
                 <table className="enterprise-table">
                   <thead>
                     <tr>
@@ -805,7 +729,7 @@ export default function AIModule() {
                     )}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -839,7 +763,7 @@ export default function AIModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
+              <div className="overflow-y-auto h-96">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {rules.length === 0 ? (
                     <div className="col-span-2 text-center py-12">
@@ -901,7 +825,7 @@ export default function AIModule() {
                     ))
                   )}
                 </div>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1213,7 +1137,7 @@ export default function AIModule() {
             <DialogTitle>Model Details</DialogTitle>
           </DialogHeader>
           {selectedModel && (
-            <ScrollArea className="max-h-[70vh]">
+            <div className="overflow-y-auto max-h-[70vh]">
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -1306,7 +1230,7 @@ export default function AIModule() {
                   </div>
                 </div>
               </div>
-            </ScrollArea>
+            </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowModelDetails(false)}>Close</Button>

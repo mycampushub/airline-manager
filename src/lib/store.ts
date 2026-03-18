@@ -1537,12 +1537,14 @@ interface AirlineStore {
   updateFlightSchedule: (id: string, updates: Partial<FlightSchedule>) => FlightSchedule
   updateFlightInstance: (id: string, updates: Partial<FlightInstance>) => FlightInstance
   createDisruption: (disruption: Partial<DisruptionEvent>) => DisruptionEvent
+  setDisruptions: (disruptions: DisruptionEvent[]) => void
   generateFlightRelease: (flightId: string) => FlightRelease
   
   // Crew Actions
   addCrewMember: (crew: Partial<CrewMember>) => CrewMember
   assignCrewSchedule: (schedule: Partial<CrewSchedule>) => CrewSchedule
   createCrewPairing: (pairing: Partial<CrewPairing>) => CrewPairing
+  initializeCrewDemoData: () => void
   
   // MRO Actions
   createMaintenanceRecord: (record: Partial<MaintenanceRecord>) => MaintenanceRecord
@@ -1615,70 +1617,93 @@ interface AirlineStore {
 
 const generateId = () => Math.random().toString(36).substr(2, 9)
 
+// Import demo data
+import { demoData } from './demo-data'
+
 export const useAirlineStore = create<AirlineStore>((set, get) => ({
-  // Initial State
-  pnrs: [],
-  tickets: [],
+  // Initial State - populated with demo data
+  pnrs: demoData.pnrs || [],
+  tickets: demoData.tickets || [],
   emds: [],
   fareClasses: [],
   routeInventory: [],
-  checkInRecords: [],
+  checkInRecords: demoData.checkInRecords || [],
   boardingRecords: [],
   loadSheets: [],
-  baggageRecords: [],
-  flightSchedules: [],
-  flightInstances: [],
-  disruptions: [],
-  flightReleases: [],
-  crewMembers: [],
-  crewSchedules: [],
+  baggageRecords: demoData.baggageRecords || [],
+  flightSchedules: demoData.flightSchedules || [],
+  flightInstances: demoData.flightInstances || [],
+  disruptions: demoData.disruptions || [],
+  flightReleases: demoData.flightReleases || [],
+  crewMembers: demoData.crewMembers || [],
+  crewSchedules: demoData.crewSchedules || [],
   crewPairings: [],
-  maintenanceRecords: [],
-  parts: [],
-  components: [],
-  fareBasis: [],
-  revenueData: [],
+  maintenanceRecords: demoData.maintenanceRecords || [],
+  parts: demoData.parts || [],
+  components: demoData.components || [],
+  fareBasis: demoData.fareBasis || [],
+  revenueData: demoData.revenueData || [],
   demandForecasts: [],
-  ancillaryProducts: [],
+  ancillaryProducts: demoData.ancillaryProducts || [],
   bundles: [],
   promoCodes: [],
-  agencies: [],
-  adms: [],
-  customerProfiles: [],
+  agencies: demoData.agencies || [],
+  adms: demoData.adms || [],
+  customerProfiles: demoData.customerProfiles || [],
   campaigns: [],
   complaints: [],
   kpiDashboard: {
-    period: 'today',
+    period: 'last_30_days',
     metrics: {
-      bookings: { total: 0, change: 0, trend: 'stable' },
-      passengers: { total: 0, change: 0, trend: 'stable' },
-      revenue: { total: 0, change: 0, trend: 'stable' },
-      loadFactor: { value: 0, change: 0, trend: 'stable' },
-      yield: { value: 0, change: 0, trend: 'stable' },
-      ancillaryRevenue: { total: 0, change: 0, trend: 'stable' },
-      onTimePerformance: { value: 0, change: 0, trend: 'stable' },
-      cancellations: { count: 0, rate: 0, change: 0, trend: 'stable' }
+      bookings: { total: 15420, change: 12.5, trend: 'up' },
+      passengers: { total: 42580, change: 10.8, trend: 'up' },
+      revenue: { total: 28500000, change: 15.2, trend: 'up' },
+      loadFactor: { value: 86.5, change: 2.3, trend: 'up' },
+      yield: { value: 0.127, change: 3.5, trend: 'up' },
+      ancillaryRevenue: { total: 2850000, change: 18.7, trend: 'up' },
+      onTimePerformance: { value: 94.2, change: -1.2, trend: 'down' },
+      cancellations: { count: 234, rate: 1.52, change: -0.3, trend: 'down' }
     },
-    topRoutes: [],
-    topAgents: [],
-    revenueByChannel: [],
-    revenueByCabin: []
+    topRoutes: [
+      { route: 'JFK-LHR', origin: 'JFK', destination: 'LHR', flights: 120, passengers: 21500, loadFactor: 89.5, revenue: 4250000, yield: 0.145, growth: 12.5 },
+      { route: 'JFK-PAR', origin: 'JFK', destination: 'PAR', flights: 95, passengers: 16800, loadFactor: 86.2, revenue: 3120000, yield: 0.132, growth: 8.3 },
+      { route: 'LAX-TYO', origin: 'LAX', destination: 'TYO', flights: 85, passengers: 14200, loadFactor: 82.8, revenue: 3800000, yield: 0.158, growth: -2.1 },
+      { route: 'SIN-SYD', origin: 'SIN', destination: 'SYD', flights: 110, passengers: 18900, loadFactor: 84.5, revenue: 2980000, yield: 0.115, growth: 5.7 },
+      { route: 'DXB-LHR', origin: 'DXB', destination: 'LHR', flights: 100, passengers: 17800, loadFactor: 87.2, revenue: 3560000, yield: 0.138, growth: 10.2 }
+    ],
+    topAgents: [
+      { agentId: 'AG0001', agentCode: 'AG0001', agentName: 'Global Travel Services', bookings: 2847, passengers: 8541, revenue: 4250000, commission: 255000, growth: 15.2 },
+      { agentId: 'AG0002', agentCode: 'AG0002', agentName: 'Wanderlust Travel', bookings: 2156, passengers: 6468, revenue: 3180000, commission: 159000, growth: 12.5 },
+      { agentId: 'AG0003', agentCode: 'AG0003', agentName: 'Business Trips Inc', bookings: 1923, passengers: 5769, revenue: 2890000, commission: 144500, growth: 8.7 }
+    ],
+    revenueByChannel: [
+      { channel: 'direct', bookings: 12543, revenue: 15600000, share: 52.3, growth: 18.5 },
+      { channel: 'agency', bookings: 5936, revenue: 7420000, share: 24.9, growth: 10.2 },
+      { channel: 'ota', bookings: 3296, revenue: 4120000, share: 13.8, growth: 8.7 },
+      { channel: 'corporate', bookings: 1584, revenue: 1980000, share: 6.6, growth: 12.5 },
+      { channel: 'gds', bookings: 576, revenue: 720000, share: 2.4, growth: 5.3 }
+    ],
+    revenueByCabin: [
+      { cabin: 'economy', passengers: 28500, revenue: 15600000, loadFactor: 87.2, yield: 0.098, share: 55.6 },
+      { cabin: 'business', passengers: 10800, revenue: 8750000, loadFactor: 89.5, yield: 0.185, share: 31.2 },
+      { cabin: 'first', passengers: 2400, revenue: 4200000, loadFactor: 78.5, yield: 0.35, share: 13.2 }
+    ]
   },
   users: [],
   auditLogs: [],
   securityEvents: [],
-  integrations: [],
-  cargoBookings: [],
-  ulds: [],
-  sustainabilityMetrics: [],
+  integrations: demoData.integrations || [],
+  cargoBookings: demoData.cargoBookings || [],
+  ulds: demoData.ulds || [],
+  sustainabilityMetrics: demoData.sustainabilityMetrics || [],
   carbonOffsets: [],
   inventoryBlocks: [],
   groupAllotments: [],
   blackoutDates: [],
   fareFamilies: [],
   aiModels: [],
-  aiPredictions: [],
-  automationRules: [],
+  aiPredictions: demoData.aiPredictions || [],
+  automationRules: demoData.automationRules || [],
   
   // UI State
   currentModule: 'dashboard',
@@ -1951,6 +1976,10 @@ export const useAirlineStore = create<AirlineStore>((set, get) => ({
     return newDisruption
   },
   
+  setDisruptions: (disruptions) => {
+    set({ disruptions })
+  },
+  
   generateFlightRelease: (flightId) => {
     const release: FlightRelease = {
       id: generateId(),
@@ -2027,6 +2056,118 @@ export const useAirlineStore = create<AirlineStore>((set, get) => ({
     }
     set((state) => ({ crewPairings: [...state.crewPairings, newPairing] }))
     return newPairing
+  },
+
+  initializeCrewDemoData: () => {
+    const state = get()
+    
+    // Generate crew pairings if we have less than 30
+    if (state.crewPairings.length < 30 && state.flightInstances.length >= 10) {
+      const bases = ['JFK', 'LAX', 'LHR', 'SFO', 'DXB']
+      const routes = ['JFK-LHR', 'LAX-TYO', 'SFO-HKG', 'ORD-LAX', 'MIA-CDG', 'JFK-PAR', 'LAX-SYD', 'SIN-SYD']
+      
+      // Generate 35 pairings
+      for (let i = 0; i < 35; i++) {
+        const base = bases[i % bases.length]
+        const route = routes[i % routes.length]
+        const startDate = new Date(Date.now() + (i * 2) * 24 * 60 * 60 * 1000)
+        const endDate = new Date(startDate.getTime() + 4 * 24 * 60 * 60 * 1000)
+        const flightNumbers: string[] = []
+        
+        // Add 2-4 flight numbers per pairing
+        const numFlights = 2 + (i % 3)
+        for (let j = 0; j < numFlights; j++) {
+          const flight = state.flightInstances[(i + j) % state.flightInstances.length]
+          if (flight) {
+            flightNumbers.push(flight.flightNumber)
+          }
+        }
+        
+        const totalFlightTime = numFlights * (6 + Math.floor(Math.random() * 4))
+        const totalDutyTime = totalFlightTime + 2
+        const overnightStops = numFlights > 2 ? 1 : 0
+        
+        const pairing: CrewPairing = {
+          id: generateId(),
+          pairingNumber: `PR${String(1000 + i).padStart(6, '0')}`,
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0],
+          flights: flightNumbers,
+          totalFlightTime,
+          totalDutyTime,
+          restPeriods: [
+            {
+              location: base,
+              startTime: '22:00',
+              endTime: '08:00',
+              duration: 10,
+              minimumRequired: 10,
+              compliant: true
+            }
+          ],
+          base,
+          deadhead: false,
+          overnightStops,
+          hotels: overnightStops > 0 ? ['Grand Hotel', 'Airport Inn'] : [],
+          cost: totalDutyTime * 150 + (overnightStops * 200),
+          compliant: true,
+          complianceNotes: []
+        }
+        
+        set((s) => ({ crewPairings: [...s.crewPairings, pairing] }))
+      }
+    }
+    
+    // Generate additional crew schedules if needed
+    if (state.crewSchedules.length < 30 && state.crewMembers.length >= 10 && state.flightInstances.length >= 10) {
+      const types: Array<'flight' | 'standby' | 'training' | 'leave' | 'reserve'> = ['flight', 'standby', 'training', 'reserve']
+      const statuses: Array<'scheduled' | 'in_progress' | 'completed' | 'cancelled'> = ['scheduled', 'in_progress', 'completed', 'scheduled']
+      
+      for (let i = state.crewSchedules.length; i < 35; i++) {
+        const crew = state.crewMembers[i % state.crewMembers.length]
+        const flight = state.flightInstances[i % state.flightInstances.length]
+        const type = types[i % types.length]
+        const status = statuses[i % statuses.length]
+        
+        if (crew && flight) {
+          const startDate = new Date(Date.now() + (i * 1) * 24 * 60 * 60 * 1000)
+          const departureTime = new Date(`${flight.date}T${flight.scheduledDeparture}:00Z`)
+          const duration = 7 + Math.floor(Math.random() * 4)
+          
+          const schedule: CrewSchedule = {
+            id: generateId(),
+            crewId: crew.id,
+            type,
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: startDate.toISOString().split('T')[0],
+            startTime: '06:00',
+            endTime: `${(6 + duration).toString().padStart(2, '0')}:00`,
+            flightId: flight.id,
+            flightNumber: type === 'flight' ? flight.flightNumber : undefined,
+            route: type === 'flight' ? `${flight.origin}-${flight.destination}` : undefined,
+            position: crew.position,
+            reportTime: '05:30',
+            releaseTime: `${(6 + duration + 1).toString().padStart(2, '0')}:00`,
+            dutyHours: duration + 1,
+            status,
+            hotel: type === 'flight' && status !== 'completed' ? {
+              name: `${flight.destination} Airport Hotel`,
+              address: `${flight.destination} Airport Road`,
+              phone: '+1-555-0000',
+              checkIn: '10:00',
+              checkOut: '16:00'
+            } : undefined,
+            transport: type === 'flight' && status !== 'completed' ? {
+              type: 'hotel_shuttle',
+              pickup: `${flight.destination} Airport`,
+              dropoff: `${flight.destination} Airport Hotel`
+            } : undefined
+          }
+          
+          set((s) => ({ crewSchedules: [...s.crewSchedules, schedule] }))
+        }
+      }
+    }
   },
   
   // MRO Actions

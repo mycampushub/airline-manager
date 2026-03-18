@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
+// import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
@@ -121,7 +121,15 @@ export default function DashboardModule() {
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
-  
+
+  // Utility function to format time consistently across server and client
+  const formatTime = (dateString: string): string => {
+    const date = new Date(dateString)
+    const hours = date.getHours().toString().padStart(2, '0')
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+    return `${hours}:${minutes}`
+  }
+
   // Filters state
   const [filters, setFilters] = useState<FilterOptions>({
     dateRange: 'today',
@@ -436,7 +444,7 @@ export default function DashboardModule() {
                   <CardDescription>Real-time flight status and operations</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-72 overflow-x-auto">
+                  <div className="overflow-x-auto h-72">
                     <table className="enterprise-table min-w-[900px]">
                         <thead>
                           <tr>
@@ -486,7 +494,7 @@ export default function DashboardModule() {
                           )}
                         </tbody>
                       </table>
-                  </ScrollArea>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -677,7 +685,7 @@ export default function DashboardModule() {
               <CardDescription>Current work orders and scheduled maintenance</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-64 overflow-x-auto">
+              <div className="overflow-x-auto h-64">
                 <table className="enterprise-table min-w-[1000px]">
                     <thead>
                       <tr>
@@ -703,8 +711,8 @@ export default function DashboardModule() {
                               {record.priority}
                             </Badge>
                           </td>
-                          <td className="text-sm">{new Date(record.scheduledStart).toLocaleTimeString()}</td>
-                          <td className="text-sm">{new Date(record.scheduledEnd).toLocaleTimeString()}</td>
+                          <td className="text-sm">{formatTime(record.scheduledStart)}</td>
+                          <td className="text-sm">{formatTime(record.scheduledEnd)}</td>
                           <td>
                             <Badge variant="secondary" className="animate-pulse">In Progress</Badge>
                           </td>
@@ -712,7 +720,7 @@ export default function DashboardModule() {
                       ))}
                     </tbody>
                   </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -882,7 +890,7 @@ export default function DashboardModule() {
                 <CardDescription>Latest reservations across all channels</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-72 overflow-x-auto">
+                <div className="overflow-x-auto h-72">
                   <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
@@ -903,7 +911,7 @@ export default function DashboardModule() {
                             <td className="text-sm">{pnr.segments[0]?.origin} → {pnr.segments[0]?.destination}</td>
                             <td className="text-sm">${pnr.fareQuote.total}</td>
                             <td><Badge variant="outline" className="text-xs">Web</Badge></td>
-                            <td className="text-sm">{new Date(pnr.createdAt).toLocaleTimeString()}</td>
+                            <td className="text-sm">{formatTime(pnr.createdAt)}</td>
                             <td>
                               <Badge variant={pnr.status === 'confirmed' ? 'default' : 'secondary'} className="capitalize">
                                 {pnr.status}
@@ -913,7 +921,7 @@ export default function DashboardModule() {
                         ))}
                       </tbody>
                     </table>
-                </ScrollArea>
+                </div>
               </CardContent>
             </Card>
 
@@ -1022,7 +1030,7 @@ export default function DashboardModule() {
               <CardDescription>System notifications and operational alerts</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
+              <div className="overflow-y-auto h-96">
                 <div className="space-y-3">
                   {alerts
                     .filter(alert => {
@@ -1119,7 +1127,7 @@ export default function DashboardModule() {
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

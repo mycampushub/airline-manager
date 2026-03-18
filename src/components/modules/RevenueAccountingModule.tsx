@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
+// import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { 
@@ -19,6 +19,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { useAirlineStore } from '@/lib/store'
+import { DEMO_BOOKINGS, DEMO_FLIGHTS, DEMO_AIRCRAFT, DEMO_ROUTES } from '@/lib/demoData'
 
 interface InterlinePartner {
   id: string
@@ -55,50 +56,66 @@ export default function RevenueAccountingModule() {
   const { tickets, pnrs } = useAirlineStore()
   const { toast } = useToast()
   const [refreshing, setRefreshing] = useState(false)
+  const initializedRef = useRef(false)
+
+  // Initialize mock data with 30 items each
+  const interlinePartners: InterlinePartner[] = useMemo(() => {
+    return DEMO_ROUTES.map((route, i) => ({
+      id: `partner-${String(i + 1).padStart(3, '0')}`,
+      partner: ['British Airways', 'Lufthansa', 'Emirates', 'Singapore Airlines', 'Qatar Airways', 'Air France', 'KLM', 'ANA', 'Cathay Pacific', 'Qantas', 'Delta Air Lines', 'United Airlines', 'American Airlines', 'Korean Air', 'Swiss International', 'Iberia', 'Finnair', 'Austrian', 'Turkish Airlines', 'Etihad Airways', 'LATAM', 'Air Canada', 'SAS', 'LOT Polish', 'TAP Portugal', 'Brussels Airlines', 'Aer Lingus', 'Czech Airlines', 'Aegean', 'Air Serbia'][i],
+      flights: 20 + (i * 5) % 50,
+      pax: 400 + (i * 15) % 900,
+      receivable: 15000 + (i * 2500),
+      payable: 5000 + (i * 1500),
+      status: ['settled', 'pending', 'overdue'][i % 3] as 'settled' | 'pending' | 'overdue'
+    }))
+  }, [])
+
+  const bspSettlements: BSPSettlement[] = useMemo(() => {
+    const periods = ['DEC 2024', 'NOV 2024', 'OCT 2024', 'SEP 2024', 'AUG 2024']
+    const regions = ['Europe', 'Americas', 'Asia Pacific', 'Middle East', 'Africa']
+    return Array.from({ length: 30 }, (_, i) => ({
+      id: `bsp-${String(i + 1).padStart(3, '0')}`,
+      period: periods[i % 5],
+      region: regions[i % 5],
+      grossSales: 500000 + (i * 100000),
+      commission: Math.round((500000 + (i * 100000)) * 0.05),
+      netRemittance: Math.round((500000 + (i * 100000)) * 0.95),
+      status: ['settled', 'pending', 'submitted'][i % 3] as 'settled' | 'pending' | 'submitted'
+    }))
+  }, [])
+
+  const prorationRecords: ProrationRecord[] = useMemo(() => {
+    return DEMO_BOOKINGS.map((booking, i) => {
+      const flight = DEMO_FLIGHTS[i % DEMO_FLIGHTS.length]
+      const route = DEMO_ROUTES.find(r => r.id === flight.routeId)
+      return {
+        id: `prop-${String(i + 1).padStart(3, '0')}`,
+        ticket: booking.id,
+        passenger: DEMO_BOOKINGS[i % DEMO_BOOKINGS.length].id,
+        segments: 1 + (i % 4),
+        baseFare: Math.round(booking.fare * 0.8),
+        tax: Math.round(booking.fare * 0.2),
+        proratedFare: booking.fare,
+        currency: 'USD'
+      }
+    })
+  }, [])
 
   // Computed values from store
-  const totalRevenue = useMemo(() => 
-    tickets.reduce((sum, t) => sum + t.fare.total, 0), 
-    [tickets]
+  const totalRevenue = useMemo(() =>
+    DEMO_BOOKINGS.reduce((sum, b) => sum + b.fare, 0),
+    []
   )
-  
-  const pendingTickets = useMemo(() => 
-    tickets.filter(t => t.status === 'open').length,
-    [tickets]
+
+  const pendingTickets = useMemo(() =>
+    DEMO_BOOKINGS.filter(b => b.status !== 'confirmed').length,
+    []
   )
 
   const refundedAmount = useMemo(() =>
-    tickets.filter(t => t.status === 'refunded').reduce((sum, t) => sum + t.fare.total, 0),
-    [tickets]
-  )
-
-  const interlinePartners: InterlinePartner[] = useMemo(() => [
-    { id: '1', partner: 'British Airways', flights: 45, pax: 892, receivable: 35000, payable: 12000, status: 'settled' },
-    { id: '2', partner: 'Lufthansa', flights: 32, pax: 645, receivable: 28000, payable: 18000, status: 'pending' },
-    { id: '3', partner: 'Emirates', flights: 28, pax: 534, receivable: 26000, payable: 15000, status: 'pending' },
-    { id: '4', partner: 'Singapore Airlines', flights: 22, pax: 421, receivable: 22000, payable: 9000, status: 'settled' },
-    { id: '5', partner: 'Qatar Airways', flights: 18, pax: 356, receivable: 18000, payable: 7000, status: 'pending' }
-  ], [])
-
-  const bspSettlements: BSPSettlement[] = useMemo(() => [
-    { id: '1', period: 'DEC 2024', region: 'Europe', grossSales: 1245000, commission: 62250, netRemittance: 1182750, status: 'submitted' },
-    { id: '2', period: 'DEC 2024', region: 'Americas', grossSales: 890000, commission: 44500, netRemittance: 845500, status: 'pending' },
-    { id: '3', period: 'NOV 2024', region: 'Europe', grossSales: 1150000, commission: 57500, netRemittance: 1092500, status: 'settled' },
-    { id: '4', period: 'NOV 2024', region: 'Americas', grossSales: 820000, commission: 41000, netRemittance: 779000, status: 'settled' }
-  ], [])
-
-  const prorationRecords: ProrationRecord[] = useMemo(() => 
-    tickets.slice(0, 15).map((t, i) => ({
-      id: `${i + 1}`,
-      ticket: t.ticketNumber,
-      passenger: t.passengerName,
-      segments: t.segments.length,
-      baseFare: Math.round(t.fare.total * 0.8),
-      tax: Math.round(t.fare.total * 0.2),
-      proratedFare: t.fare.total,
-      currency: t.fare.currency
-    })),
-    [tickets]
+    DEMO_BOOKINGS.filter(b => b.status === 'cancelled').reduce((sum, b) => sum + b.fare, 0),
+    []
   )
 
   const interlineTotal = useMemo(() => ({
@@ -121,17 +138,20 @@ export default function RevenueAccountingModule() {
   const handleExport = (type: string) => {
     let csvContent = ''
     let filename = ''
-    
+
     switch (type) {
       case 'sales':
         const salesHeaders = ['Ticket', 'Passenger', 'Route', 'Amount', 'Status']
-        const salesRows = tickets.map(t => [
-          t.ticketNumber,
-          t.passengerName,
-          t.segments.map(s => `${s.origin}-${s.destination}`).join('; '),
-          t.fare.total,
-          t.status
-        ])
+        const salesRows = DEMO_BOOKINGS.map(b => {
+          const flight = DEMO_FLIGHTS.find(f => f.id === b.flightId)
+          return [
+            b.id,
+            b.passengerId,
+            flight ? `${flight.origin}-${flight.destination}` : 'N/A',
+            b.fare,
+            b.status
+          ]
+        })
         csvContent = [salesHeaders.join(','), ...salesRows.map(r => r.join(','))].join('\n')
         filename = 'sales-reconciliation'
         break
@@ -166,7 +186,7 @@ export default function RevenueAccountingModule() {
     link.href = URL.createObjectURL(blob)
     link.download = `${filename}.csv`
     link.click()
-    
+
     toast({ title: 'Export Complete', description: `${filename}.csv has been downloaded` })
   }
 
@@ -252,7 +272,7 @@ export default function RevenueAccountingModule() {
               <CardDescription>Match ticket sales with payment records</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80 overflow-x-auto">
+              <div className="overflow-x-auto h-80">
                 <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
@@ -267,29 +287,32 @@ export default function RevenueAccountingModule() {
                     </tr>
                   </thead>
                   <tbody>
-                    {tickets.length === 0 ? (
+                    {DEMO_BOOKINGS.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="text-center text-muted-foreground py-8">
                           No tickets to reconcile
                         </td>
                       </tr>
                     ) : (
-                      tickets.map((ticket) => (
-                        <tr key={ticket.ticketNumber}>
-                          <td className="font-mono">{ticket.ticketNumber}</td>
-                          <td className="text-sm">{ticket.passengerName}</td>
-                          <td className="text-sm">{ticket.segments[0]?.origin}→{ticket.segments[0]?.destination}</td>
-                          <td className="text-sm">${ticket.fare.baseFare}</td>
-                          <td className="text-sm">${ticket.fare.taxes}</td>
-                          <td className="text-sm font-medium">${ticket.fare.total}</td>
-                          <td><Badge variant="outline">Credit Card</Badge></td>
-                          <td><CheckCircle className="h-5 w-5 text-green-600" /></td>
-                        </tr>
-                      ))
+                      DEMO_BOOKINGS.map((booking) => {
+                        const flight = DEMO_FLIGHTS.find(f => f.id === booking.flightId)
+                        return (
+                          <tr key={booking.id}>
+                            <td className="font-mono">{booking.id}</td>
+                            <td className="text-sm">{booking.passengerId}</td>
+                            <td className="text-sm">{flight ? `${flight.origin}→${flight.destination}` : 'N/A'}</td>
+                            <td className="text-sm">${Math.round(booking.fare * 0.8)}</td>
+                            <td className="text-sm">${Math.round(booking.fare * 0.2)}</td>
+                            <td className="text-sm font-medium">${booking.fare}</td>
+                            <td><Badge variant="outline">{booking.channel}</Badge></td>
+                            <td><CheckCircle className="h-5 w-5 text-green-600" /></td>
+                          </tr>
+                        )
+                      })
                     )}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

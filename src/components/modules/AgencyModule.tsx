@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
+// import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -112,6 +112,16 @@ interface ADMWorkflow {
 export default function AgencyModule() {
   const { agencies, adms, addAgency, issueADM, updateAgencyCredit, resolveADM } = useAirlineStore()
   const { toast } = useToast()
+
+  // Utility function to format date consistently across server and client
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString)
+    const year = date.getFullYear()
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const day = date.getDate().toString().padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   const [activeTab, setActiveTab] = useState('fraud-detection')
   const [showAgencyDialog, setShowAgencyDialog] = useState(false)
   const [showADMDialog, setShowADMDialog] = useState(false)
@@ -147,209 +157,130 @@ export default function AgencyModule() {
   const [selectedFraudAlert, setSelectedFraudAlert] = useState<FraudAlert | null>(null)
   const [selectedADM, setSelectedADM] = useState<ADM | null>(null)
 
-  // Mock fraud alerts data
-  const [fraudAlerts, setFraudAlerts] = useState<FraudAlert[]>([
-    {
-      id: 'FR-001',
-      agencyCode: 'AGT001',
-      type: 'high_value_transaction',
-      severity: 'high',
-      description: 'Unusually high-value transaction detected - $45,000 in single booking',
-      transactionId: 'TXN-2024-12345',
-      amount: 45000,
-      detectedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      status: 'investigating',
-      riskScore: 85,
-      details: [
-        { metric: 'Transaction Amount', value: 45000, threshold: 25000 },
-        { metric: 'Historical Average', value: 2500, threshold: 25000 }
-      ]
-    },
-    {
-      id: 'FR-002',
-      agencyCode: 'AGT003',
-      type: 'rapid_booking',
-      severity: 'medium',
-      description: 'Rapid booking pattern - 15 bookings in 30 minutes',
-      detectedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      status: 'open',
-      riskScore: 62,
-      details: [
-        { metric: 'Bookings per Hour', value: 30, threshold: 10 }
-      ]
-    },
-    {
-      id: 'FR-003',
-      agencyCode: 'AGT002',
-      type: 'multiple_cancellations',
-      severity: 'critical',
-      description: 'High cancellation rate - 80% cancellation rate in last 24h',
-      detectedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-      status: 'open',
-      riskScore: 92,
-      details: [
-        { metric: 'Cancellation Rate', value: 80, threshold: 30 },
-        { metric: 'Cancelled Bookings', value: 12, threshold: 5 }
-      ]
-    },
-    {
-      id: 'FR-004',
-      agencyCode: 'AGT005',
-      type: 'suspicious_payment',
-      severity: 'high',
-      description: 'Payment from high-risk location detected',
-      transactionId: 'TXN-2024-12349',
-      amount: 8200,
-      detectedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-      status: 'investigating',
-      riskScore: 78,
-      details: [
-        { metric: 'Risk Score', value: 78, threshold: 60 },
-        { metric: 'Location Risk', value: 85, threshold: 70 }
-      ]
-    },
-    {
-      id: 'FR-005',
-      agencyCode: 'AGT001',
-      type: 'refund_anomaly',
-      severity: 'medium',
-      description: 'Unusual refund pattern - multiple refunds for same route',
-      transactionId: 'TXN-2024-12352',
-      amount: 3500,
-      detectedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-      status: 'resolved',
-      riskScore: 55,
-      details: [
-        { metric: 'Refund Count (24h)', value: 5, threshold: 3 }
-      ]
-    }
-  ])
+  // Generate fraud alerts based on agencies from store
+  const [fraudAlerts, setFraudAlerts] = useState<FraudAlert[]>(() => {
+    const alerts: FraudAlert[] = []
+    const alertTypes: FraudAlert['type'][] = ['high_value_transaction', 'rapid_booking', 'unusual_pattern', 'suspicious_payment', 'refund_anomaly', 'multiple_cancellations']
+    const severities: FraudAlert['severity'][] = ['low', 'medium', 'high', 'critical']
+    const statuses: FraudAlert['status'][] = ['open', 'investigating', 'resolved', 'false_positive']
+    const reasons = [
+      'Unusually high-value transaction detected',
+      'Rapid booking pattern detected',
+      'Unusual booking pattern identified',
+      'Payment from high-risk location detected',
+      'Unusual refund pattern detected',
+      'High cancellation rate detected'
+    ]
 
-  // Mock agency restrictions
-  const [agencyRestrictions, setAgencyRestrictions] = useState<AgencyRestriction[]>([
-    {
-      id: 'RES-001',
-      agencyCode: 'AGT003',
-      type: 'credit_hold',
-      reason: 'Credit limit exceeded - temporary hold until payment received',
-      appliedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      appliedBy: 'system',
-      isActive: true,
-      details: {
-        creditBlocked: true
-      }
-    },
-    {
-      id: 'RES-002',
-      agencyCode: 'AGT002',
-      type: 'route_restriction',
-      reason: 'High cancellation rate on specific routes - restriction pending review',
-      appliedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      appliedBy: 'fraud_team',
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      isActive: true,
-      details: {
-        restrictionType: 'partial',
-        affectedRoutes: ['JFK-LHR', 'JFK-PAR', 'LAX-TYO']
-      }
-    },
-    {
-      id: 'RES-003',
-      agencyCode: 'AGT005',
-      type: 'payment_restriction',
-      reason: 'Suspicious payment activity - card payments restricted',
-      appliedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      appliedBy: 'risk_management',
-      isActive: true,
-      details: {
-        paymentMethods: ['credit_card', 'debit_card']
-      }
-    }
-  ])
+    agencies.forEach((agency, index) => {
+      const numAlerts = index % 3 === 0 ? 2 : 1 // Every 3rd agency gets 2 alerts
+      for (let i = 0; i < numAlerts; i++) {
+        const alertType = alertTypes[(index * 2 + i) % alertTypes.length]
+        const severity = severities[(index + i) % severities.length]
+        const status = statuses[(index * 3 + i) % statuses.length]
+        const daysAgo = Math.floor(Math.random() * 14) + 1
+        const amount = Math.floor(Math.random() * 45000) + 1000
 
-  // Mock ADM workflows
-  const [admWorkflows, setAdmWorkflows] = useState<ADMWorkflow[]>([
-    {
-      adm: {
-        id: 'ADM-001',
-        number: 'ADM-2024-001',
-        agencyId: '1',
-        agencyCode: 'AGT001',
-        type: 'fare_discrepancy',
-        amount: 2500,
-        currency: 'USD',
-        reason: 'Incorrect fare applied - booking in lower class than ticketed',
-        ticketNumbers: ['176-1234567890', '176-1234567891'],
-        pnrNumbers: ['ABC123'],
-        status: 'issued',
-        issuedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        dueDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString(),
-        notes: []
-      },
-      currentStage: 'review',
-      approver: 'John Smith',
-      approvalDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-      history: [
-        { stage: 'draft', status: 'created', timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), actor: 'system', notes: 'ADM created automatically' },
-        { stage: 'review', status: 'pending', timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), actor: 'system' },
-        { stage: 'review', status: 'assigned', timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), actor: 'John Smith', notes: 'Assigned for review' }
+        alerts.push({
+          id: `FR-${String(index + 1).padStart(3, '0')}-${i + 1}`,
+          agencyCode: agency.code,
+          type: alertType,
+          severity: severity,
+          description: `${reasons[(index * 2 + i) % reasons.length]} - ${reasons[(index * 2 + i) % reasons.length].toLowerCase()}`,
+          transactionId: `TXN-2024-${String(Math.random() * 100000).toFixed(0).padStart(5, '0')}`,
+          amount: amount,
+          detectedAt: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
+          status: status,
+          riskScore: Math.floor(Math.random() * 50) + 40,
+          details: [
+            { metric: 'Transaction Amount', value: amount, threshold: 25000 },
+            { metric: 'Historical Average', value: Math.floor(amount * 0.1), threshold: 25000 }
+          ]
+        })
+      }
+    })
+
+    return alerts.slice(0, 35) // Return first 35 alerts
+  })
+
+  // Generate agency restrictions based on agencies from store
+  const [agencyRestrictions, setAgencyRestrictions] = useState<AgencyRestriction[]>(() => {
+    const restrictions: AgencyRestriction[] = []
+    const restrictionTypes: AgencyRestriction['type'][] = ['booking_restriction', 'route_restriction', 'payment_restriction', 'credit_hold', 'suspension']
+    const reasons = [
+      'Credit limit exceeded - temporary hold until payment received',
+      'High cancellation rate on specific routes',
+      'Suspicious payment activity detected',
+      'Credit hold due to overdue payments',
+      'Full suspension pending investigation'
+    ]
+
+    agencies.forEach((agency, index) => {
+      if (index % 4 === 0) { // Every 4th agency has a restriction
+        const restrictionType = restrictionTypes[index % restrictionTypes.length]
+        const daysAgo = Math.floor(Math.random() * 30) + 1
+
+        restrictions.push({
+          id: `RES-${String(index + 1).padStart(3, '0')}`,
+          agencyCode: agency.code,
+          type: restrictionType,
+          reason: reasons[index % reasons.length],
+          appliedAt: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
+          appliedBy: index % 2 === 0 ? 'system' : 'fraud_team',
+          expiresAt: restrictionType === 'suspension' ? undefined : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          isActive: Math.random() > 0.2,
+          details: {
+            creditBlocked: restrictionType === 'credit_hold',
+            restrictionType: restrictionType === 'route_restriction' ? 'partial' : 'full',
+            affectedRoutes: restrictionType === 'route_restriction' ? ['JFK-LHR', 'JFK-PAR', 'LAX-TYO'] : undefined,
+            paymentMethods: restrictionType === 'payment_restriction' ? ['credit_card', 'debit_card'] : undefined
+          }
+        })
+      }
+    })
+
+    return restrictions
+  })
+
+  // Generate ADM workflows from store adms
+  const [admWorkflows, setAdmWorkflows] = useState<ADMWorkflow[]>(() => {
+    const stages: ADMWorkflow['currentStage'][] = ['draft', 'review', 'approval', 'dispute', 'settlement', 'closed']
+
+    return adms.map((adm, index) => {
+      const stage = stages[index % stages.length]
+      const daysAgo = Math.floor(Math.random() * 30) + 1
+      const history = [
+        { stage: 'draft', status: 'created', timestamp: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(), actor: 'system', notes: 'ADM created automatically' }
       ]
-    },
-    {
-      adm: {
-        id: 'ADM-002',
-        number: 'ADM-2024-002',
-        agencyId: '2',
-        agencyCode: 'AGT002',
-        type: 'refund_violation',
-        amount: 5800,
-        currency: 'USD',
-        reason: 'Refund processed outside ticket rules - non-refundable fare',
-        ticketNumbers: ['176-9876543210'],
-        pnrNumbers: ['DEF456'],
-        status: 'disputed',
-        issuedDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-        dueDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(),
-        disputedDate: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
-        disputeReason: 'Agency claims passenger was eligible for refund due to medical emergency',
-        notes: ['Medical documentation received', 'Under review']
-      },
-      currentStage: 'dispute',
-      history: [
-        { stage: 'draft', status: 'created', timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), actor: 'system' },
-        { stage: 'review', status: 'approved', timestamp: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(), actor: 'Mary Johnson' },
-        { stage: 'dispute', status: 'disputed', timestamp: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(), actor: 'AGT002', notes: 'Agency disputed with medical documentation' }
-      ]
-    },
-    {
-      adm: {
-        id: 'ADM-003',
-        number: 'ADM-2024-003',
-        agencyId: '3',
-        agencyCode: 'AGT003',
-        type: 'ticketing_error',
-        amount: 1200,
-        currency: 'USD',
-        reason: 'Duplicate ticket issued - both tickets need to be voided',
-        ticketNumbers: ['176-5555555555', '176-5555555556'],
-        pnrNumbers: ['GHI789'],
-        status: 'upheld',
-        issuedDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-        dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-        paidDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        notes: ['Agency acknowledged error', 'Payment received']
-      },
-      currentStage: 'settlement',
-      settlementAmount: 1200,
-      settlementDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      history: [
-        { stage: 'draft', status: 'created', timestamp: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(), actor: 'system' },
-        { stage: 'review', status: 'approved', timestamp: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), actor: 'Robert Chen' },
-        { stage: 'approval', status: 'upheld', timestamp: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000).toISOString(), actor: 'Finance Team' },
-        { stage: 'settlement', status: 'paid', timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), actor: 'system', notes: 'Payment processed successfully' }
-      ]
-    }
-  ])
+
+      if (stage !== 'draft') {
+        history.push({ stage: 'review', status: 'pending', timestamp: new Date(Date.now() - (daysAgo - 1) * 24 * 60 * 60 * 1000).toISOString(), actor: 'system' })
+      }
+
+      if (stage === 'approval' || stage === 'settlement' || stage === 'closed') {
+        history.push({ stage: 'review', status: 'approved', timestamp: new Date(Date.now() - (daysAgo - 3) * 24 * 60 * 60 * 1000).toISOString(), actor: 'Revenue Manager' })
+      }
+
+      if (stage === 'dispute') {
+        history.push({ stage: 'dispute', status: 'disputed', timestamp: new Date(Date.now() - (daysAgo - 5) * 24 * 60 * 60 * 1000).toISOString(), actor: adm.agencyCode, notes: 'Agency disputed the charge' })
+      }
+
+      if (stage === 'settlement') {
+        history.push({ stage: 'settlement', status: 'paid', timestamp: new Date(Date.now() - (daysAgo - 20) * 24 * 60 * 60 * 1000).toISOString(), actor: 'system', notes: 'Payment processed successfully' })
+      }
+
+      return {
+        adm: adm,
+        currentStage: stage,
+        approver: stage === 'approval' || stage === 'settlement' ? 'Revenue Manager' : undefined,
+        approvalDate: stage === 'approval' || stage === 'settlement' ? new Date(Date.now() - (daysAgo - 3) * 24 * 60 * 60 * 1000).toISOString() : undefined,
+        disputeReason: stage === 'dispute' ? adm.disputeReason : undefined,
+        settlementAmount: stage === 'settlement' ? adm.amount : undefined,
+        settlementDate: stage === 'settlement' ? new Date(Date.now() - (daysAgo - 20) * 24 * 60 * 60 * 1000).toISOString() : undefined,
+        history: history
+      }
+    })
+  })
 
   // Handlers
   const handleAddAgency = () => {
@@ -658,7 +589,7 @@ export default function AgencyModule() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
           <TabsTrigger value="fraud-detection">
             <ShieldAlert className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Fraud</span>
@@ -674,6 +605,10 @@ export default function AgencyModule() {
           <TabsTrigger value="agency-management">
             <Building2 className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Agencies</span>
+          </TabsTrigger>
+          <TabsTrigger value="credit-management">
+            <CreditCard className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Credit</span>
           </TabsTrigger>
         </TabsList>
 
@@ -752,7 +687,7 @@ export default function AgencyModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96 overflow-x-auto">
+              <div className="overflow-x-auto h-96">
                 <table className="enterprise-table min-w-[1200px]">
                   <thead>
                     <tr>
@@ -847,7 +782,7 @@ export default function AgencyModule() {
                     ))}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -979,7 +914,7 @@ export default function AgencyModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96 overflow-x-auto">
+              <div className="overflow-x-auto h-96">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -1013,9 +948,9 @@ export default function AgencyModule() {
                           {restriction.reason}
                         </td>
                         <td className="text-sm">{restriction.appliedBy}</td>
-                        <td className="text-sm">{new Date(restriction.appliedAt).toLocaleDateString()}</td>
+                        <td className="text-sm">{formatDate(restriction.appliedAt)}</td>
                         <td className="text-sm">
-                          {restriction.expiresAt ? new Date(restriction.expiresAt).toLocaleDateString() : 'Never'}
+                          {restriction.expiresAt ? formatDate(restriction.expiresAt) : 'Never'}
                         </td>
                         <td>
                           <Badge variant={restriction.isActive ? 'destructive' : 'secondary'} className="capitalize">
@@ -1049,7 +984,7 @@ export default function AgencyModule() {
                     ))}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1187,7 +1122,7 @@ export default function AgencyModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96 overflow-x-auto">
+              <div className="overflow-x-auto h-96">
                 <table className="enterprise-table min-w-[1200px]">
                   <thead>
                     <tr>
@@ -1253,10 +1188,10 @@ export default function AgencyModule() {
                           </Badge>
                         </td>
                         <td className="text-sm">
-                          {new Date(workflow.adm.issuedDate).toLocaleDateString()}
+                          {formatDate(workflow.adm.issuedDate)}
                         </td>
                         <td className="text-sm">
-                          {new Date(workflow.adm.dueDate).toLocaleDateString()}
+                          {formatDate(workflow.adm.dueDate)}
                         </td>
                         <td>
                           <div className="flex gap-1">
@@ -1294,7 +1229,7 @@ export default function AgencyModule() {
                     ))}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1367,7 +1302,7 @@ export default function AgencyModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96 overflow-x-auto">
+              <div className="overflow-x-auto h-96">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -1430,7 +1365,176 @@ export default function AgencyModule() {
                     )}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Credit Management Tab */}
+        <TabsContent value="credit-management" className="space-y-6">
+          {/* Credit Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <Card className="enterprise-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Credit Limit</CardTitle>
+                <DollarSign className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  ${agencies.reduce((sum, a) => sum + a.credit.limit, 0).toLocaleString()}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="enterprise-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Credit Used</CardTitle>
+                <TrendingUp className="h-4 w-4 text-orange-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">
+                  ${agencies.reduce((sum, a) => sum + a.credit.used, 0).toLocaleString()}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="enterprise-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Credit Available</CardTitle>
+                <TrendingDown className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  ${agencies.reduce((sum, a) => sum + a.credit.available, 0).toLocaleString()}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="enterprise-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  {agencies.filter(a => (a.credit.used / a.credit.limit) > 0.9).length}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="enterprise-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Avg Utilization</CardTitle>
+                <Activity className="h-4 w-4 text-purple-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">
+                  {Math.round(agencies.reduce((sum, a) => sum + (a.credit.used / a.credit.limit) * 100, 0) / agencies.length) || 0}%
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Credit Transactions */}
+          <Card className="enterprise-card">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Agency Credit Status</CardTitle>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleExportAgencies}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleRefreshData}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh
+                  </Button>
+                </div>
+              </div>
+              <CardDescription>
+                Monitor agency credit utilization and payment status
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto h-96">
+                <table className="enterprise-table min-w-[1200px]">
+                  <thead>
+                    <tr>
+                      <th>Agency Code</th>
+                      <th>Agency Name</th>
+                      <th>Tier</th>
+                      <th>Credit Limit</th>
+                      <th>Credit Used</th>
+                      <th>Credit Available</th>
+                      <th>Utilization</th>
+                      <th>Payment Terms</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {agencies.map((agency) => {
+                      const utilization = (agency.credit.used / agency.credit.limit) * 100
+                      const isOverdue = utilization > 90
+                      const hasRestriction = agencyRestrictions.some(r => r.agencyCode === agency.code && r.isActive)
+                      return (
+                        <tr key={agency.id}>
+                          <td className="font-mono font-medium">{agency.code}</td>
+                          <td className="text-sm">{agency.name}</td>
+                          <td><Badge variant={agency.tier === 'platinum' ? 'default' : 'secondary'} className="capitalize">{agency.tier}</Badge></td>
+                          <td className="text-sm">${agency.credit.limit.toLocaleString()}</td>
+                          <td className="text-sm">${agency.credit.used.toLocaleString()}</td>
+                          <td className="text-sm">${agency.credit.available.toLocaleString()}</td>
+                          <td>
+                            <div className="flex items-center flex-wrap gap-2">
+                              <div className="flex-1 bg-gray-200 rounded-full h-2 w-20">
+                                <div
+                                  className={`h-2 rounded-full ${utilization > 90 ? 'bg-red-600' : utilization > 70 ? 'bg-yellow-600' : 'bg-green-600'}`}
+                                  style={{ width: `${Math.min(utilization, 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-medium">{utilization.toFixed(1)}%</span>
+                            </div>
+                          </td>
+                          <td className="text-sm">{agency.credit.terms} days</td>
+                          <td>
+                            <div className="flex items-center flex-wrap gap-2">
+                              <Badge variant={isOverdue ? 'destructive' : 'secondary'} className="capitalize">
+                                {isOverdue ? 'Overdue' : 'Current'}
+                              </Badge>
+                              {hasRestriction && (
+                                <span title="Has active restrictions">
+                                  <Lock className="h-4 w-4 text-orange-600" />
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewAgencyDetails(agency.id)}
+                                title="View Details"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleAddBookingClass(agency.id)}
+                                title="Add Booking Class"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

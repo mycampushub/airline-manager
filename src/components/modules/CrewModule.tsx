@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { ScrollArea } from '@/components/ui/scroll-area'
+// import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -82,8 +82,32 @@ interface ComplianceAlert {
   createdAt: string
 }
 
+interface TrainingRecord {
+  id: string
+  crewId: string
+  crewName: string
+  trainingType: 'recurrent' | 'initial' | 'upgrade' | 'special' | 'emergency'
+  trainingName: string
+  trainingCode: string
+  startDate: string
+  endDate: string
+  status: 'scheduled' | 'in_progress' | 'completed' | 'expired'
+  instructor: string
+  location: string
+  score?: number
+  certificateIssued: boolean
+  expiryDate?: string
+}
+
 export default function CrewModule() {
-  const { crewMembers, crewSchedules, crewPairings, addCrewMember, assignCrewSchedule, createCrewPairing, pendingAction, setPendingAction } = useAirlineStore()
+  const { crewMembers, crewSchedules, crewPairings, addCrewMember, assignCrewSchedule, createCrewPairing, pendingAction, setPendingAction, initializeCrewDemoData } = useAirlineStore()
+  
+  // Initialize crew demo data if needed
+  useEffect(() => {
+    if (crewMembers.length < 30 || crewSchedules.length < 30 || crewPairings.length < 30) {
+      initializeCrewDemoData()
+    }
+  }, [])
   
   // Handle pending actions from App header
   useEffect(() => {
@@ -148,11 +172,39 @@ export default function CrewModule() {
     endDate: ''
   })
 
-  // Enhanced state
-  const [crewBids, setCrewBids] = useState<CrewBid[]>([
-    { id: 'B1', crewId: 'C1', crewName: 'John Smith', route: 'JFK-LHR', startDate: '2024-12-15', endDate: '2024-12-18', priority: 'high', reason: 'Home for Christmas', status: 'pending', createdAt: '2024-12-01' },
-    { id: 'B2', crewId: 'C2', crewName: 'Sarah Jones', route: 'LAX-TYO', startDate: '2024-12-20', endDate: '2024-12-23', priority: 'medium', reason: 'Preferred layover', status: 'approved', createdAt: '2024-12-02' }
-  ])
+  // Enhanced state - initialize with crew bids from store data
+  const [crewBids, setCrewBids] = useState<CrewBid[]>(() => {
+    // Generate sample bids from actual crew members
+    const routes = ['JFK-LHR', 'LAX-TYO', 'SFO-HKG', 'ORD-LAX', 'MIA-CDG', 'JFK-PAR', 'LAX-SYD', 'SIN-SYD']
+    const reasons = ['Home for holidays', 'Preferred layover', 'Family visit', 'Special event', 'Personal preference']
+    const statuses: Array<'pending' | 'approved' | 'rejected'> = ['pending', 'approved', 'rejected']
+    const priorities: Array<'high' | 'medium' | 'low'> = ['high', 'medium', 'low']
+    
+    const bids: CrewBid[] = []
+    // Generate bids for some crew members
+    const numBids = Math.min(crewMembers.length, 35)
+    for (let i = 0; i < numBids; i++) {
+      const crew = crewMembers[i % crewMembers.length]
+      if (crew) {
+        const startDate = new Date(Date.now() + (i * 2) * 24 * 60 * 60 * 1000)
+        const endDate = new Date(startDate.getTime() + 3 * 24 * 60 * 60 * 1000)
+        
+        bids.push({
+          id: `B${i + 1}`,
+          crewId: crew.id,
+          crewName: `${crew.firstName} ${crew.lastName}`,
+          route: routes[i % routes.length],
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0],
+          priority: priorities[i % priorities.length],
+          reason: reasons[i % reasons.length],
+          status: statuses[i % statuses.length],
+          createdAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        })
+      }
+    }
+    return bids
+  })
 
   const [rosterEntries, setRosterEntries] = useState<RosterEntry[]>([
     { id: 'R1', crewId: 'C1', crewName: 'John Smith', position: 'Captain', base: 'JFK', pairingId: 'PR123456', flightNumber: 'AA123', route: 'JFK-LHR', startDate: '2024-12-10', endDate: '2024-12-12', dutyType: 'flight', status: 'in_progress' },
@@ -161,10 +213,109 @@ export default function CrewModule() {
     { id: 'R4', crewId: 'C4', crewName: 'Emily Brown', position: 'Flight Attendant', base: 'LAX', dutyType: 'standby', startDate: '2024-12-10', endDate: '2024-12-10', status: 'scheduled' }
   ])
 
-  const [complianceAlerts, setComplianceAlerts] = useState<ComplianceAlert[]>([
-    { id: 'CA1', crewId: 'C5', crewName: 'David Wilson', type: 'license_expiry', severity: 'warning', message: 'License expiring soon', value: '2025-01-15', limit: '2025-03-01', createdAt: '2024-12-10' },
-    { id: 'CA2', crewId: 'C1', crewName: 'John Smith', type: 'monthly_hours', severity: 'critical', message: 'Monthly flight hours approaching limit', value: '95h', limit: '100h', createdAt: '2024-12-10' }
-  ])
+  // Initialize compliance alerts from actual crew members
+  const [complianceAlerts, setComplianceAlerts] = useState<ComplianceAlert[]>(() => {
+    const alerts: ComplianceAlert[] = []
+    const alertTypes: Array<'duty_time' | 'rest_period' | 'license_expiry' | 'medical_expiry' | 'monthly_hours'> = ['license_expiry', 'medical_expiry', 'monthly_hours', 'duty_time', 'rest_period']
+    const severities: Array<'critical' | 'warning' | 'info'> = ['critical', 'warning', 'info']
+    
+    // Generate alerts for crew members - ensure 30 items
+    const numAlerts = 30
+    for (let i = 0; i < numAlerts; i++) {
+      const crew = crewMembers[i % crewMembers.length]
+      if (crew) {
+        const alertType = alertTypes[i % alertTypes.length]
+        let message = ''
+        let value = ''
+        let limit = ''
+        
+        switch (alertType) {
+          case 'license_expiry':
+            message = 'License expiring soon'
+            value = crew.licenseExpiry || '2025-06-30'
+            limit = '2026-01-01'
+            break
+          case 'medical_expiry':
+            message = 'Medical certificate expiring soon'
+            value = crew.medicalExpiry || '2025-06-30'
+            limit = '2025-12-31'
+            break
+          case 'monthly_hours':
+            message = 'Monthly flight hours approaching limit'
+            value = `${crew.hoursThisMonth}h`
+            limit = '100h'
+            break
+          case 'duty_time':
+            message = 'Maximum duty time exceeded'
+            value = '14h'
+            limit = '13h'
+            break
+          case 'rest_period':
+            message = 'Minimum rest period not met'
+            value = '8h'
+            limit = '10h'
+            break
+        }
+        
+        alerts.push({
+          id: `CA${i + 1}`,
+          crewId: crew.id,
+          crewName: `${crew.firstName} ${crew.lastName}`,
+          type: alertType,
+          severity: severities[i % severities.length],
+          message,
+          value,
+          limit,
+          createdAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        })
+      }
+    }
+    return alerts
+  })
+
+  // Initialize training records with 30 items
+  const [trainingRecords, setTrainingRecords] = useState<TrainingRecord[]>(() => {
+    const records: TrainingRecord[] = []
+    const trainingTypes: Array<'recurrent' | 'initial' | 'upgrade' | 'special' | 'emergency'> = ['recurrent', 'initial', 'upgrade', 'special', 'emergency']
+    const statuses: Array<'scheduled' | 'in_progress' | 'completed' | 'expired'> = ['scheduled', 'in_progress', 'completed', 'expired']
+    const trainingNames = [
+      'Crew Resource Management', 'Emergency Procedures', 'Security Training',
+      'First Aid & CPR', 'Hazardous Materials', 'Aircraft Systems',
+      'Navigation Procedures', 'Communication Skills', 'Leadership Training',
+      'Firefighting & Evacuation'
+    ]
+    const locations = ['JFK Training Center', 'LAX Academy', 'ORD Flight Ops', 'MIA Training Hub', 'SFO Simulation Center']
+    
+    for (let i = 0; i < 30; i++) {
+      const crew = crewMembers[i % crewMembers.length]
+      if (crew) {
+        const startDate = new Date(Date.now() + (i * 3) * 24 * 60 * 60 * 1000)
+        const endDate = new Date(startDate.getTime() + 2 * 24 * 60 * 60 * 1000)
+        const trainingType = trainingTypes[i % trainingTypes.length]
+        const isCompleted = statuses[i % statuses.length] === 'completed'
+        
+        records.push({
+          id: `TR${String(i + 1).padStart(3, '0')}`,
+          crewId: crew.id,
+          crewName: `${crew.firstName} ${crew.lastName}`,
+          trainingType,
+          trainingName: trainingNames[i % trainingNames.length],
+          trainingCode: `TRN-${trainingType.toUpperCase().substring(0, 3)}-${String(i + 1).padStart(2, '0')}`,
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0],
+          status: statuses[i % statuses.length],
+          instructor: `Instructor ${['Smith', 'Johnson', 'Williams', 'Brown', 'Jones'][i % 5]}`,
+          location: locations[i % locations.length],
+          score: isCompleted ? 85 + (i % 15) : undefined,
+          certificateIssued: isCompleted && i % 3 !== 0,
+          expiryDate: isCompleted && i % 2 === 0 
+            ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            : undefined
+        })
+      }
+    }
+    return records
+  })
 
   const [newBid, setNewBid] = useState({
     crewId: '',
@@ -177,6 +328,7 @@ export default function CrewModule() {
 
   const [rosterConfig, setRosterConfig] = useState({
     period: 'month' as const,
+    base: 'all' as string,
     startDate: '',
     endDate: '',
     autoOptimize: true,
@@ -363,8 +515,8 @@ export default function CrewModule() {
         route: route,
         startDate: startDate,
         endDate: endDate,
-        dutyType: i % 4 === 0 ? 'standby' : 'flight',
-        status: 'scheduled'
+        dutyType: (i % 4 === 0 ? 'standby' : 'flight') as 'flight' | 'standby' | 'training' | 'leave',
+        status: 'scheduled' as 'scheduled' | 'in_progress' | 'completed'
       })
 
       // Update duty history
@@ -411,14 +563,26 @@ export default function CrewModule() {
     toast({ title: 'Filter Cleared', description: 'All filters have been reset' })
   }
 
-  // Get filtered roster entries
-  const filteredRosterEntries = rosterEntries.filter(entry => {
-    if (rosterFilter.position !== 'all' && entry.position !== rosterFilter.position) return false
-    if (rosterFilter.base !== 'all' && entry.base !== rosterFilter.base) return false
-    if (rosterFilter.status !== 'all' && entry.status !== rosterFilter.status) return false
-    if (rosterFilter.searchTerm && !entry.crewName.toLowerCase().includes(rosterFilter.searchTerm.toLowerCase())) return false
+  // Get filtered crew members for roster
+  const filteredCrewMembers = crewMembers.filter(crew => {
+    if (rosterFilter.position !== 'all' && crew.position !== rosterFilter.position) return false
+    if (rosterFilter.base !== 'all' && crew.base !== rosterFilter.base) return false
+    if (rosterFilter.status !== 'all' && crew.status !== rosterFilter.status) return false
+    if (rosterFilter.searchTerm && !`${crew.firstName} ${crew.lastName}`.toLowerCase().includes(rosterFilter.searchTerm.toLowerCase())) return false
     return true
   })
+
+  // Helper to get crew schedule info
+  const getCrewScheduleInfo = (crewId: string) => {
+    const schedule = crewSchedules.find(s => s.crewId === crewId)
+    return {
+      route: schedule?.route || '-',
+      startDate: schedule?.startDate || '-',
+      endDate: schedule?.endDate || '-',
+      dutyType: schedule?.type || 'standby',
+      status: schedule?.status || 'scheduled'
+    }
+  }
 
   // Get filtered bidding requests
   const filteredBiddingRequests = crewBids.filter(bid => {
@@ -462,8 +626,8 @@ export default function CrewModule() {
         route: entry.route || '',
         startDate: entry.startDate,
         endDate: entry.endDate,
-        dutyType: entry.dutyType,
-        status: entry.status,
+        dutyType: entry.dutyType as any,
+        status: entry.status as any,
         flightNumber: entry.flightNumber || ''
       })
       setShowEditRosterDialog(true)
@@ -783,7 +947,7 @@ export default function CrewModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96 overflow-x-auto">
+              <div className="overflow-x-auto h-96">
                 <table className="enterprise-table min-w-[900px]">
                   <thead>
                     <tr>
@@ -798,41 +962,44 @@ export default function CrewModule() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rosterEntries.length === 0 ? (
+                    {filteredCrewMembers.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="text-center text-muted-foreground py-8">
-                          No roster entries. Generate a roster to get started.
+                          No crew members found
                         </td>
                       </tr>
                     ) : (
-                      filteredRosterEntries.map((entry) => (
-                        <tr key={entry.id}>
-                          <td className="font-medium">{entry.crewName}</td>
-                          <td className="capitalize text-sm">{entry.position.replace('_', ' ')}</td>
-                          <td className="text-sm">{entry.base}</td>
-                          <td className="text-sm">{entry.route || '-'}</td>
-                          <td className="text-sm">{entry.startDate} → {entry.endDate}</td>
-                          <td>
-                            <Badge variant={entry.dutyType === 'flight' ? 'default' : entry.dutyType === 'standby' ? 'secondary' : 'outline'} className="capitalize">
-                              {entry.dutyType}
-                            </Badge>
-                          </td>
-                          <td>
-                            <Badge variant={entry.status === 'completed' ? 'default' : entry.status === 'in_progress' ? 'secondary' : 'outline'} className="capitalize">
-                              {entry.status}
-                            </Badge>
-                          </td>
-                          <td>
-                            <Button variant="ghost" size="sm" onClick={() => handleEditRosterEntry(entry.id)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
+                      filteredCrewMembers.slice(0, 50).map((crew) => {
+                        const scheduleInfo = getCrewScheduleInfo(crew.id)
+                        return (
+                          <tr key={crew.id}>
+                            <td className="font-medium">{crew.firstName} {crew.lastName}</td>
+                            <td className="capitalize text-sm">{crew.position.replace('_', ' ')}</td>
+                            <td className="text-sm">{crew.base}</td>
+                            <td className="text-sm">{scheduleInfo.route}</td>
+                            <td className="text-sm">{scheduleInfo.startDate} → {scheduleInfo.endDate}</td>
+                            <td>
+                              <Badge variant={scheduleInfo.dutyType === 'flight' ? 'default' : scheduleInfo.dutyType === 'standby' ? 'secondary' : 'outline'} className="capitalize">
+                                {scheduleInfo.dutyType}
+                              </Badge>
+                            </td>
+                            <td>
+                              <Badge variant={crew.status === 'active' ? 'default' : 'secondary'} className="capitalize">
+                                {crew.status}
+                              </Badge>
+                            </td>
+                            <td>
+                              <Button variant="ghost" size="sm" title="View Details">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        )
+                      })
                     )}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -939,7 +1106,7 @@ export default function CrewModule() {
                   Clear Filter
                 </Button>
               </div>
-              <ScrollArea className="h-96 overflow-x-auto">
+              <div className="overflow-x-auto h-96">
                 <table className="enterprise-table min-w-[900px]">
                   <thead>
                     <tr>
@@ -998,7 +1165,7 @@ export default function CrewModule() {
                     )}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1100,7 +1267,7 @@ export default function CrewModule() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-80">
+                <div className="overflow-y-auto h-80">
                   <div className="space-y-3">
                     {filteredComplianceAlerts.length === 0 ? (
                       <div className="text-center text-muted-foreground py-8">
@@ -1138,7 +1305,7 @@ export default function CrewModule() {
                       ))
                     )}
                   </div>
-                </ScrollArea>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -1222,7 +1389,7 @@ export default function CrewModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80 overflow-x-auto">
+              <div className="overflow-x-auto h-80">
                 <table className="enterprise-table min-w-[800px]">
                   <thead>
                     <tr>
@@ -1262,7 +1429,7 @@ export default function CrewModule() {
                     )}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1283,7 +1450,7 @@ export default function CrewModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80 overflow-x-auto">
+              <div className="overflow-x-auto h-80">
                 <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
@@ -1328,7 +1495,7 @@ export default function CrewModule() {
                     )}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1343,7 +1510,7 @@ export default function CrewModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96 overflow-x-auto">
+              <div className="overflow-x-auto h-96">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -1390,7 +1557,7 @@ export default function CrewModule() {
                     )}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1680,7 +1847,7 @@ export default function CrewModule() {
                     {crewMembers.find(c => c.id === selectedCrewForHistory)?.lastName}
                   </span>
                 </div>
-                <ScrollArea className="h-80 overflow-x-auto">
+                <div className="overflow-x-auto h-80">
                   <table className="enterprise-table min-w-[800px]">
                     <thead>
                       <tr>
@@ -1721,7 +1888,7 @@ export default function CrewModule() {
                       )}
                     </tbody>
                   </table>
-                </ScrollArea>
+                </div>
               </div>
             )}
           </div>
