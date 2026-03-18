@@ -515,7 +515,7 @@ export default function SustainabilityModule() {
             ESG Reports, Carbon Optimization, and Offset Management
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => {
             initializeESGReports()
             initializeOptimizations()
@@ -626,7 +626,7 @@ export default function SustainabilityModule() {
                               Published: {report.publishedAt || 'Draft'}
                             </CardDescription>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             {getStatusBadge(report.status)}
                             <Button variant="ghost" size="sm" onClick={() => { setSelectedReport(report); setShowReportDetails(true) }}>
                               <Eye className="h-4 w-4" />
@@ -635,7 +635,7 @@ export default function SustainabilityModule() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                           <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-sm">
                             <div className="text-xs text-muted-foreground">Environmental</div>
                             <div className="text-lg font-bold text-green-700 dark:text-green-400">
@@ -692,7 +692,7 @@ export default function SustainabilityModule() {
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               <CardTitle className="text-base">{opt.name}</CardTitle>
                               {getPriorityBadge(opt.priority)}
                             </div>
@@ -700,7 +700,7 @@ export default function SustainabilityModule() {
                               {opt.type.replace('_', ' ')} | {opt.responsible}
                             </CardDescription>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             {getStatusBadge(opt.status)}
                             <Button variant="ghost" size="sm" onClick={() => { setSelectedOptimization(opt); setShowOptimizationDetails(true) }}>
                               <Eye className="h-4 w-4" />
@@ -711,7 +711,7 @@ export default function SustainabilityModule() {
                       <CardContent>
                         <div className="space-y-3">
                           <p className="text-sm text-muted-foreground">{opt.description}</p>
-                          <div className="grid grid-cols-4 gap-2 text-sm">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-sm">
                             <div>
                               <div className="text-muted-foreground">Est. CO2 Savings</div>
                               <div className="font-medium text-green-600">{opt.estimatedSavings.co2.toLocaleString()} t</div>
@@ -739,7 +739,7 @@ export default function SustainabilityModule() {
                             </div>
                           )}
                           {opt.actualSavings && (
-                            <div className="grid grid-cols-3 gap-2 text-xs p-2 bg-secondary/20 rounded-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs p-2 bg-secondary/20 rounded-sm">
                               <div>
                                 <span className="text-muted-foreground">CO2: </span>
                                 <span className="font-medium">{opt.actualSavings.co2.toLocaleString()} t</span>
@@ -780,8 +780,8 @@ export default function SustainabilityModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>Project</th>
@@ -808,7 +808,7 @@ export default function SustainabilityModule() {
                         <td className="text-sm font-medium">{offset.available.toLocaleString()} t</td>
                         <td className="text-sm">${offset.totalSpent.toLocaleString()}</td>
                         <td>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center flex-wrap gap-1">
                             <Button variant="ghost" size="sm" onClick={() => { setSelectedOffset(offset); setShowPurchaseDialog(true) }}>
                               <Plus className="h-4 w-4" />
                             </Button>
@@ -847,7 +847,7 @@ export default function SustainabilityModule() {
                 ].map((initiative, i) => (
                   <div key={i} className="p-4 bg-secondary/30 rounded-sm space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         {initiative.type === 'fleet' && <Plane className="h-5 w-5 text-blue-600" />}
                         {initiative.type === 'fuel' && <Droplets className="h-5 w-5 text-blue-600" />}
                         {initiative.type === 'operations' && <Zap className="h-5 w-5 text-yellow-600" />}
@@ -858,7 +858,7 @@ export default function SustainabilityModule() {
                         {initiative.status}
                       </Badge>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-sm">
                       <div>
                         <span className="text-muted-foreground">Fuel:</span>
                         <span className="ml-1 font-medium">{initiative.savings.fuel.toLocaleString()}L</span>
@@ -909,7 +909,7 @@ export default function SustainabilityModule() {
                       <span className="font-medium">{item.name}</span>
                       <span className="text-sm text-muted-foreground">Target: {item.year}</span>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center flex-wrap gap-4">
                       <div className="flex-1">
                         <div className="h-4 bg-secondary rounded-full overflow-hidden">
                           <div 
@@ -979,7 +979,7 @@ export default function SustainabilityModule() {
 
       {/* ESG Report Details Dialog */}
       <Dialog open={showReportDetails} onOpenChange={setShowReportDetails}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>ESG Report Details</DialogTitle>
           </DialogHeader>
@@ -987,11 +987,11 @@ export default function SustainabilityModule() {
             <ScrollArea className="max-h-[70vh]">
               <div className="space-y-4 py-4">
                 <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-sm">
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <h4 className="font-medium mb-3 flex items-center flex-wrap gap-2">
                     <Globe className="h-4 w-4" />
                     Environmental
                   </h4>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                     <div>
                       <div className="text-muted-foreground">CO2 Emissions</div>
                       <div className="font-medium">{(selectedReport.environmental.co2Emissions / 1000000).toFixed(2)}M tonnes</div>
@@ -1020,11 +1020,11 @@ export default function SustainabilityModule() {
                 </div>
 
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-sm">
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <h4 className="font-medium mb-3 flex items-center flex-wrap gap-2">
                     <Users className="h-4 w-4" />
                     Social
                   </h4>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                     <div>
                       <div className="text-muted-foreground">Employees</div>
                       <div className="font-medium">{selectedReport.social.employees.toLocaleString()}</div>
@@ -1053,11 +1053,11 @@ export default function SustainabilityModule() {
                 </div>
 
                 <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-sm">
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <h4 className="font-medium mb-3 flex items-center flex-wrap gap-2">
                     <Building2 className="h-4 w-4" />
                     Governance
                   </h4>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                     <div>
                       <div className="text-muted-foreground">Board Diversity</div>
                       <div className="font-medium">{Math.round(selectedReport.governance.boardDiversity * 100)}%</div>
@@ -1120,13 +1120,13 @@ export default function SustainabilityModule() {
 
       {/* Optimization Details Dialog */}
       <Dialog open={showOptimizationDetails} onOpenChange={setShowOptimizationDetails}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Carbon Optimization Details</DialogTitle>
           </DialogHeader>
           {selectedOptimization && (
             <div className="space-y-4 py-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center flex-wrap gap-2">
                 {getPriorityBadge(selectedOptimization.priority)}
                 {getStatusBadge(selectedOptimization.status)}
               </div>
@@ -1136,7 +1136,7 @@ export default function SustainabilityModule() {
                 <p className="text-sm mt-1">{selectedOptimization.description}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label>Type</Label>
                   <div className="text-sm font-medium mt-1 capitalize">{selectedOptimization.type.replace('_', ' ')}</div>
@@ -1157,7 +1157,7 @@ export default function SustainabilityModule() {
 
               <div className="border-t pt-4">
                 <h4 className="font-medium mb-3">Estimated Savings</h4>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-sm">
                     <div className="text-xs text-muted-foreground">CO2 Reduction</div>
                     <div className="text-lg font-bold text-green-700 dark:text-green-400">
@@ -1182,7 +1182,7 @@ export default function SustainabilityModule() {
               {selectedOptimization.actualSavings && (
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Actual Savings (To Date)</h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-sm">
                       <div className="text-xs text-muted-foreground">CO2 Reduced</div>
                       <div className="text-lg font-bold text-green-700 dark:text-green-400">
@@ -1205,7 +1205,7 @@ export default function SustainabilityModule() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
                   <div className="text-muted-foreground">Implementation Cost</div>
                   <div className="font-medium">${(selectedOptimization.implementationCost / 1000000).toFixed(2)}M</div>

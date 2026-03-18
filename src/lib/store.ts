@@ -1534,6 +1534,7 @@ interface AirlineStore {
   
   // Flight Operations Actions
   createFlightSchedule: (schedule: Partial<FlightSchedule>) => FlightSchedule
+  updateFlightSchedule: (id: string, updates: Partial<FlightSchedule>) => FlightSchedule
   updateFlightInstance: (id: string, updates: Partial<FlightInstance>) => FlightInstance
   createDisruption: (disruption: Partial<DisruptionEvent>) => DisruptionEvent
   generateFlightRelease: (flightId: string) => FlightRelease
@@ -1914,7 +1915,16 @@ export const useAirlineStore = create<AirlineStore>((set, get) => ({
     set((state) => ({ flightSchedules: [...state.flightSchedules, newSchedule] }))
     return newSchedule
   },
-  
+
+  updateFlightSchedule: (id, updates) => {
+    set((state) => ({
+      flightSchedules: state.flightSchedules.map((s) =>
+        s.id === id ? { ...s, ...updates } : s
+      )
+    }))
+    return get().flightSchedules.find((s) => s.id === id)!
+  },
+
   updateFlightInstance: (id, updates) => {
     set((state) => ({
       flightInstances: state.flightInstances.map((f) =>

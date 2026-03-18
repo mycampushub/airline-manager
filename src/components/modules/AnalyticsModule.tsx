@@ -698,9 +698,9 @@ export default function AnalyticsModule() {
             Real-time KPIs, Route Profitability, and AI-Powered Predictions
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 mr-4">
-            <div className="flex items-center gap-2 bg-secondary/50 px-3 py-1.5 rounded-sm">
+        <div className="flex items-center flex-wrap gap-2">
+          <div className="flex items-center flex-wrap gap-2 mr-4">
+            <div className="flex items-center flex-wrap gap-2 bg-secondary/50 px-3 py-1.5 rounded-sm">
               <Bell className={`h-4 w-4 ${alerts.filter(a => a.status === 'active').length > 0 ? 'text-red-500' : 'text-muted-foreground'}`} />
               <span className="text-sm font-medium">{alerts.filter(a => a.status === 'active').length} Alerts</span>
             </div>
@@ -732,7 +732,7 @@ export default function AnalyticsModule() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${kpiDashboard.metrics.revenue.total.toLocaleString()}</div>
-            <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+            <div className="text-xs text-green-600 mt-1 flex items-center flex-wrap gap-1">
               <ArrowUpRight className="h-3 w-3" />
               {kpiDashboard.metrics.revenue.change}%
             </div>
@@ -746,7 +746,7 @@ export default function AnalyticsModule() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpiDashboard.metrics.loadFactor.value}%</div>
-            <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+            <div className="text-xs text-green-600 mt-1 flex items-center flex-wrap gap-1">
               <ArrowUpRight className="h-3 w-3" />
               {kpiDashboard.metrics.loadFactor.change}%
             </div>
@@ -760,7 +760,7 @@ export default function AnalyticsModule() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${kpiDashboard.metrics.yield.value}</div>
-            <div className="text-xs text-red-600 mt-1 flex items-center gap-1">
+            <div className="text-xs text-red-600 mt-1 flex items-center flex-wrap gap-1">
               <ArrowDownRight className="h-3 w-3" />
               {Math.abs(kpiDashboard.metrics.yield.change)}%
             </div>
@@ -774,7 +774,7 @@ export default function AnalyticsModule() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpiDashboard.metrics.onTimePerformance.value}%</div>
-            <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+            <div className="text-xs text-green-600 mt-1 flex items-center flex-wrap gap-1">
               <ArrowUpRight className="h-3 w-3" />
               {kpiDashboard.metrics.onTimePerformance.change}%
             </div>
@@ -827,7 +827,7 @@ export default function AnalyticsModule() {
                 <CardTitle>Revenue by Cabin</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {kpiDashboard.revenueByCabin.map((cabin) => (
                     <div key={cabin.cabin} className="text-center p-4 bg-secondary/30 rounded-sm">
                       <div className="text-2xl font-bold">${cabin.revenue.toLocaleString()}</div>
@@ -848,8 +848,8 @@ export default function AnalyticsModule() {
               <CardDescription>Performance metrics with AI predictions</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>Route</th>
@@ -922,7 +922,7 @@ export default function AnalyticsModule() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center flex-wrap gap-2">
                       <Building2 className="h-5 w-5" />
                       Agent Channel Performance
                     </CardTitle>
@@ -937,8 +937,8 @@ export default function AnalyticsModule() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-96">
-                  <table className="enterprise-table">
+                <ScrollArea className="h-96 overflow-x-auto">
+                  <table className="enterprise-table min-w-[1300px]">
                     <thead>
                       <tr>
                         <th>Rank</th>
@@ -1016,7 +1016,7 @@ export default function AnalyticsModule() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
+                  <CardTitle className="flex items-center flex-wrap gap-2 text-lg">
                     <Users className="h-5 w-5" />
                     Top Performers
                   </CardTitle>
@@ -1025,7 +1025,7 @@ export default function AnalyticsModule() {
                   <div className="space-y-3">
                     {agentPerformanceData.slice(0, 3).map((agent, i) => (
                       <div key={agent.agentId} className="flex items-center justify-between p-3 bg-secondary/30 rounded-sm">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center flex-wrap gap-3">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
                             i === 0 ? 'bg-yellow-100 text-yellow-700' : 
                             i === 1 ? 'bg-gray-100 text-gray-700' : 
@@ -1050,7 +1050,7 @@ export default function AnalyticsModule() {
 
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
+                  <CardTitle className="flex items-center flex-wrap gap-2 text-lg">
                     <CreditCard className="h-5 w-5" />
                     Commission Analysis
                   </CardTitle>
@@ -1073,21 +1073,21 @@ export default function AnalyticsModule() {
                       <div className="text-xs text-muted-foreground mb-2">Commission by Tier</div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="flex items-center gap-2">
+                          <span className="flex items-center flex-wrap gap-2">
                             <Crown className="h-3 w-3 text-purple-500" />
                             Platinum
                           </span>
                           <span>$420,000</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="flex items-center gap-2">
+                          <span className="flex items-center flex-wrap gap-2">
                             <Medal className="h-3 w-3 text-yellow-500" />
                             Gold
                           </span>
                           <span>$303,500</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="flex items-center gap-2">
+                          <span className="flex items-center flex-wrap gap-2">
                             <Award className="h-3 w-3 text-gray-400" />
                             Silver
                           </span>
@@ -1101,7 +1101,7 @@ export default function AnalyticsModule() {
 
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
+                  <CardTitle className="flex items-center flex-wrap gap-2 text-lg">
                     <TrendUpIcon className="h-5 w-5" />
                     Growth Leaders
                   </CardTitle>
@@ -1118,7 +1118,7 @@ export default function AnalyticsModule() {
                             <div className="text-xs text-muted-foreground">{agent.bookings.toLocaleString()} bookings</div>
                           </div>
                           <div className="text-right">
-                            <div className={`font-bold flex items-center gap-1 ${
+                            <div className={`font-bold flex items-center flex-wrap gap-1 ${
                               agent.growth >= 10 ? 'text-green-600' : 'text-blue-600'
                             }`}>
                               {agent.growth >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendDownIcon className="h-3 w-3" />}
@@ -1142,7 +1142,7 @@ export default function AnalyticsModule() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center flex-wrap gap-2">
                       <Brain className="h-5 w-5" />
                       AI Models
                     </CardTitle>
@@ -1161,7 +1161,7 @@ export default function AnalyticsModule() {
                       <div key={model.id} className="p-4 border rounded-sm hover:bg-secondary/50 transition-colors">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center flex-wrap gap-2 mb-1">
                               <h4 className="font-semibold">{model.name}</h4>
                               <Badge variant={model.status === 'deployed' ? 'default' : 'secondary'}>
                                 {model.status}
@@ -1175,7 +1175,7 @@ export default function AnalyticsModule() {
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-4 gap-4 mb-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-3">
                           <div>
                             <div className="text-xs text-muted-foreground">Precision</div>
                             <div className="font-medium">{(model.performance.precision * 100).toFixed(1)}%</div>
@@ -1195,16 +1195,16 @@ export default function AnalyticsModule() {
                         </div>
 
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center flex-wrap gap-4">
                             <span>v{model.version}</span>
                             <span>Features: {model.features.length}</span>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <span className="flex items-center gap-1">
+                          <div className="flex items-center flex-wrap gap-4">
+                            <span className="flex items-center flex-wrap gap-1">
                               <Calendar className="h-3 w-3" />
                               Last: {model.lastTrained}
                             </span>
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center flex-wrap gap-1">
                               <Clock className="h-3 w-3" />
                               Next: {model.nextTraining}
                             </span>
@@ -1221,7 +1221,7 @@ export default function AnalyticsModule() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <Zap className="h-5 w-5" />
                     Generate Predictions
                   </CardTitle>
@@ -1293,7 +1293,7 @@ export default function AnalyticsModule() {
 
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <LineChart className="h-5 w-5" />
                     Quick Forecast
                   </CardTitle>
@@ -1302,7 +1302,7 @@ export default function AnalyticsModule() {
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-sm">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center flex-wrap gap-3">
                         <div className="p-2 bg-green-100 rounded-full">
                           <DollarSign className="h-4 w-4 text-green-600" />
                         </div>
@@ -1311,7 +1311,7 @@ export default function AnalyticsModule() {
                       <span className="text-2xl font-bold text-green-700">$12.4M</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-sm">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center flex-wrap gap-3">
                         <div className="p-2 bg-blue-100 rounded-full">
                           <Activity className="h-4 w-4 text-blue-600" />
                         </div>
@@ -1320,7 +1320,7 @@ export default function AnalyticsModule() {
                       <span className="text-2xl font-bold text-blue-700">86%</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-sm">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center flex-wrap gap-3">
                         <div className="p-2 bg-purple-100 rounded-full">
                           <Target className="h-4 w-4 text-purple-600" />
                         </div>
@@ -1329,7 +1329,7 @@ export default function AnalyticsModule() {
                       <span className="text-2xl font-bold text-purple-700">94%</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-sm">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center flex-wrap gap-3">
                         <div className="p-2 bg-orange-100 rounded-full">
                           <TrendUpIcon className="h-4 w-4 text-orange-600" />
                         </div>
@@ -1345,15 +1345,15 @@ export default function AnalyticsModule() {
             {/* Recent Predictions Section */}
             <Card className="enterprise-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center flex-wrap gap-2">
                   <Activity className="h-5 w-5" />
                   Recent Predictions
                 </CardTitle>
                 <CardDescription>Latest AI-generated predictions and outcomes</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-80">
-                  <table className="enterprise-table">
+                <ScrollArea className="h-80 overflow-x-auto">
+                  <table className="enterprise-table min-w-[1000px]">
                     <thead>
                       <tr>
                         <th>Model</th>
@@ -1407,7 +1407,7 @@ export default function AnalyticsModule() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <Users className="h-5 w-5" />
                     Passenger Segments
                   </CardTitle>
@@ -1419,7 +1419,7 @@ export default function AnalyticsModule() {
                       {passengerAnalytics.demographics.map((segment, i) => (
                         <div key={i} className="p-4 border rounded-sm">
                           <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center flex-wrap gap-3">
                               <div className={`p-2 rounded-full ${
                                 i === 0 ? 'bg-blue-100' : 
                                 i === 1 ? 'bg-green-100' : 
@@ -1440,7 +1440,7 @@ export default function AnalyticsModule() {
                               </div>
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                             <div>
                               <span className="text-muted-foreground">Avg Spend:</span>
                               <span className="ml-2 font-medium">${segment.avgSpend}</span>
@@ -1459,15 +1459,15 @@ export default function AnalyticsModule() {
 
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <Heart className="h-5 w-5" />
                     Loyalty Tier Analysis
                   </CardTitle>
                   <CardDescription>Member distribution by tier</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-72">
-                    <table className="enterprise-table">
+                  <ScrollArea className="h-72 overflow-x-auto">
+                    <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
                           <th>Tier</th>
@@ -1500,15 +1500,15 @@ export default function AnalyticsModule() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <Map className="h-5 w-5" />
                     Travel Patterns by Route
                   </CardTitle>
                   <CardDescription>Passenger behavior on key routes</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-72">
-                    <table className="enterprise-table">
+                  <ScrollArea className="h-72 overflow-x-auto">
+                    <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
                           <th>Route</th>
@@ -1540,7 +1540,7 @@ export default function AnalyticsModule() {
 
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <Briefcase className="h-5 w-5" />
                     Ancillary Services
                   </CardTitle>
@@ -1595,7 +1595,7 @@ export default function AnalyticsModule() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{aircraftUtilization.metrics.avgUtilization}%</div>
-                  <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                  <div className="text-xs text-green-600 mt-1 flex items-center flex-wrap gap-1">
                     <TrendingUp className="h-3 w-3" />
                     +2.3%
                   </div>
@@ -1628,15 +1628,15 @@ export default function AnalyticsModule() {
             {/* Fleet Utilization Table */}
             <Card className="enterprise-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center flex-wrap gap-2">
                   <Plane className="h-5 w-5" />
                   Fleet Utilization
                 </CardTitle>
                 <CardDescription>Detailed metrics by aircraft</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-80">
-                  <table className="enterprise-table">
+                <ScrollArea className="h-80 overflow-x-auto">
+                  <table className="enterprise-table min-w-[1000px]">
                     <thead>
                       <tr>
                         <th>Registration</th>
@@ -1656,7 +1656,7 @@ export default function AnalyticsModule() {
                           <td className="font-medium">{aircraft.registration}</td>
                           <td>{aircraft.type}</td>
                           <td>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden w-24">
                                 <div 
                                   className={`h-full ${aircraft.utilizationRate >= 95 ? 'bg-green-500' : aircraft.utilizationRate >= 90 ? 'bg-blue-500' : 'bg-yellow-500'}`}
@@ -1687,15 +1687,15 @@ export default function AnalyticsModule() {
             {/* Aircraft Type Analysis */}
             <Card className="enterprise-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center flex-wrap gap-2">
                   <BarChart3 className="h-5 w-5" />
                   Performance by Aircraft Type
                 </CardTitle>
                 <CardDescription>Fleet metrics grouped by aircraft type</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-64">
-                  <table className="enterprise-table">
+                <ScrollArea className="h-64 overflow-x-auto">
+                  <table className="enterprise-table min-w-[1000px]">
                     <thead>
                       <tr>
                         <th>Aircraft Type</th>
@@ -1780,15 +1780,15 @@ export default function AnalyticsModule() {
               {/* Utilization by Position */}
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <Users className="h-5 w-5" />
                     Utilization by Position
                   </CardTitle>
                   <CardDescription>Crew metrics by role</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-72">
-                    <table className="enterprise-table">
+                  <ScrollArea className="h-72 overflow-x-auto">
+                    <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
                           <th>Position</th>
@@ -1823,7 +1823,7 @@ export default function AnalyticsModule() {
               {/* Top Performers */}
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <Star className="h-5 w-5" />
                     Top Performers
                   </CardTitle>
@@ -1834,7 +1834,7 @@ export default function AnalyticsModule() {
                     {crewUtilization.topPerformers.map((crew, i) => (
                       <div key={i} className="p-4 border rounded-sm">
                         <div className="flex items-start justify-between mb-2">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center flex-wrap gap-3">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
                               i === 0 ? 'bg-yellow-500' : 
                               i === 1 ? 'bg-gray-400' : 
@@ -1855,7 +1855,7 @@ export default function AnalyticsModule() {
                             <div className="text-xs text-muted-foreground">Rating</div>
                           </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                           <div>
                             <span className="text-muted-foreground">Hours:</span>
                             <span className="ml-1 font-medium">{crew.hoursFlown}</span>
@@ -1883,15 +1883,15 @@ export default function AnalyticsModule() {
             {/* On-Time Performance Overview */}
             <Card className="enterprise-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center flex-wrap gap-2">
                   <Activity className="h-5 w-5" />
                   On-Time Performance
                 </CardTitle>
                 <CardDescription>Overall: {operationalKPIs.onTimePerformance.overall}% on-time</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-72">
-                  <table className="enterprise-table">
+                <ScrollArea className="h-72 overflow-x-auto">
+                  <table className="enterprise-table min-w-[900px]">
                     <thead>
                       <tr>
                         <th>Route</th>
@@ -1925,15 +1925,15 @@ export default function AnalyticsModule() {
               {/* Delay Analysis */}
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <AlertTriangle className="h-5 w-5" />
                     Delay Analysis
                   </CardTitle>
                   <CardDescription>Total delays: {operationalKPIs.delayAnalysis.totalDelays}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-64">
-                    <table className="enterprise-table">
+                  <ScrollArea className="h-64 overflow-x-auto">
+                    <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
                           <th>Code</th>
@@ -1950,7 +1950,7 @@ export default function AnalyticsModule() {
                             <td>{delay.description}</td>
                             <td>{delay.count}</td>
                             <td>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center flex-wrap gap-2">
                                 <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden w-20">
                                   <div 
                                     className={`h-full ${delay.percentage >= 20 ? 'bg-red-500' : delay.percentage >= 10 ? 'bg-yellow-500' : 'bg-green-500'}`}
@@ -1972,7 +1972,7 @@ export default function AnalyticsModule() {
               {/* Disruption Metrics */}
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <ShieldAlert className="h-5 w-5" />
                     Disruption Metrics
                   </CardTitle>
@@ -1983,7 +1983,7 @@ export default function AnalyticsModule() {
                     {operationalKPIs.disruptionMetrics.byType.map((disruption, i) => (
                       <div key={i} className="p-4 border rounded-sm">
                         <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <div className={`p-2 rounded-full ${
                               disruption.type === 'delay' ? 'bg-yellow-100' : 
                               disruption.type === 'cancellation' ? 'bg-red-100' : 
@@ -2001,7 +2001,7 @@ export default function AnalyticsModule() {
                             <div className="text-xs text-muted-foreground">Pax impacted</div>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="text-muted-foreground">Resolved:</span>
                             <span className="ml-2 font-medium">{disruption.resolved}/{disruption.count}</span>
@@ -2075,7 +2075,7 @@ export default function AnalyticsModule() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center flex-wrap gap-2">
                       <BellRing className="h-5 w-5" />
                       KPI Alerts
                     </CardTitle>
@@ -2121,10 +2121,10 @@ export default function AnalyticsModule() {
                             <div>
                               <div className="font-medium">{alert.kpi}</div>
                               <div className="text-sm text-muted-foreground mt-1">{alert.message}</div>
-                              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                              <div className="flex items-center flex-wrap gap-4 mt-2 text-xs text-muted-foreground">
                                 <span>{alert.route}</span>
                                 <span>•</span>
-                                <span className={`flex items-center gap-1 ${
+                                <span className={`flex items-center flex-wrap gap-1 ${
                                   alert.trend === 'increasing' ? 'text-red-600' :
                                   alert.trend === 'decreasing' ? 'text-green-600' :
                                   'text-blue-600'
@@ -2191,7 +2191,7 @@ export default function AnalyticsModule() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{cancellationAnalysis.summary.totalBookings.toLocaleString()}</div>
-                  <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                  <div className="text-xs text-green-600 mt-1 flex items-center flex-wrap gap-1">
                     <ArrowUpRight className="h-3 w-3" />
                     +12.5%
                   </div>
@@ -2236,7 +2236,7 @@ export default function AnalyticsModule() {
               {/* Cancellation by Reason */}
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <FileText className="h-5 w-5" />
                     Cancellation by Reason
                   </CardTitle>
@@ -2248,7 +2248,7 @@ export default function AnalyticsModule() {
                       {cancellationAnalysis.byReason.map((item, i) => (
                         <div key={i} className="p-3 border rounded-sm">
                           <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               <span className="font-medium">{item.reason}</span>
                               <Badge variant={
                                 item.trend === 'increasing' ? 'destructive' :
@@ -2282,15 +2282,15 @@ export default function AnalyticsModule() {
               {/* Cancellation by Route */}
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <MapPin className="h-5 w-5" />
                     Cancellation by Route
                   </CardTitle>
                   <CardDescription>Route-specific cancellation rates</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-72">
-                    <table className="enterprise-table">
+                  <ScrollArea className="h-72 overflow-x-auto">
+                    <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
                           <th>Route</th>
@@ -2321,15 +2321,15 @@ export default function AnalyticsModule() {
               {/* Cancellation by Channel */}
               <Card className="enterprise-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <Store className="h-5 w-5" />
                     Cancellation by Channel
                   </CardTitle>
                   <CardDescription>Channel breakdown and refund amounts</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-72">
-                    <table className="enterprise-table">
+                  <ScrollArea className="h-72 overflow-x-auto">
+                    <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
                           <th>Channel</th>
@@ -2360,7 +2360,7 @@ export default function AnalyticsModule() {
               {/* AI Predictions for Cancellations */}
               <Card className="enterprise-card border-purple-200">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <Brain className="h-5 w-5 text-purple-600" />
                     AI Cancellation Predictions
                   </CardTitle>
@@ -2380,10 +2380,10 @@ export default function AnalyticsModule() {
                             <div className="text-xs text-muted-foreground">vs {pred.currentRate}%</div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 mb-2">
+                        <div className="flex items-center flex-wrap gap-4 mb-2">
                           <div className="flex-1">
                             <div className="text-xs text-muted-foreground mb-1">Confidence</div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
                                 <div 
                                   className="h-full bg-purple-600"
@@ -2407,7 +2407,7 @@ export default function AnalyticsModule() {
             {/* Demand Trends Section */}
             <Card className="enterprise-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center flex-wrap gap-2">
                   <LineChart className="h-5 w-5" />
                   Demand Trend Analysis
                 </CardTitle>
@@ -2418,8 +2418,8 @@ export default function AnalyticsModule() {
                   {/* Demand by Route */}
                   <div className="lg:col-span-2">
                     <h4 className="font-semibold mb-4">Demand by Route</h4>
-                    <ScrollArea className="h-64">
-                      <table className="enterprise-table">
+                    <ScrollArea className="h-64 overflow-x-auto">
+                      <table className="enterprise-table min-w-[900px]">
                         <thead>
                           <tr>
                             <th>Route</th>
@@ -2434,7 +2434,7 @@ export default function AnalyticsModule() {
                           {demandTrends.byRoute.map((route, i) => (
                             <tr key={i}>
                               <td className="font-medium">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center flex-wrap gap-2">
                                   {route.route}
                                   <Badge variant="outline" className="text-xs">{route.seasonality}</Badge>
                                 </div>
@@ -2509,11 +2509,11 @@ export default function AnalyticsModule() {
                           {event.startDate} - {event.endDate}
                         </div>
                         <div className="space-y-1 text-sm">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <MapPin className="h-3 w-3" />
                             <span className="truncate">{event.affectedRoutes.join(', ')}</span>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <TrendUpIcon className="h-3 w-3 text-green-600" />
                             <span className="font-medium text-green-600">{event.demandIncrease}</span>
                             <span className="text-muted-foreground">demand increase</span>

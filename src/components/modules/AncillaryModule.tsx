@@ -139,7 +139,7 @@ export default function AncillaryModule() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalAncillaryRevenue > 0 ? `$${(totalAncillaryRevenue / 1000).toFixed(1)}K` : '$0'}</div>
-            <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+            <div className="text-xs text-green-600 mt-1 flex items-center flex-wrap gap-1">
               <TrendingUp className="h-3 w-3" />
               +{emds.length > 0 ? '22' : '0'}% vs last month
             </div>
@@ -228,7 +228,7 @@ export default function AncillaryModule() {
                     <CardContent>
                       <ul className="space-y-2">
                         {bundle.items.map((item, j) => (
-                          <li key={j} className="flex items-center gap-2 text-sm">
+                          <li key={j} className="flex items-center flex-wrap gap-2 text-sm">
                             <div className="h-4 w-4 rounded-full bg-green-500 flex items-center justify-center">
                               <span className="text-white text-xs">✓</span>
                             </div>
@@ -259,8 +259,8 @@ export default function AncillaryModule() {
               <CardDescription>Discount codes and promotional offers</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80">
-                <table className="enterprise-table">
+              <ScrollArea className="h-80 overflow-x-auto">
+                <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
                       <th>Code</th>

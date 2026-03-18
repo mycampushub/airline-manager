@@ -215,7 +215,7 @@ export default function RevenueModule() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
-            <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+            <div className="text-xs text-green-600 mt-1 flex items-center flex-wrap gap-1">
               <TrendingUp className="h-3 w-3" />
               +15.3% vs last month
             </div>
@@ -229,7 +229,7 @@ export default function RevenueModule() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">$0.142</div>
-            <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+            <div className="text-xs text-green-600 mt-1 flex items-center flex-wrap gap-1">
               <TrendingUp className="h-3 w-3" />
               +2.1% vs last month
             </div>
@@ -243,7 +243,7 @@ export default function RevenueModule() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">84.2%</div>
-            <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+            <div className="text-xs text-green-600 mt-1 flex items-center flex-wrap gap-1">
               <TrendingUp className="h-3 w-3" />
               +3.5% vs last month
             </div>
@@ -257,7 +257,7 @@ export default function RevenueModule() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">$0.119</div>
-            <div className="text-xs text-red-600 mt-1 flex items-center gap-1">
+            <div className="text-xs text-red-600 mt-1 flex items-center flex-wrap gap-1">
               <TrendingDown className="h-3 w-3" />
               -0.8% vs last month
             </div>
@@ -308,7 +308,7 @@ export default function RevenueModule() {
                     { key: 'elasticity', label: 'Price Elasticity', desc: 'Consider price sensitivity', icon: <Activity className="h-4 w-4" /> }
                   ].map((item) => (
                     <div key={item.key} className="flex items-center justify-between p-3 bg-secondary/30 rounded-sm">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center flex-wrap gap-3">
                         <div className="text-primary">{item.icon}</div>
                         <div>
                           <div className="font-medium text-sm">{item.label}</div>
@@ -366,7 +366,7 @@ export default function RevenueModule() {
                         <DialogTitle>Add Fare Basis</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 py-4 max-h-96 overflow-y-auto">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <Label>Fare Code</Label>
                             <Input value={newFare.code} onChange={(e) => setNewFare({...newFare, code: e.target.value})} placeholder="YEUR" />
@@ -416,12 +416,12 @@ export default function RevenueModule() {
                             <Input type="number" value={newFare.refundFee} onChange={(e) => setNewFare({...newFare, refundFee: Number(e.target.value)})} />
                           </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center flex-wrap gap-4">
+                          <div className="flex items-center flex-wrap gap-2">
                             <input type="checkbox" checked={newFare.changeable} onChange={(e) => setNewFare({...newFare, changeable: e.target.checked})} />
                             <Label className="text-sm">Changeable</Label>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <input type="checkbox" checked={newFare.refundable} onChange={(e) => setNewFare({...newFare, refundable: e.target.checked})} />
                             <Label className="text-sm">Refundable</Label>
                           </div>
@@ -436,8 +436,8 @@ export default function RevenueModule() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-80">
-                  <table className="enterprise-table">
+                <ScrollArea className="h-80 overflow-x-auto">
+                  <table className="enterprise-table min-w-[1000px]">
                     <thead>
                       <tr>
                         <th>Code</th>
@@ -510,7 +510,7 @@ export default function RevenueModule() {
                           <Label>Rule Name</Label>
                           <Input value={newRule.name} onChange={(e) => setNewRule({...newRule, name: e.target.value})} placeholder="Peak Hour Premium" />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <Label>Route</Label>
                             <Select value={newRule.route} onValueChange={(v) => setNewRule({...newRule, route: v})}>
@@ -559,7 +559,7 @@ export default function RevenueModule() {
                             onValueChange={(v) => setNewRule({...newRule, demandMultiplier: v[0]})}
                           />
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center flex-wrap gap-2">
                           <input type="checkbox" checked={newRule.competitorMatch} onChange={(e) => setNewRule({...newRule, competitorMatch: e.target.checked})} />
                           <Label className="text-sm">Enable Competitor Price Matching</Label>
                         </div>
@@ -577,8 +577,8 @@ export default function RevenueModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>Rule Name</th>
@@ -649,7 +649,7 @@ export default function RevenueModule() {
                           <div className="font-medium">{forecast.route}</div>
                           <div className="text-xs text-muted-foreground">{forecast.period}</div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center flex-wrap gap-2">
                           {forecast.trend === 'up' ? (
                             <Badge className="bg-green-100 text-green-800 border-green-200">
                               <TrendingUp className="h-3 w-3 mr-1 inline" />
@@ -666,7 +666,7 @@ export default function RevenueModule() {
                           <Badge variant="outline">{forecast.confidence}% confidence</Badge>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div className="p-3 bg-blue-50 border border-blue-200 rounded-sm">
                           <div className="text-muted-foreground text-xs mb-1">Predicted Load Factor</div>
                           <div className="text-xl font-bold text-blue-600">{forecast.predictedLoadFactor}%</div>
@@ -677,7 +677,7 @@ export default function RevenueModule() {
                         </div>
                       </div>
                       <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-sm text-sm">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center flex-wrap gap-2 mb-1">
                           <Award className="h-4 w-4 text-yellow-600" />
                           <span className="font-medium">AI Recommendation</span>
                         </div>
@@ -707,12 +707,12 @@ export default function RevenueModule() {
                     <div key={i} className="p-3 bg-secondary/30 rounded-sm">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-medium text-sm">{item.metric}</span>
-                        <span className="text-sm text-green-600 flex items-center gap-1">
+                        <span className="text-sm text-green-600 flex items-center flex-wrap gap-1">
                           <TrendingUp className="h-3 w-3" />
                           {item.trend}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <div className="flex-1 bg-gray-200 rounded-full h-2">
                           <div className="bg-green-600 h-2 rounded-full transition-all" style={{ width: `${item.accuracy}%` }}></div>
                         </div>
@@ -752,7 +752,7 @@ export default function RevenueModule() {
                       }`}>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center flex-wrap gap-2 mb-2">
                               {action.type === 'price_increase' ? <TrendingUp className="h-4 w-4" /> :
                                action.type === 'price_decrease' ? <TrendingDown className="h-4 w-4" /> :
                                <Settings className="h-4 w-4" />}
@@ -765,8 +765,8 @@ export default function RevenueModule() {
                               </Badge>
                             </div>
                             <div className="text-sm mb-2">{action.description}</div>
-                            <div className="flex items-center gap-4 text-xs">
-                              <div className="flex items-center gap-1">
+                            <div className="flex items-center flex-wrap gap-4 text-xs">
+                              <div className="flex items-center flex-wrap gap-1">
                                 <Zap className="h-3 w-3" />
                                 <span className="text-muted-foreground">Expected: {action.expectedImpact}</span>
                               </div>

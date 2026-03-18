@@ -527,6 +527,7 @@ export default function DCSModule() {
   const [showExamineBagDialog, setShowExamineBagDialog] = useState(false)
   const [alternateAirports, setAlternateAirports] = useState<{code: string, name: string, time: number}[]>([])
   const [showDivertedFlightDialog, setShowDivertedFlightDialog] = useState(false)
+  const [showCGCaclulatorDialog, setShowCGCaclulatorDialog] = useState(false)
   const [interlineAgreements, setInterlineAgreements] = useState<{id: string, airline: string, code: string, active: boolean}[]>([])
   const [excessBaggageRules, setExcessBaggageRules] = useState<{type: string, rate: number}[]>([
     { type: 'excess_weight', rate: 15 },
@@ -577,27 +578,52 @@ export default function DCSModule() {
   }
 
   const handleProcessUpgrade = () => {
-    if (selectedUpgradePassenger) {
-      const cost = calculateUpgradeCost('economy', selectedUpgradeCabin)
-      const upgradeRequest: UpgradeRequest = {
-        passengerId: selectedUpgradePassenger.passengerId,
-        passengerName: selectedUpgradePassenger.passengerName,
-        currentCabin: 'economy',
-        requestedCabin: selectedUpgradeCabin,
-        price: cost,
-        status: 'paid',
-        timestamp: new Date().toISOString()
-      }
-      
-      const passengerId = selectedUpgradePassenger.passengerId
-      setUpgradeRequests([...upgradeRequests, upgradeRequest])
-      setUpgradeHistory({
-        ...upgradeHistory,
-        [passengerId]: [...(upgradeHistory[passengerId] || []), upgradeRequest]
-      })
-      
-      setShowUpgradeDialog(false)
+    if (!selectedUpgradePassenger) return
+
+    const passengerId = selectedUpgradePassenger.passengerId
+
+    // Show loading state
+    const paymentInProgress = { showUpgradeDialog }
+
+    // Simulate payment processing
+    setShowUpgradeDialog(false)
+    setShowUpgradeDialog(true)
+
+    const upgradeRequest: UpgradeRequest = {
+      passengerId,
+      passengerName: selectedUpgradePassenger.passengerName,
+      currentCabin: 'economy',
+      requestedCabin: selectedUpgradeCabin,
+      price: calculateUpgradeCost('economy', selectedUpgradeCabin),
+      status: 'processing' as const,
+      timestamp: new Date().toISOString()
     }
+
+    // Add to local upgrade requests
+    setUpgradeRequests([...upgradeRequests, upgradeRequest])
+    setUpgradeHistory({
+      ...upgradeHistory,
+      [passengerId]: [...(upgradeHistory[passengerId] || []), upgradeRequest]
+    })
+
+    // Simulate payment processing delay
+    setTimeout(() => {
+      setUpgradeRequests(upgradeRequests.map(req => ({
+        ...req,
+        status: 'paid' as const
+      })))
+
+      // Update passenger status to upgraded
+      updateCheckIn(selectedUpgradePassenger.passengerId, {
+        cabinClass: selectedUpgradeCabin
+      })
+
+      toast({
+        title: 'Payment Successful',
+        description: `${selectedUpgradePassenger.passengerName} upgraded to ${selectedUpgradeCabin} class successfully`
+      })
+      setShowUpgradeDialog(false)
+    }, 1500) // Simulate 1.5 second payment processing time
   }
 
   // Enhanced baggage handlers
@@ -1562,7 +1588,7 @@ export default function DCSModule() {
         <div class="tag">
           <div class="header">BAGGAGE TAG</div>
           <div>Tag: ${bag.tagNumber}</div>
-          <div>Route: ${bag.route}</div>
+          <div>Route: ${bag.origin} → ${bag.destination}</div>
           <div>Weight: ${bag.weight}kg</div>
           <div>Flight: ${bag.flightNumber}</div>
         </div>
@@ -1601,10 +1627,27 @@ export default function DCSModule() {
 
   // Quick action handlers
   const handleExportLoadSheet = () => {
-    const headers = ['Flight', 'Date', 'Origin', 'Destination', 'PAX', 'Baggage', 'Cargo', 'Mail']
-    const rows = loadSheetData.map(ls => [
-      ls.flightNumber, ls.date, ls.origin, ls.destination, ls.pax, ls.baggage, ls.cargo, ls.mail
-    ])
+    if (!loadSheetData) {
+      toast({ title: 'No Load Sheet', description: 'Please generate a load sheet first', variant: 'destructive' })
+      return
+    }
+    const headers = ['Aircraft', 'TakeoffWeight', 'ZeroFuelWeight', 'LandingWeight', 'OperatingEmptyWeight', 'PayloadWeight', 'FuelWeight', 'PassengerWeight', 'CargoWeight', 'BaggageWeight', 'CenterOfGravity', 'TrimSetting', 'EnvelopeStatus', 'Approved']
+    const rows = [[
+      loadSheetData.aircraft,
+      loadSheetData.takeoffWeight,
+      loadSheetData.zeroFuelWeight,
+      loadSheetData.landingWeight,
+      loadSheetData.operatingEmptyWeight,
+      loadSheetData.payloadWeight,
+      loadSheetData.fuelWeight,
+      loadSheetData.passengerWeight,
+      loadSheetData.cargoWeight,
+      loadSheetData.baggageWeight,
+      loadSheetData.centerOfGravity,
+      loadSheetData.trimSetting,
+      loadSheetData.envelopeStatus,
+      loadSheetData.approved ? 'Yes' : 'No'
+    ]]
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const link = document.createElement('a')
@@ -1615,14 +1658,42 @@ export default function DCSModule() {
   }
 
   const handlePrintLoadSheet = () => {
+    if (!loadSheetData) {
+      toast({ title: 'No Load Sheet', description: 'Please generate a load sheet first', variant: 'destructive' })
+      return
+    }
     const printContent = `
       <html><head><title>Load Sheet</title>
       <style>body { font-family: Arial; padding: 20px; }
-      table { border-collapse: collapse; width: 100%; }
-      th, td { border: 1px solid #000; padding: 8px; text-align: left; }</style></head><body>
-        <h1>Load Sheet</h1>
-        <table><thead><tr><th>Flight</th><th>Date</th><th>Origin</th><th>Dest</th><th>PAX</th><th>Bag</th><th>Cargo</th></tr></thead>
-        <tbody>${loadSheetData.map(ls => `<tr><td>${ls.flightNumber}</td><td>${ls.date}</td><td>${ls.origin}</td><td>${ls.destination}</td><td>${ls.pax}</td><td>${ls.baggage}</td><td>${ls.cargo}</td></tr>`).join('')}</tbody></table>
+      table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+      th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+      .status { font-weight: bold; }
+      .approved { color: green; }
+      .rejected { color: red; }</style></head><body>
+        <h1>Load Sheet - ${selectedFlight}</h1>
+        <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+        <h2>Weight Summary</h2>
+        <table>
+          <tr><th>Parameter</th><th>Value (kg)</th></tr>
+          <tr><td>Takeoff Weight</td><td>${loadSheetData.takeoffWeight}</td></tr>
+          <tr><td>Zero Fuel Weight</td><td>${loadSheetData.zeroFuelWeight}</td></tr>
+          <tr><td>Landing Weight</td><td>${loadSheetData.landingWeight}</td></tr>
+          <tr><td>Operating Empty Weight</td><td>${loadSheetData.operatingEmptyWeight}</td></tr>
+          <tr><td>Payload Weight</td><td>${loadSheetData.payloadWeight}</td></tr>
+          <tr><td>Fuel Weight</td><td>${loadSheetData.fuelWeight}</td></tr>
+          <tr><td>Passenger Weight</td><td>${loadSheetData.passengerWeight}</td></tr>
+          <tr><td>Baggage Weight</td><td>${loadSheetData.baggageWeight}</td></tr>
+          <tr><td>Cargo Weight</td><td>${loadSheetData.cargoWeight}</td></tr>
+        </table>
+        <h2>Balance Information</h2>
+        <table>
+          <tr><th>Parameter</th><th>Value</th></tr>
+          <tr><td>Center of Gravity</td><td>${loadSheetData.centerOfGravity.toFixed(1)}%</td></tr>
+          <tr><td>Trim Setting</td><td>${loadSheetData.trimSetting}°</td></tr>
+          <tr><td>Envelope Status</td><td class="status ${loadSheetData.envelopeStatus === 'in-envelope' ? 'approved' : 'rejected'}">${loadSheetData.envelopeStatus}</td></tr>
+          <tr><td>Approved</td><td class="status ${loadSheetData.approved ? 'approved' : 'rejected'}">${loadSheetData.approved ? 'Yes' : 'No'}</td></tr>
+        </table>
+        ${loadSheetData.approved ? `<p><strong>Approved By:</strong> ${loadSheetData.approvedBy} at ${new Date(loadSheetData.approvedAt!).toLocaleString()}</p>` : ''}
       </body></html>
     `
     const win = window.open('', '_blank')
@@ -1761,18 +1832,18 @@ export default function DCSModule() {
   const today = new Date().toISOString().split('T')[0]
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Departure Control System (DCS)</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Departure Control System (DCS)</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Check-in, Boarding, Load & Balance, and Baggage Management
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto">
           <Select value={selectedFlight} onValueChange={setSelectedFlight}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Select Flight" />
             </SelectTrigger>
             <SelectContent>
@@ -1785,7 +1856,7 @@ export default function DCSModule() {
       </div>
 
       {/* Flight Status Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className="enterprise-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Checked In</CardTitle>
@@ -1858,7 +1929,7 @@ export default function DCSModule() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Passenger Check-In</CardTitle>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center flex-wrap gap-2">
                   <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
                     <DialogTrigger asChild>
                       <Button variant="outline">
@@ -1866,11 +1937,11 @@ export default function DCSModule() {
                         Upgrade
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-w-[95vw] sm:max-w-2xl">
                       <DialogHeader>
                         <DialogTitle>Upgrade Cabin Class</DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-6 py-4">
+                      <div className="space-y-4 sm:space-y-6 py-4">
                         {selectedUpgradePassenger && (
                           <>
                             <div className="p-4 bg-secondary/30 rounded-sm">
@@ -1911,7 +1982,7 @@ export default function DCSModule() {
                                   {upgradeHistory[selectedUpgradePassenger.passengerId].map((upgrade, idx) => (
                                     <div key={idx} className="flex items-center justify-between py-1 border-b last:border-0">
                                       <span className="text-sm">{upgrade.requestedCabin.replace('_', ' ').toUpperCase()}</span>
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center flex-wrap gap-2">
                                         <Badge variant={upgrade.status === 'paid' ? 'default' : 'outline'} className="capitalize">{upgrade.status}</Badge>
                                         <span className="text-sm font-medium">${upgrade.price}</span>
                                       </div>
@@ -1937,12 +2008,12 @@ export default function DCSModule() {
                         Check-In Passenger
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="max-w-[95vw] sm:max-w-lg">
                       <DialogHeader>
                         <DialogTitle>Check-In Passenger</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <Label>PNR Number</Label>
                             <Input value={newCheckIn.pnrNumber} onChange={(e) => setNewCheckIn({...newCheckIn, pnrNumber: e.target.value})} placeholder="ABC12345" />
@@ -1964,7 +2035,7 @@ export default function DCSModule() {
                         {/* Baggage Section in Check-in Dialog */}
                         <div className="border-t pt-4">
                           <Label className="text-base font-medium mb-3 block">Baggage Information</Label>
-                          <div className="grid grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
                               <Label>Number of Pieces</Label>
                               <Input type="number" min="0" defaultValue={0} onChange={(e) => {
@@ -1989,7 +2060,7 @@ export default function DCSModule() {
                         {/* SSR Section in Check-in Dialog */}
                         <div className="border-t pt-4">
                           <Label className="text-base font-medium mb-3 block">Special Services</Label>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {[
                               { type: 'wheelchair' as SSRType, label: 'Wheelchair' },
                               { type: 'meal' as SSRType, label: 'Special Meal' },
@@ -2017,8 +2088,8 @@ export default function DCSModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[800px]">
                   <thead>
                     <tr>
                       <th>Passenger</th>
@@ -2049,7 +2120,7 @@ export default function DCSModule() {
                           <td><Badge variant="outline" className="capitalize">{checkIn.checkInMethod}</Badge></td>
                           <td className="text-sm">{new Date(checkIn.checkInTime).toLocaleTimeString()}</td>
                           <td>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center flex-wrap gap-1">
                               {checkIn.documentsVerified ? (
                                 <CheckCircle className="h-4 w-4 text-green-600" />
                               ) : (
@@ -2061,7 +2132,7 @@ export default function DCSModule() {
                             </div>
                           </td>
                           <td>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               <span>{checkIn.bagsChecked} pcs</span>
                               <Button variant="ghost" size="sm" onClick={() => handleOpenBaggageDetailDialog(checkIn)}>
                                 <Package className="h-3 w-3" />
@@ -2092,7 +2163,7 @@ export default function DCSModule() {
                             </Badge>
                           </td>
                           <td>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center flex-wrap gap-1">
                               <Button variant="ghost" size="sm" title="Print Boarding Pass" onClick={() => handlePrintBoardingPass(checkIn)}>
                                 <Printer className="h-4 w-4" />
                               </Button>
@@ -2169,7 +2240,7 @@ export default function DCSModule() {
 
           {/* Baggage Detail Dialog */}
           <Dialog open={showBaggageDetailDialog} onOpenChange={setShowBaggageDetailDialog}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Baggage Details</DialogTitle>
               </DialogHeader>
@@ -2181,7 +2252,7 @@ export default function DCSModule() {
                       <div className="text-sm text-muted-foreground">Seat: {selectedBaggagePassenger.seatNumber}</div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label>Number of Pieces</Label>
                         <Input
@@ -2221,7 +2292,7 @@ export default function DCSModule() {
 
                     {currentBaggageDetail.excessWeight > 0 && (
                       <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-sm">
-                        <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+                        <div className="flex items-center flex-wrap gap-2 text-amber-800 dark:text-amber-200">
                           <AlertTriangle className="h-4 w-4" />
                           <span className="font-medium">Excess Baggage Detected</span>
                         </div>
@@ -2247,7 +2318,7 @@ export default function DCSModule() {
                         <Label>Generated Baggage Tags</Label>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {currentBaggageDetail.tags.map((tag, idx) => (
-                            <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-sm">
+                            <div key={idx} className="flex items-center flex-wrap gap-2 px-3 py-2 bg-primary/10 rounded-sm">
                               <Barcode className="h-4 w-4" />
                               <span className="font-mono text-sm">{tag}</span>
                             </div>
@@ -2267,7 +2338,7 @@ export default function DCSModule() {
 
           {/* SSR Dialog */}
           <Dialog open={showSSRDialog} onOpenChange={setShowSSRDialog}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Special Service Requests</DialogTitle>
               </DialogHeader>
@@ -2327,7 +2398,7 @@ export default function DCSModule() {
                                 <div className="text-sm font-medium">{ssr.description}</div>
                                 {ssr.notes && <div className="text-xs text-muted-foreground">{ssr.notes}</div>}
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center flex-wrap gap-2">
                                 <Badge variant={getSSRStatusBadge(ssr.status)} className="capitalize text-xs">{ssr.status}</Badge>
                                 {ssr.cost !== undefined && <span className="text-sm">${ssr.cost}</span>}
                               </div>
@@ -2348,7 +2419,7 @@ export default function DCSModule() {
 
           {/* Document Validation Dialog */}
           <Dialog open={showDocumentDialog} onOpenChange={setShowDocumentDialog}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Document Verification</DialogTitle>
               </DialogHeader>
@@ -2363,7 +2434,7 @@ export default function DCSModule() {
                     {/* Add New Document */}
                     <div className="border rounded-md p-4 space-y-4">
                       <Label className="text-base font-medium">Add Document</Label>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Document Type</Label>
                           <Select value={currentDocumentType} onValueChange={(v: DocumentType) => setCurrentDocumentType(v)}>
@@ -2445,7 +2516,7 @@ export default function DCSModule() {
                                   <td className="p-2 text-sm">{doc.expiryDate}</td>
                                   <td className="p-2 text-sm">{doc.issuingCountry}</td>
                                   <td className="p-2">
-                                    <div className={`flex items-center gap-1 text-sm font-medium ${getDocumentStatusColor(doc.status)}`}>
+                                    <div className={`flex items-center flex-wrap gap-1 text-sm font-medium ${getDocumentStatusColor(doc.status)}`}>
                                       {doc.status === 'valid' && <CheckCircle className="h-4 w-4" />}
                                       {doc.status === 'expired' && <XCircle className="h-4 w-4" />}
                                       {doc.status === 'expiring_soon' && <AlertTriangle className="h-4 w-4" />}
@@ -2518,18 +2589,18 @@ export default function DCSModule() {
               {/* Boarding Control System */}
               <Card className="enterprise-card">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <CardTitle>Boarding Control System</CardTitle>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" onClick={() => setShowGateChangeDialog(true)}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setShowGateChangeDialog(true)}>
                         <Bell className="h-4 w-4 mr-2" />
                         Gate Change
                       </Button>
-                      <Button variant="outline" onClick={handleCheckReconciliation}>
+                      <Button variant="outline" size="sm" onClick={handleCheckReconciliation}>
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Check Reconciliation
                       </Button>
-                      <Button variant="outline" onClick={() => setShowBoardingControlDialog(true)}>
+                      <Button variant="outline" size="sm" onClick={() => setShowBoardingControlDialog(true)}>
                         <Settings className="h-4 w-4 mr-2" />
                         Boarding Controls
                       </Button>
@@ -2557,7 +2628,7 @@ export default function DCSModule() {
                   </div>
 
                   {/* Boarding Groups Status */}
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
                       { name: 'Preboard', group: 'preboard', count: boardingPassengers.filter(p => p.group === 'preboard' && p.status === 'boarded').length, total: 5 },
                       { name: 'Group 1', group: 'group1', count: boardingPassengers.filter(p => p.group === 'group1' && p.status === 'boarded').length, total: 40 },
@@ -2572,7 +2643,7 @@ export default function DCSModule() {
                   </div>
 
                   {/* Priority/Standby Controls */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Card className="enterprise-card">
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm">Priority Boarding</CardTitle>
@@ -2620,14 +2691,14 @@ export default function DCSModule() {
                   </div>
 
                   {/* Boarding Action Buttons */}
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={() => setCurrentBoardingGroup(currentBoardingGroup === 'preboard' ? 'group1' : 'preboard')}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setCurrentBoardingGroup(currentBoardingGroup === 'preboard' ? 'group1' : 'preboard')}>
                       {currentBoardingGroup === 'preboard' ? 'Start Regular Boarding' : 'Back to Priority'}
                     </Button>
-                    <Button variant="outline" onClick={() => setCurrentBoardingGroup('standby')}>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentBoardingGroup('standby')}>
                       Handle Standby
                     </Button>
-                    <Button variant="outline" onClick={() => setShowBoardingControlDialog(true)}>
+                    <Button variant="outline" size="sm" onClick={() => setShowBoardingControlDialog(true)}>
                       View All Passengers
                     </Button>
                   </div>
@@ -2640,8 +2711,8 @@ export default function DCSModule() {
                   <CardTitle>Boarding Passengers ({boardingPassengers.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-64">
-                    <table className="enterprise-table">
+                  <ScrollArea className="h-64 overflow-x-auto">
+                    <table className="enterprise-table min-w-[600px]">
                       <thead>
                         <tr>
                           <th>Sequence</th>
@@ -2674,7 +2745,7 @@ export default function DCSModule() {
                             </td>
                             <td className="text-sm">{passenger.boardingTime ? new Date(passenger.boardingTime).toLocaleTimeString() : '-'}</td>
                             <td>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center flex-wrap gap-1">
                                 {passenger.status === 'not-boarded' && (
                                   <Button variant="ghost" size="sm" onClick={() => handleBoardPassenger(passenger)}>
                                     <CheckCircle className="h-4 w-4" />
@@ -2719,7 +2790,7 @@ export default function DCSModule() {
                   {/* Critical Alerts */}
                   {loadSheetData.envelopeStatus !== 'in-envelope' && (
                     <div className={`p-4 border rounded-md ${loadSheetData.envelopeStatus === 'forward-limit' ? 'border-red-500 bg-red-50 dark:bg-red-950' : 'border-amber-500 bg-amber-50 dark:bg-amber-950'}`}>
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center flex-wrap gap-2 mb-2">
                         <AlertTriangle className="h-5 w-5 text-amber-600" />
                         <span className="font-medium">
                           {loadSheetData.envelope === 'forward-limit' ? 'CG OUT OF ENVELOPE (Forward Limit)' : 'CG OUT OF ENVELOPE (Aft Limit)'}
@@ -2732,7 +2803,7 @@ export default function DCSModule() {
                   )}
 
                   {/* Weight Summary */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     <div className="p-4 bg-secondary/30 rounded-sm">
                       <div className="text-sm text-muted-foreground">Takeoff Weight</div>
                       <div className="text-2xl font-bold mt-1">{(loadSheetData.takeoffWeight / 1000).toFixed(1)}t</div>
@@ -2761,7 +2832,7 @@ export default function DCSModule() {
                   </div>
 
                   {/* Weight Breakdown */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Card className="enterprise-card">
                       <CardHeader>
                         <CardTitle className="text-base">Weight Distribution</CardTitle>
@@ -2824,7 +2895,7 @@ export default function DCSModule() {
                             <span>Trim Setting</span>
                             <span className="font-medium">{loadSheetData.trimSetting}°</span>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <Gauge className="h-3 w-3" />
                             <span className="text-xs text-muted-foreground">Stabilizer trim</span>
                           </div>
@@ -2836,7 +2907,7 @@ export default function DCSModule() {
                   {/* CG Envelope Visualization */}
                   <Card className="enterprise-card">
                     <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
+                      <CardTitle className="text-base flex items-center flex-wrap gap-2">
                         <Gauge className="h-4 w-4" />
                         CG Envelope
                       </CardTitle>
@@ -2884,7 +2955,7 @@ export default function DCSModule() {
 
                       {/* CG Status */}
                       <div className={`p-3 rounded-lg ${loadSheetData.envelopeStatus === 'in-envelope' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center flex-wrap gap-2">
                           {loadSheetData.envelopeStatus === 'in-envelope' ? (
                             <CheckCircle className="h-5 w-5 text-green-600" />
                           ) : (
@@ -2946,7 +3017,7 @@ export default function DCSModule() {
                   </Card>
 
                   {/* Quick Actions */}
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <Button variant="outline" className="h-auto flex flex-col items-center justify-center gap-1" onClick={handleExportLoadSheet}>
                       <Download className="h-4 w-4" />
                       <span className="text-xs">Export</span>
@@ -2979,10 +3050,10 @@ export default function DCSModule() {
         {/* Baggage Tab */}
         <TabsContent value="baggage" className="space-y-4">
           {/* Baggage Management Header */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             <Card className="enterprise-card">
               <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="text-base flex items-center flex-wrap gap-2">
                   <Package className="h-4 w-4" />
                   Total Bags
                 </CardTitle>
@@ -2995,7 +3066,7 @@ export default function DCSModule() {
 
             <Card className="enterprise-card">
               <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="text-base flex items-center flex-wrap gap-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   Reconciled
                 </CardTitle>
@@ -3010,7 +3081,7 @@ export default function DCSModule() {
 
             <Card className="enterprise-card">
               <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="text-base flex items-center flex-wrap gap-2">
                   <AlertTriangle className="h-4 w-4 text-red-600" />
                   Mishandled
                 </CardTitle>
@@ -3025,7 +3096,7 @@ export default function DCSModule() {
 
             <Card className="enterprise-card">
               <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="text-base flex items-center flex-wrap gap-2">
                   <Settings className="h-4 w-4" />
                   Controls
                 </CardTitle>
@@ -3042,13 +3113,13 @@ export default function DCSModule() {
           {/* Baggage Search and Actions */}
           <Card className="enterprise-card">
             <CardHeader>
-              <CardTitle>Baggage Management - {selectedFlight}</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">Baggage Management - {selectedFlight}</CardTitle>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">
                   <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
                     placeholder="Search by tag number, passenger, or PNR..." 
-                    className="pl-8 w-64"
+                    className="pl-8 w-full sm:w-64"
                     value={baggageSearch}
                     onChange={(e) => setBaggageSearch(e.target.value)}
                   />
@@ -3084,8 +3155,8 @@ export default function DCSModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80">
-                <table className="enterprise-table">
+              <ScrollArea className="h-80 overflow-x-auto">
+                <table className="enterprise-table min-w-[700px]">
                   <thead>
                     <tr>
                       <th>Tag</th>
@@ -3130,7 +3201,7 @@ export default function DCSModule() {
                         </td>
                         <td>{bag.carousel || '-'}</td>
                         <td>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center flex-wrap gap-1">
                             <Button variant="ghost" size="sm" onClick={() => {
                               setBaggageTracking([...baggageTracking, {
                                 ...bag,
@@ -3157,12 +3228,12 @@ export default function DCSModule() {
 
           {/* Baggage Reconciliation Dialog */}
           <Dialog open={showBaggageReconciliationDialog} onOpenChange={setShowBaggageReconciliationDialog}>
-            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Baggage Reconciliation - {selectedFlight}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded flex items-center gap-3">
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded flex items-center flex-wrap gap-3">
                   <Info className="h-5 w-5 text-blue-600" />
                   <div>
                     <p className="font-medium text-blue-900">Reconciliation Results</p>
@@ -3176,7 +3247,7 @@ export default function DCSModule() {
                   <div className="space-y-2">
                     {reconciledBags.map((bag, i) => (
                       <div key={bag.id} className="flex items-center justify-between p-3 bg-green-50 border-green-200 rounded">
-                        <div className="flex items-center gap-3 flex-1">
+                        <div className="flex items-center flex-wrap gap-3 flex-1">
                           <CheckCircle className="h-4 w-4 text-green-600" />
                           <div>
                             <div className="font-medium text-sm">{bag.tagNumber}</div>
@@ -3210,7 +3281,7 @@ export default function DCSModule() {
 
           {/* Mishandled Baggage Dialog */}
           <Dialog open={showMishandledDialog} onOpenChange={setShowMishandledDialog}>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Mishandled Baggage Report</DialogTitle>
               </DialogHeader>
@@ -3224,7 +3295,7 @@ export default function DCSModule() {
                     <div className="space-y-2">
                       {mishandledBaggage.map((bag, i) => (
                         <div key={bag.id} className="p-3 border border-red-200 bg-red-50 rounded flex items-center justify-between">
-                          <div className="flex items-center gap-3 flex-1">
+                          <div className="flex items-center flex-wrap gap-3 flex-1">
                             <AlertTriangle className="h-5 w-5 text-red-600" />
                             <div>
                               <div className="font-medium text-sm">{bag.tagNumber}</div>
@@ -3279,7 +3350,7 @@ export default function DCSModule() {
                       <DialogTitle>Add Baggage</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Tag Number</Label>
                           <Input value={newBaggage.tagNumber} onChange={(e) => setNewBaggage({...newBaggage, tagNumber: e.target.value})} placeholder="BG12345678" />
@@ -3314,8 +3385,8 @@ export default function DCSModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[700px]">
                   <thead>
                     <tr>
                       <th>Tag Number</th>
@@ -3341,7 +3412,7 @@ export default function DCSModule() {
                           <td className="font-mono font-medium">{bag.tagNumber}</td>
                           <td className="text-sm">{bag.passengerName}</td>
                           <td className="font-mono text-sm">{bag.pnrNumber}</td>
-                          <td className="text-sm flex items-center gap-1">
+                          <td className="text-sm flex items-center flex-wrap gap-1">
                             {bag.origin} <ArrowRight className="h-3 w-3" /> {bag.destination}
                           </td>
                           <td className="text-sm">{bag.weight} kg</td>
@@ -3371,272 +3442,618 @@ export default function DCSModule() {
 
           {/* Fee Calculator Dialog */}
           <Dialog open={showFeeCalculatorDialog} onOpenChange={setShowFeeCalculatorDialog}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Baggage Fee Calculator</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                <div>
-                  <Label>Route Type</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select route type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="domestic">Domestic</SelectItem>
-                      <SelectItem value="international">International</SelectItem>
-                      <SelectItem value="transatlantic">Transatlantic</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Route Type</Label>
+                    <Select value={feeCalculatorForm.routeType} onValueChange={(v: RouteType) => setFeeCalculatorForm({...feeCalculatorForm, routeType: v})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="domestic">Domestic</SelectItem>
+                        <SelectItem value="international">International</SelectItem>
+                        <SelectItem value="transatlantic">Transatlantic</SelectItem>
+                        <SelectItem value="transpacific">Transpacific</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Cabin Class</Label>
+                    <Select value={feeCalculatorForm.cabinClass} onValueChange={(v: CabinClass) => setFeeCalculatorForm({...feeCalculatorForm, cabinClass: v})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="economy">Economy</SelectItem>
+                        <SelectItem value="premium_economy">Premium Economy</SelectItem>
+                        <SelectItem value="business">Business Class</SelectItem>
+                        <SelectItem value="first">First Class</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Season</Label>
+                    <Select value={feeCalculatorForm.season} onValueChange={(v: SeasonType) => setFeeCalculatorForm({...feeCalculatorForm, season: v})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low Season</SelectItem>
+                        <SelectItem value="shoulder">Shoulder Season</SelectItem>
+                        <SelectItem value="peak">Peak Season</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Frequent Flyer Tier</Label>
+                    <Select value={feeCalculatorForm.frequentFlyerTier} onValueChange={(v: FrequentFlyerTier) => setFeeCalculatorForm({...feeCalculatorForm, frequentFlyerTier: v})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="silver">Silver</SelectItem>
+                        <SelectItem value="gold">Gold</SelectItem>
+                        <SelectItem value="platinum">Platinum</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Number of Pieces</Label>
+                    <Input type="number" min="0" value={feeCalculatorForm.pieces} onChange={(e) => setFeeCalculatorForm({...feeCalculatorForm, pieces: parseInt(e.target.value) || 0})} />
+                  </div>
+                  <div>
+                    <Label>Total Weight (kg)</Label>
+                    <Input type="number" min="0" step="0.5" value={feeCalculatorForm.weight} onChange={(e) => setFeeCalculatorForm({...feeCalculatorForm, weight: parseFloat(e.target.value) || 0})} />
+                  </div>
                 </div>
-                <div>
-                  <Label>Cabin Class</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select cabin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="economy">Economy</SelectItem>
-                      <SelectItem value="business">Business</SelectItem>
-                      <SelectItem value="first">First Class</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="flex items-center flex-wrap space-x-2">
+                  <Switch id="corporate" checked={feeCalculatorForm.corporateContract} onCheckedChange={(checked) => setFeeCalculatorForm({...feeCalculatorForm, corporateContract: checked})} />
+                  <Label htmlFor="corporate">Corporate Contract</Label>
                 </div>
-                <div>
-                  <Label>Baggage Weight (kg)</Label>
-                  <Input type="number" placeholder="23" />
-                </div>
-                <div>
-                  <Label>Number of Pieces</Label>
-                  <Input type="number" placeholder="1" />
-                </div>
+                {feeCalculation && (
+                  <div className="border rounded-md p-4 space-y-3">
+                    <h4 className="font-medium">Fee Breakdown</h4>
+                    <div className="space-y-2">
+                      {feeCalculation.feeBreakdown.map((item, idx) => (
+                        <div key={idx} className="flex justify-between text-sm">
+                          <span>{item.description}</span>
+                          <span className={item.discounted ? 'line-through text-muted-foreground' : ''}>${item.amount.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {feeCalculation.tierDiscount > 0 && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Tier Discount ({feeCalculatorForm.frequentFlyerTier})</span>
+                        <span>-${feeCalculation.tierDiscount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {feeCalculation.corporateDiscount > 0 && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Corporate Discount</span>
+                        <span>-${feeCalculation.corporateDiscount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-bold text-lg border-t pt-2">
+                      <span>Total Fee</span>
+                      <span>${feeCalculation.totalFee.toFixed(2)} {feeCalculation.currency}</span>
+                    </div>
+                    {feeCalculation.warnings.length > 0 && (
+                      <div className="space-y-1">
+                        {feeCalculation.warnings.map((warning, idx) => (
+                          <div key={idx} className="flex items-center flex-wrap gap-2 text-sm text-amber-600">
+                            <AlertTriangle className="h-4 w-4" />
+                            <span>{warning}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {feeCalculation.restrictions.length > 0 && (
+                      <div className="space-y-1">
+                        {feeCalculation.restrictions.map((restriction, idx) => (
+                          <div key={idx} className="flex items-center flex-wrap gap-2 text-sm text-red-600">
+                            <XCircle className="h-4 w-4" />
+                            <span>{restriction}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowFeeCalculatorDialog(false)}>Cancel</Button>
-                <Button onClick={() => { 
-                  setCalculatedFees([
-                    { type: 'Excess Baggage', amount: 150 },
-                    { type: 'Handling Fee', amount: 50 }
-                  ])
-                  toast({ title: 'Fee Calculated', description: 'Total: $200' })
-                }}>Calculate</Button>
+                <Button variant="outline" onClick={() => {
+                  setShowFeeCalculatorDialog(false)
+                  setFeeCalculation(null)
+                }}>Cancel</Button>
+                <Button onClick={handleCalculateFee}>Calculate Fee</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
           {/* Special Baggage Dialog */}
           <Dialog open={showSpecialBaggageDialog} onOpenChange={setShowSpecialBaggageDialog}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Special Baggage Handling</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                <div>
-                  <Label>Special Item Type</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="golf">Golf Equipment</SelectItem>
-                      <SelectItem value="ski">Ski Equipment</SelectItem>
-                      <SelectItem value="surf">Surfboard</SelectItem>
-                      <SelectItem value="bicycle">Bicycle</SelectItem>
-                      <SelectItem value="instrument">Musical Instrument</SelectItem>
-                      <SelectItem value="pet">Pet</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Dimensions (cm)</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Input placeholder="Length" />
-                    <Input placeholder="Width" />
-                    <Input placeholder="Height" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Passenger Name</Label>
+                    <Input 
+                      value={specialBaggageForm.passengerName} 
+                      onChange={(e) => setSpecialBaggageForm({...specialBaggageForm, passengerName: e.target.value})} 
+                      placeholder="Enter passenger name" 
+                    />
+                  </div>
+                  <div>
+                    <Label>Special Item Type</Label>
+                    <Select value={selectedSpecialBaggageType} onValueChange={(v: SpecialBaggageType) => setSelectedSpecialBaggageType(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="golf_clubs">Golf Clubs</SelectItem>
+                        <SelectItem value="ski_equipment">Ski Equipment</SelectItem>
+                        <SelectItem value="surfboard">Surfboard</SelectItem>
+                        <SelectItem value="bicycle">Bicycle</SelectItem>
+                        <SelectItem value="musical_instrument">Musical Instrument</SelectItem>
+                        <SelectItem value="pet_cabin">Pet in Cabin</SelectItem>
+                        <SelectItem value="pet_hold">Pet in Hold</SelectItem>
+                        <SelectItem value="fragile">Fragile Item</SelectItem>
+                        <SelectItem value="medical">Medical Equipment</SelectItem>
+                        <SelectItem value="wheelchair">Wheelchair</SelectItem>
+                        <SelectItem value="stroller">Stroller</SelectItem>
+                        <SelectItem value="car_seat">Car Seat</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Weight (kg)</Label>
+                    <Input 
+                      type="number" 
+                      min="0" 
+                      value={specialBaggageForm.weight} 
+                      onChange={(e) => setSpecialBaggageForm({...specialBaggageForm, weight: parseFloat(e.target.value) || 0})} 
+                      placeholder="Weight" 
+                    />
+                  </div>
+                  <div>
+                    <Label>Dimensions (cm)</Label>
+                    <div className="flex gap-2">
+                      <Input 
+                        type="number" 
+                        min="0" 
+                        placeholder="L" 
+                        value={specialBaggageForm.dimensions.length}
+                        onChange={(e) => setSpecialBaggageForm({
+                          ...specialBaggageForm, 
+                          dimensions: {...specialBaggageForm.dimensions, length: parseFloat(e.target.value) || 0}
+                        })}
+                      />
+                      <Input 
+                        type="number" 
+                        min="0" 
+                        placeholder="W" 
+                        value={specialBaggageForm.dimensions.width}
+                        onChange={(e) => setSpecialBaggageForm({
+                          ...specialBaggageForm, 
+                          dimensions: {...specialBaggageForm.dimensions, width: parseFloat(e.target.value) || 0}
+                        })}
+                      />
+                      <Input 
+                        type="number" 
+                        min="0" 
+                        placeholder="H" 
+                        value={specialBaggageForm.dimensions.height}
+                        onChange={(e) => setSpecialBaggageForm({
+                          ...specialBaggageForm, 
+                          dimensions: {...specialBaggageForm.dimensions, height: parseFloat(e.target.value) || 0}
+                        })}
+                      />
+                    </div>
                   </div>
                 </div>
+                {getSpecialBaggageRule(selectedSpecialBaggageType).requiresHealthCert && (
+                  <>
+                    <div>
+                      <Label>Health Certificate Number</Label>
+                      <Input 
+                        value={specialBaggageForm.healthCertificate} 
+                        onChange={(e) => setSpecialBaggageForm({...specialBaggageForm, healthCertificate: e.target.value})} 
+                        placeholder="Enter certificate number" 
+                      />
+                    </div>
+                    <div>
+                      <Label>Vaccination Record</Label>
+                      <Input 
+                        value={specialBaggageForm.vaccinationRecord} 
+                        onChange={(e) => setSpecialBaggageForm({...specialBaggageForm, vaccinationRecord: e.target.value})} 
+                        placeholder="Enter vaccination record" 
+                      />
+                    </div>
+                  </>
+                )}
                 <div>
-                  <Label>Weight (kg)</Label>
-                  <Input type="number" placeholder="Weight" />
+                  <Label>Special Instructions</Label>
+                  <Textarea 
+                    value={specialBaggageForm.specialInstructions} 
+                    onChange={(e) => setSpecialBaggageForm({...specialBaggageForm, specialInstructions: e.target.value})} 
+                    placeholder="Enter any special handling instructions..." 
+                    className="min-h-20"
+                  />
                 </div>
+                {getSpecialBaggageRule(selectedSpecialBaggageType).requirements.length > 0 && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-sm">
+                    <div className="font-medium text-blue-900 mb-2">Requirements:</div>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-blue-700">
+                      {getSpecialBaggageRule(selectedSpecialBaggageType).requirements.map((req, idx) => (
+                        <li key={idx}>{req}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {getSpecialBaggageRule(selectedSpecialBaggageType).restrictions.length > 0 && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-sm">
+                    <div className="font-medium text-amber-900 mb-2">Restrictions:</div>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-amber-700">
+                      {getSpecialBaggageRule(selectedSpecialBaggageType).restrictions.map((req, idx) => (
+                        <li key={idx}>{req.replace(/_/g, ' ')}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {getSpecialBaggageRule(selectedSpecialBaggageType).requiresApproval && (
+                  <div className="p-3 bg-purple-50 border border-purple-200 rounded-sm">
+                    <div className="flex items-center flex-wrap gap-2 text-purple-900">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="font-medium">Approval Required</span>
+                    </div>
+                    <p className="text-sm text-purple-700 mt-1">This item requires supervisor approval before transport.</p>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowSpecialBaggageDialog(false)}>Cancel</Button>
-                <Button onClick={() => { 
-                  setSpecialBaggageRequests([...specialBaggageRequests, {
-                    id: `SBR-${Date.now()}`,
-                    passengerName: 'New Request',
-                    flightNumber: selectedFlight,
-                    itemDescription: 'Special Item',
-                    dimensions: '',
-                    weight: 0,
-                    status: 'pending',
-                    approved: null,
-                    requestedAt: new Date().toISOString()
-                  }])
-                  toast({ title: 'Special Baggage Request Submitted', description: 'Request added to queue' })
-                  setShowSpecialBaggageDialog(false) 
-                }}>Submit</Button>
+                <Button onClick={handleAddSpecialBaggageRequest}>Submit Request</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
           {/* Dangerous Goods Dialog */}
           <Dialog open={showDangerousGoodsDialog} onOpenChange={setShowDangerousGoodsDialog}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Dangerous Goods Declaration</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                <div>
-                  <Label>UN Number</Label>
-                  <Input placeholder="UN 1993" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label>UN Number</Label>
+                    <Select value={dgForm.unNumber} onValueChange={(value) => setDgForm({...dgForm, unNumber: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getPermittedUNNumbers(selectedDGClass).map((un) => (
+                          <SelectItem key={un} value={un}>{un}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>DG Class</Label>
+                    <Select value={selectedDGClass} onValueChange={(v: DGClass) => setSelectedDGClass(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries({
+                          '1': 'Class 1 - Explosives',
+                          '2.1': 'Class 2.1 - Flammable Gases',
+                          '2.2': 'Class 2.2 - Non-Flammable Gases',
+                          '2.3': 'Class 2.3 - Toxic Gases',
+                          '3': 'Class 3 - Flammable Liquids',
+                          '4': 'Class 4 - Flammable Solids',
+                          '5': 'Class 5 - Oxidizing Substances',
+                          '6': 'Class 6 - Toxic Substances',
+                          '7': 'Class 7 - Radioactive Material',
+                          '8': 'Class 8 - Corrosives',
+                          '9': 'Class 9 - Miscellaneous'
+                        } as Record<DGClass, string>).map(([value, label]) => {
+                          const classInfo = getDGClassInfo(value as DGClass)
+                          return (
+                            <SelectItem key={value} value={value}>
+                              <div className="flex items-center flex-wrap gap-2">
+                                <span>{label}</span>
+                                {!classInfo.permitted && (
+                                  <Badge variant="destructive" className="text-xs">Prohibited</Badge>
+                                )}
+                              </div>
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Proper Shipping Name</Label>
+                    <Input 
+                      value={dgForm.properShippingName} 
+                      onChange={(e) => setDgForm({...dgForm, properShippingName: e.target.value})} 
+                      placeholder="Flammable liquid" 
+                    />
+                  </div>
+                  <div>
+                    <Label>Packing Group</Label>
+                    <Select value={dgForm.packingGroup} onValueChange={(v: 'I' | 'II' | 'III') => setDgForm({...dgForm, packingGroup: v})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="I">Packing Group I (Great Danger)</SelectItem>
+                        <SelectItem value="II">Packing Group II (Medium Danger)</SelectItem>
+                        <SelectItem value="III">Packing Group III (Minor Danger)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Quantity</Label>
+                    <Input 
+                      type="number" 
+                      min="0" 
+                      value={dgForm.quantity} 
+                      onChange={(e) => setDgForm({...dgForm, quantity: parseFloat(e.target.value) || 0})} 
+                      placeholder="Quantity" 
+                    />
+                  </div>
+                  <div>
+                    <Label>Unit</Label>
+                    <Select value={dgForm.unit} onValueChange={(v) => setDgForm({...dgForm, unit: v})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                        <SelectItem value="liters">Liters (L)</SelectItem>
+                        <SelectItem value="pieces">Pieces</SelectItem>
+                        <SelectItem value="cubic_meters">Cubic Meters (m³)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <Label>Proper Shipping Name</Label>
-                  <Input placeholder="Flammable liquid" />
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-sm">
+                  <div className="font-medium text-blue-900 mb-2">Class Information:</div>
+                  <div className="text-sm text-blue-700">
+                    <div><strong>{getDGClassInfo(selectedDGClass).name}</strong></div>
+                    <div className="mt-1">{getDGClassInfo(selectedDGClass).description}</div>
+                    <div className="mt-2 flex items-center flex-wrap gap-2">
+                      {getDGClassInfo(selectedDGClass).permitted ? (
+                        <Badge variant="default" className="bg-green-600">Permitted</Badge>
+                      ) : (
+                        <Badge variant="destructive">Prohibited</Badge>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <Label>Class</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="3">Class 3 - Flammable Liquids</SelectItem>
-                      <SelectItem value="8">Class 8 - Corrosives</SelectItem>
-                      <SelectItem value="2.1">Class 2.1 - Flammable Gas</SelectItem>
-                      <SelectItem value="5.1">Class 5.1 - Oxidizers</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Quantity (kg)</Label>
-                  <Input type="number" placeholder="Weight" />
-                </div>
+                {dangerousGoodsItems.length > 0 && (
+                  <div className="border rounded-md p-4">
+                    <h4 className="font-medium mb-3">Declared Items</h4>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {dangerousGoodsItems.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between p-2 bg-secondary/30 rounded-sm">
+                          <div>
+                            <div className="font-medium text-sm">{item.unNumber} - {item.properShippingName}</div>
+                            <div className="text-xs text-muted-foreground">
+                              Class {item.dgClass} | {item.quantity} {item.unit} | {item.packingGroup}
+                            </div>
+                          </div>
+                          <Badge variant={item.status === 'permitted' ? 'default' : 'destructive'}>
+                            {item.status}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowDangerousGoodsDialog(false)}>Cancel</Button>
-                <Button variant="destructive" onClick={() => { 
-                  setDangerousGoodsDeclarations([...dangerousGoodsDeclarations, {
-                    id: `DG-${Date.now()}`,
-                    flightNumber: selectedFlight,
-                    unNumber: 'UN 1993',
-                    properShippingName: 'Flammable liquid',
-                    class: '3',
-                    packingGroup: 'II',
-                    quantity: 100,
-                    unit: 'kg',
-                    declaredBy: 'Crew',
-                    declaredAt: new Date().toISOString()
-                  }])
-                  toast({ title: 'Dangerous Goods Declared', description: 'Declaration recorded' })
-                  setShowDangerousGoodsDialog(false) 
-                }}>Declare</Button>
+                <Button 
+                  variant={getDGClassInfo(selectedDGClass).permitted ? "destructive" : "outline"}
+                  onClick={handleValidateDangerousGoods}
+                  disabled={!getDGClassInfo(selectedDGClass).permitted}
+                >
+                  {getDGClassInfo(selectedDGClass).permitted ? 'Validate & Declare' : 'Not Permitted'}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
           {/* Interline Dialog */}
           <Dialog open={showInterlineDialog} onOpenChange={setShowInterlineDialog}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Interline Baggage Agreement</DialogTitle>
+                <DialogTitle>Interline Baggage Tracking</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                <div>
-                  <Label>Partner Airline</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select airline" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="aa">American Airlines</SelectItem>
-                      <SelectItem value="ua">United Airlines</SelectItem>
-                      <SelectItem value="dl">Delta Air Lines</SelectItem>
-                      <SelectItem value="ba">British Airways</SelectItem>
-                      <SelectItem value="lh">Lufthansa</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Passenger Name</Label>
+                    <Input 
+                      value={interlineForm.passengerName} 
+                      onChange={(e) => setInterlineForm({...interlineForm, passengerName: e.target.value})} 
+                      placeholder="Enter passenger name" 
+                    />
+                  </div>
+                  <div>
+                    <Label>Final Destination</Label>
+                    <Input 
+                      value={interlineForm.finalDestination} 
+                      onChange={(e) => setInterlineForm({...interlineForm, finalDestination: e.target.value})} 
+                      placeholder="e.g., CDG" 
+                    />
+                  </div>
                 </div>
                 <div>
-                  <Label>Agreement Type</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="through">Through Check-in</SelectItem>
-                      <SelectItem value="transfer">Transfer Baggage</SelectItem>
-                      <SelectItem value="both">Both</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-base font-medium mb-2 block">Journey Segments</Label>
+                  {interlineForm.segments.map((segment, idx) => (
+                    <div key={idx} className="p-3 border rounded-sm mb-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium">Segment {idx + 1}</span>
+                        <Badge variant={segment.status === 'received' ? 'default' : 'outline'}>
+                          {segment.status}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                        <div><span className="text-muted-foreground">Airline:</span> {segment.airlineCode}</div>
+                        <div><span className="text-muted-foreground">Flight:</span> {segment.flightNumber}</div>
+                        <div><span className="text-muted-foreground">Route:</span> {segment.origin} → {segment.destination}</div>
+                        {segment.trackedAt && (
+                          <div><span className="text-muted-foreground">Tracked:</span> {new Date(segment.trackedAt).toLocaleTimeString()}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Switch id="active" />
-                  <Label htmlFor="active">Active Agreement</Label>
-                </div>
+                {interlineBaggage.length > 0 && (
+                  <div className="border rounded-md p-4">
+                    <h4 className="font-medium mb-3">Active Interline Baggage</h4>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {interlineBaggage.map((bag) => (
+                        <div key={bag.id} className="p-2 bg-secondary/30 rounded-sm">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-sm">{bag.tagNumber}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {bag.passengerName} | {bag.finalDestination}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <Badge variant={bag.feeSettled ? 'default' : 'outline'} className="text-xs">
+                                {bag.feeSettled ? 'Settled' : 'Unsettled'}
+                              </Badge>
+                              {bag.feeAmount > 0 && !bag.feeSettled && (
+                                <div className="text-sm font-medium mt-1">${bag.feeAmount}</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowInterlineDialog(false)}>Cancel</Button>
-                <Button onClick={() => { 
-                  setInterlineAgreements([...interlineAgreements, {
-                    id: `IA-${Date.now()}`,
-                    airline: 'Partner Airline',
-                    code: 'PA',
-                    active: true
-                  }])
-                  toast({ title: 'Agreement Saved', description: 'Interline agreement saved' })
-                  setShowInterlineDialog(false) 
-                }}>Save</Button>
+                <Button onClick={handleAddInterlineBaggage}>Add Interline Baggage</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
           {/* Excess Baggage Rules Dialog */}
           <Dialog open={showExcessRulesDialog} onOpenChange={setShowExcessRulesDialog}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Excess Baggage Rules</DialogTitle>
+                <div className="flex items-center justify-between">
+                  <DialogTitle>Excess Baggage Rules</DialogTitle>
+                  <div className="flex items-center flex-wrap gap-2">
+                    <Select value={selectedRuleRoute} onValueChange={(v: RouteType) => setSelectedRuleRoute(v)}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="domestic">Domestic</SelectItem>
+                        <SelectItem value="international">International</SelectItem>
+                        <SelectItem value="transatlantic">Transatlantic</SelectItem>
+                        <SelectItem value="transpacific">Transpacific</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={selectedRuleSeason} onValueChange={(v: SeasonType) => setSelectedRuleSeason(v)}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low Season</SelectItem>
+                        <SelectItem value="shoulder">Shoulder Season</SelectItem>
+                        <SelectItem value="peak">Peak Season</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={selectedRuleCabin} onValueChange={(v: CabinClass) => setSelectedRuleCabin(v)}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="economy">Economy</SelectItem>
+                        <SelectItem value="premium_economy">Premium Economy</SelectItem>
+                        <SelectItem value="business">Business</SelectItem>
+                        <SelectItem value="first">First Class</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    </div>
+                </div>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                <div>
-                  <Label>Route</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select route" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="domestic">Domestic</SelectItem>
-                      <SelectItem value="international">International</SelectItem>
-                      <SelectItem value="all">All Routes</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Excess Weight (per kg)</Label>
-                  <Input type="number" placeholder="15" />
-                </div>
-                <div>
-                  <Label>Excess Piece Fee</Label>
-                  <Input type="number" placeholder="200" />
-                </div>
-                <div>
-                  <Label>Max Weight per Piece (kg)</Label>
-                  <Input type="number" placeholder="32" />
-                </div>
+                {excessRules.length > 0 ? (
+                  <div className="border rounded-md p-4">
+                    <h4 className="font-medium mb-3">Current Rules</h4>
+                    {excessRules.map((rule, idx) => (
+                      <div key={idx} className="p-4 bg-secondary/30 rounded-sm space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                          <div><span className="text-muted-foreground">Route:</span> {rule.routeType.replace('_', ' ')}</div>
+                          <div><span className="text-muted-foreground">Season:</span> {rule.season}</div>
+                          <div><span className="text-muted-foreground">Cabin:</span> {rule.cabinClass.replace('_', ' ')}</div>
+                          <div><span className="text-muted-foreground">Weight Unit:</span> {rule.weightUnit}</div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                          <div><span className="text-muted-foreground">Allowed Pieces:</span> <span className="font-medium">{rule.allowedPieces}</span></div>
+                          <div><span className="text-muted-foreground">Allowed Weight:</span> <span className="font-medium">{rule.allowedWeight} kg</span></div>
+                          <div><span className="text-muted-foreground">Fee per Piece:</span> <span className="font-medium">${rule.feePerPiece}</span></div>
+                          <div><span className="text-muted-foreground">Fee per kg:</span> <span className="font-medium">${rule.feePerKg}</span></div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                          <div><span className="text-muted-foreground">Overweight Threshold:</span> <span className="font-medium">{rule.overweightThreshold} kg</span></div>
+                          <div><span className="text-muted-foreground">Oversize Threshold:</span> <span className="font-medium">{rule.oversizeThreshold} cm</span></div>
+                          <div><span className="text-muted-foreground">Overweight Charge:</span> <span className="font-medium">${rule.overweightCharge}</span></div>
+                          <div><span className="text-muted-foreground">Oversize Charge:</span> <span className="font-medium">${rule.oversizeCharge}</span></div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-muted-foreground mb-2">Tier Allowances (Extra Pieces / Extra Weight kg):</div>
+                          <div className="flex gap-4 text-sm">
+                            {Object.entries(rule.tierAllowances).map(([tier, allowances]) => (
+                              <Badge key={tier} variant="outline">
+                                {tier}: +{allowances.extraPieces} pcs / +{allowances.extraWeight} kg
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        {rule.corporateAllowances && (
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">Corporate Allowances:</span>
+                            <span className="font-medium ml-2">+{rule.corporateAllowances.extraPieces} pcs / +{rule.corporateAllowances.extraWeight} kg</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No rules loaded. Click "View Excess Rules" in the Baggage tab to load rules.
+                  </div>
+                )}
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowExcessRulesDialog(false)}>Cancel</Button>
-                <Button onClick={() => { 
-                  setExcessBaggageRules([
-                    { type: 'excess_weight', rate: 15 },
-                    { type: 'excess_piece', rate: 200 },
-                    { type: 'max_weight', rate: 32 }
-                  ])
-                  toast({ title: 'Rules Saved', description: 'Excess baggage rules updated' })
-                  setShowExcessRulesDialog(false) 
-                }}>Save Rules</Button>
+                <Button variant="outline" onClick={() => setShowExcessRulesDialog(false)}>Close</Button>
+                <Button onClick={() => {
+                  loadExcessRules()
+                  toast({ title: 'Rules Loaded', description: 'Excess baggage rules refreshed' })
+                }}>Refresh Rules</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

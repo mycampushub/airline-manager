@@ -1087,7 +1087,7 @@ export default function CargoModule() {
             Booking Workflow, ULD Tracking, and Revenue Accounting
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => {
             initializeBookings()
             initializeULDTrackings()
@@ -1194,8 +1194,8 @@ export default function CargoModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>AWB Number</th>
@@ -1222,7 +1222,7 @@ export default function CargoModule() {
                         <tr key={booking.id}>
                           <td className="font-mono font-medium">{booking.awbNumber}</td>
                           <td className="text-sm">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center flex-wrap gap-1">
                               <span>{booking.flightDetails.origin}</span>
                               <ArrowRight className="h-3 w-3 text-muted-foreground" />
                               <span>{booking.flightDetails.destination}</span>
@@ -1248,7 +1248,7 @@ export default function CargoModule() {
                           <td className="text-sm">{booking.goods.weight} kg</td>
                           <td>{getBookingStatusBadge(booking.status)}</td>
                           <td>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center flex-wrap gap-1">
                               <Button variant="ghost" size="sm" onClick={() => { setSelectedBooking(booking); setShowBookingDetails(true) }}>
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -1425,8 +1425,8 @@ export default function CargoModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>AWB Number</th>
@@ -1465,7 +1465,7 @@ export default function CargoModule() {
                             </div>
                           </td>
                           <td>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center flex-wrap gap-1">
                               <Button variant="ghost" size="sm" onClick={() => { setSelectedRevenue(revenue); setShowInvoiceDialog(true) }}>
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -1507,7 +1507,7 @@ export default function CargoModule() {
           <div className="space-y-4 py-4">
             <div className="border-t pt-4">
               <h4 className="font-medium mb-3">Shipment Information</h4>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="col-span-1">
                   <Label>AWB Number</Label>
                   <Input value={newBooking.awbNumber} onChange={(e) => setNewBooking({...newBooking, awbNumber: e.target.value})} placeholder="176-12345678" />
@@ -1517,7 +1517,7 @@ export default function CargoModule() {
                   <Input value={newBooking.description} onChange={(e) => setNewBooking({...newBooking, description: e.target.value})} placeholder="Description of goods" />
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-4 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
                 <div>
                   <Label>Pieces</Label>
                   <Input type="number" value={newBooking.pieces} onChange={(e) => setNewBooking({...newBooking, pieces: Number(e.target.value)})} />
@@ -1535,27 +1535,27 @@ export default function CargoModule() {
                   <Input type="number" value={newBooking.declaredValue} onChange={(e) => setNewBooking({...newBooking, declaredValue: Number(e.target.value)})} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                 <div>
                   <Label>HS Code</Label>
                   <Input value={newBooking.hsCode} onChange={(e) => setNewBooking({...newBooking, hsCode: e.target.value})} placeholder="00000000" />
                 </div>
                 <div className="flex items-end gap-4">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center flex-wrap gap-2">
                     <Switch
                       checked={newBooking.dangerousGoods}
                       onCheckedChange={(checked) => setNewBooking({...newBooking, dangerousGoods: checked})}
                     />
                     <Label className="text-sm">Dangerous Goods</Label>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center flex-wrap gap-2">
                     <Switch
                       checked={newBooking.perishable}
                       onCheckedChange={(checked) => setNewBooking({...newBooking, perishable: checked})}
                     />
                     <Label className="text-sm">Perishable</Label>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center flex-wrap gap-2">
                     <Switch
                       checked={newBooking.temperatureControlled}
                       onCheckedChange={(checked) => setNewBooking({...newBooking, temperatureControlled: checked})}
@@ -1568,7 +1568,7 @@ export default function CargoModule() {
 
             <div className="border-t pt-4">
               <h4 className="font-medium mb-3">Flight Details</h4>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <div>
                   <Label>Flight Number</Label>
                   <Input value={newBooking.flightNumber} onChange={(e) => setNewBooking({...newBooking, flightNumber: e.target.value})} placeholder="AA123" />
@@ -1586,7 +1586,7 @@ export default function CargoModule() {
 
             <div className="border-t pt-4">
               <h4 className="font-medium mb-3">Shipper Information</h4>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <Label>Company Name</Label>
                   <Input value={newBooking.shipperName} onChange={(e) => setNewBooking({...newBooking, shipperName: e.target.value})} />
@@ -1604,7 +1604,7 @@ export default function CargoModule() {
 
             <div className="border-t pt-4">
               <h4 className="font-medium mb-3">Consignee Information</h4>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <Label>Company Name</Label>
                   <Input value={newBooking.consigneeName} onChange={(e) => setNewBooking({...newBooking, consigneeName: e.target.value})} />
@@ -1632,14 +1632,14 @@ export default function CargoModule() {
 
       {/* Booking Details Dialog */}
       <Dialog open={showBookingDetails} onOpenChange={setShowBookingDetails}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Booking Details - {selectedBooking?.awbNumber}</DialogTitle>
           </DialogHeader>
           {selectedBooking && (
             <ScrollArea className="max-h-[70vh]">
               <div className="space-y-4 py-4">
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   <div>
                     <Label>Status</Label>
                     <div className="mt-1">{getBookingStatusBadge(selectedBooking.status)}</div>
@@ -1660,7 +1660,7 @@ export default function CargoModule() {
 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Goods Information</h4>
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <div>
                       <Label>Description</Label>
                       <div className="text-sm font-medium mt-1">{selectedBooking.goods.description}</div>
@@ -1690,7 +1690,7 @@ export default function CargoModule() {
 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Charges</h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <div className="p-3 bg-secondary/20 rounded">
                       <div className="text-xs text-muted-foreground">Freight</div>
                       <div className="text-lg font-bold">{selectedBooking.charges.currency} {selectedBooking.charges.freight.toLocaleString()}</div>
@@ -1709,23 +1709,23 @@ export default function CargoModule() {
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Documents Status</h4>
                   <div className="grid grid-cols-5 gap-2 text-sm">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       {selectedBooking.documents.awbIssued ? <CheckCircle className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-red-600" />}
                       <span>AWB Issued</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       {selectedBooking.documents.commercialInvoice ? <CheckCircle className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-red-600" />}
                       <span>Commercial Invoice</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       {selectedBooking.documents.certificateOfOrigin ? <CheckCircle className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-red-600" />}
                       <span>Certificate of Origin</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       {selectedBooking.documents.dangerousGoodsDeclaration ? <CheckCircle className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-red-600" />}
                       <span>DG Declaration</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       {selectedBooking.documents.phytosanitary ? <CheckCircle className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-red-600" />}
                       <span>Phytosanitary</span>
                     </div>
@@ -1738,7 +1738,7 @@ export default function CargoModule() {
                     <div className="space-y-2">
                       {selectedBooking.history.map((hist) => (
                         <div key={hist.id} className="text-sm">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <Clock className="h-3 w-3 text-muted-foreground" />
                             <span className="text-xs text-muted-foreground">{new Date(hist.timestamp).toLocaleString()}</span>
                             <Badge variant="outline" className="text-xs capitalize">{hist.action}</Badge>
@@ -1773,7 +1773,7 @@ export default function CargoModule() {
           {selectedULD && (
             <ScrollArea className="max-h-[70vh]">
               <div className="space-y-4 py-4">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
                     <Label>ULD Number</Label>
                     <div className="text-sm font-medium mt-1">{selectedULD.uldNumber}</div>
@@ -1804,7 +1804,7 @@ export default function CargoModule() {
 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Specifications</h4>
-                  <div className="grid grid-cols-4 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
                     <div>
                       <div className="text-muted-foreground">Tare Weight</div>
                       <div className="font-medium">{selectedULD.specifications.tareWeight} kg</div>
@@ -1827,7 +1827,7 @@ export default function CargoModule() {
                 {selectedULD.contents.totalPieces > 0 && (
                   <div className="border-t pt-4">
                     <h4 className="font-medium mb-3">Contents</h4>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                       <div>
                         <div className="text-muted-foreground">AWBs</div>
                         <div className="font-medium">{selectedULD.contents.awbNumbers.length}</div>
@@ -1871,7 +1871,7 @@ export default function CargoModule() {
                     <div className="space-y-2">
                       {selectedULD.movements.map((movement) => (
                         <div key={movement.id} className="text-sm">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <Clock className="h-3 w-3 text-muted-foreground" />
                             <span className="text-xs text-muted-foreground">{new Date(movement.timestamp).toLocaleString()}</span>
                             <Badge variant="outline" className="text-xs capitalize">{movement.type}</Badge>
@@ -1886,7 +1886,7 @@ export default function CargoModule() {
                   </ScrollArea>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <div className="text-muted-foreground">Last Inspection</div>
                     <div className="font-medium">{selectedULD.lastInspection}</div>
@@ -1964,13 +1964,13 @@ export default function CargoModule() {
 
       {/* Invoice Details Dialog */}
       <Dialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Invoice Details - {selectedRevenue?.invoiceNumber || 'Pending'}</DialogTitle>
           </DialogHeader>
           {selectedRevenue && (
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <Label>AWB Number</Label>
                   <div className="text-sm font-medium mt-1 font-mono">{selectedRevenue.awbNumber}</div>
@@ -2047,7 +2047,7 @@ export default function CargoModule() {
 
               <div className="border-t pt-4">
                 <h4 className="font-medium mb-3">Applied Rates</h4>
-                <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                   <div>
                     <div className="text-muted-foreground">Rate per kg</div>
                     <div className="font-medium">{selectedRevenue.currency} {selectedRevenue.appliedRates.ratePerKg.toFixed(2)}</div>

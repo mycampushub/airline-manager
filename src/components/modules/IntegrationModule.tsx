@@ -830,7 +830,7 @@ export default function IntegrationModule() {
             Connections, Webhooks, and Sync Monitoring
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => {
             initializeConnections()
             initializeWebhooks()
@@ -940,8 +940,8 @@ export default function IntegrationModule() {
                   </SelectContent>
                 </Select>
               </div>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>Connection</th>
@@ -981,7 +981,7 @@ export default function IntegrationModule() {
                           <td>{conn.metrics.avgResponseTime}ms</td>
                           <td>{conn.metrics.uptime}%</td>
                           <td>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center flex-wrap gap-1">
                               <Button variant="ghost" size="sm" onClick={() => { setSelectedConnection(conn); setShowConnectionDetails(true) }}>
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -1035,7 +1035,7 @@ export default function IntegrationModule() {
                       <div key={webhook.id} className="p-4 border rounded-sm space-y-3">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               <h4 className="font-medium">{webhook.name}</h4>
                               <Badge variant={webhook.status === 'active' ? 'default' : 'secondary'}>
                                 {webhook.status}
@@ -1043,7 +1043,7 @@ export default function IntegrationModule() {
                             </div>
                             <div className="text-sm text-muted-foreground mt-1">{webhook.targetUrl}</div>
                           </div>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center flex-wrap gap-1">
                             <Button variant="ghost" size="sm" onClick={() => { setSelectedWebhook(webhook); setShowWebhookDetails(true) }}>
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -1063,7 +1063,7 @@ export default function IntegrationModule() {
                             </Badge>
                           ))}
                         </div>
-                        <div className="grid grid-cols-4 gap-2 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-sm">
                           <div>
                             <div className="text-muted-foreground">Deliveries</div>
                             <div className="font-medium">{webhook.deliveryCount.toLocaleString()}</div>
@@ -1133,7 +1133,7 @@ export default function IntegrationModule() {
                     <div key={sync.id} className="p-4 border rounded-sm space-y-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <h4 className="font-medium">{sync.name}</h4>
                             {getSyncStatusBadge(sync.status)}
                             <Badge variant="outline" className="capitalize">{sync.frequency}</Badge>
@@ -1142,7 +1142,7 @@ export default function IntegrationModule() {
                             {sync.source} <ArrowRight className="h-3 w-3 inline mx-1" /> {sync.target}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center flex-wrap gap-1">
                           <Button variant="ghost" size="sm" onClick={() => { setSelectedSync(sync); setShowSyncDetails(true) }}>
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -1170,7 +1170,7 @@ export default function IntegrationModule() {
                           <Progress value={sync.progress} className="h-2" />
                         </div>
                       )}
-                      <div className="grid grid-cols-4 gap-2 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-sm">
                         <div>
                           <div className="text-muted-foreground">Records Processed</div>
                           <div className="font-medium">{sync.recordsProcessed.toLocaleString()}</div>
@@ -1286,7 +1286,7 @@ export default function IntegrationModule() {
               <Label>Connection Name</Label>
               <Input value={newConnection.name} onChange={(e) => setNewConnection({...newConnection, name: e.target.value})} placeholder="e.g., Amadeus Production" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Type</Label>
                 <Select value={newConnection.type} onValueChange={(v: any) => setNewConnection({...newConnection, type: v})}>
@@ -1335,7 +1335,7 @@ export default function IntegrationModule() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>API Key / Client ID</Label>
                 <Input value={newConnection.apiKey} onChange={(e) => setNewConnection({...newConnection, apiKey: e.target.value})} type="password" />
@@ -1358,14 +1358,14 @@ export default function IntegrationModule() {
 
       {/* Connection Details Dialog */}
       <Dialog open={showConnectionDetails} onOpenChange={setShowConnectionDetails}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Connection Details</DialogTitle>
           </DialogHeader>
           {selectedConnection && (
             <ScrollArea className="max-h-96">
               <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Name</Label>
                     <div className="text-sm font-medium mt-1">{selectedConnection.name}</div>
@@ -1398,7 +1398,7 @@ export default function IntegrationModule() {
                 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Metrics</h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <div className="p-3 bg-secondary/20 rounded">
                       <div className="text-xs text-muted-foreground">Requests Today</div>
                       <div className="text-lg font-bold">{selectedConnection.metrics.requestsToday.toLocaleString()}</div>
@@ -1428,7 +1428,7 @@ export default function IntegrationModule() {
 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Configuration</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
                       <div className="text-muted-foreground">Timeout</div>
                       <div className="font-medium">{selectedConnection.config.timeout}ms</div>
@@ -1484,9 +1484,9 @@ export default function IntegrationModule() {
             </div>
             <div>
               <Label>Events</Label>
-              <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {availableEvents.map((event) => (
-                  <div key={event} className="flex items-center gap-2 p-2 border rounded-sm">
+                  <div key={event} className="flex items-center flex-wrap gap-2 p-2 border rounded-sm">
                     {selectedEvents.includes(event) ? (
                       <CheckSquare className="h-4 w-4 text-primary cursor-pointer" onClick={() => handleToggleEvent(event)} />
                     ) : (
@@ -1514,14 +1514,14 @@ export default function IntegrationModule() {
 
       {/* Webhook Details Dialog */}
       <Dialog open={showWebhookDetails} onOpenChange={setShowWebhookDetails}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Webhook Details</DialogTitle>
           </DialogHeader>
           {selectedWebhook && (
             <ScrollArea className="max-h-96">
               <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Name</Label>
                     <div className="text-sm font-medium mt-1">{selectedWebhook.name}</div>
@@ -1551,7 +1551,7 @@ export default function IntegrationModule() {
 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Statistics</h4>
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <div className="p-3 bg-secondary/20 rounded">
                       <div className="text-xs text-muted-foreground">Deliveries</div>
                       <div className="text-lg font-bold">{selectedWebhook.deliveryCount.toLocaleString()}</div>
@@ -1573,7 +1573,7 @@ export default function IntegrationModule() {
 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Retry Policy</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
                       <div className="text-muted-foreground">Max Attempts</div>
                       <div className="font-medium">{selectedWebhook.retryPolicy.maxAttempts}</div>
@@ -1616,7 +1616,7 @@ export default function IntegrationModule() {
               <Label>Job Name</Label>
               <Input value={newSync.name} onChange={(e) => setNewSync({...newSync, name: e.target.value})} placeholder="e.g., GDS Flight Schedule Sync" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Source System</Label>
                 <Input value={newSync.source} onChange={(e) => setNewSync({...newSync, source: e.target.value})} placeholder="e.g., Amadeus GDS" />
@@ -1626,7 +1626,7 @@ export default function IntegrationModule() {
                 <Input value={newSync.target} onChange={(e) => setNewSync({...newSync, target: e.target.value})} placeholder="e.g., Internal Database" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Sync Type</Label>
                 <Select value={newSync.type} onValueChange={(v: any) => setNewSync({...newSync, type: v})}>
@@ -1665,14 +1665,14 @@ export default function IntegrationModule() {
 
       {/* Sync Job Details Dialog */}
       <Dialog open={showSyncDetails} onOpenChange={setShowSyncDetails}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Sync Job Details</DialogTitle>
           </DialogHeader>
           {selectedSync && (
             <ScrollArea className="max-h-96">
               <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Name</Label>
                     <div className="text-sm font-medium mt-1">{selectedSync.name}</div>
@@ -1711,7 +1711,7 @@ export default function IntegrationModule() {
 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Statistics</h4>
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <div className="p-3 bg-secondary/20 rounded">
                       <div className="text-xs text-muted-foreground">Records Processed</div>
                       <div className="text-lg font-bold">{selectedSync.recordsProcessed.toLocaleString()}</div>
@@ -1735,7 +1735,7 @@ export default function IntegrationModule() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <div className="text-muted-foreground">Last Run</div>
                     <div className="font-medium">{selectedSync.lastRun !== '-' ? new Date(selectedSync.lastRun).toLocaleString() : '-'}</div>
@@ -1784,14 +1784,14 @@ export default function IntegrationModule() {
 
       {/* Webhook Delivery Details Dialog */}
       <Dialog open={showDeliveryDialog} onOpenChange={setShowDeliveryDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Webhook Delivery Details</DialogTitle>
           </DialogHeader>
           {selectedDelivery && (
             <ScrollArea className="max-h-96">
               <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Webhook</Label>
                     <div className="text-sm font-medium mt-1">{selectedDelivery.webhookName}</div>

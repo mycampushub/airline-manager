@@ -36,7 +36,8 @@ import {
   Target,
   Zap,
   Award,
-  XCircle
+  XCircle,
+  History
 } from 'lucide-react'
 import { useAirlineStore, type CrewMember } from '@/lib/store'
 
@@ -122,6 +123,9 @@ export default function CrewModule() {
   const [showBidDialog, setShowBidDialog] = useState(false)
   const [showGenerateRosterDialog, setShowGenerateRosterDialog] = useState(false)
   const [showFilterDialog, setShowFilterDialog] = useState(false)
+  const [showEditRosterDialog, setShowEditRosterDialog] = useState(false)
+  const [showBiddingHistoryDialog, setShowBiddingHistoryDialog] = useState(false)
+  const [selectedCrewForHistory, setSelectedCrewForHistory] = useState<string | null>(null)
 
   // Filter state
   const [rosterFilter, setRosterFilter] = useState({
@@ -129,6 +133,19 @@ export default function CrewModule() {
     base: 'all',
     status: 'all',
     searchTerm: ''
+  })
+
+  const [biddingFilter, setBiddingFilter] = useState({
+    status: 'all'
+  })
+
+  const [complianceFilter, setComplianceFilter] = useState({
+    severity: 'all'
+  })
+
+  const [scheduleFilter, setScheduleFilter] = useState({
+    startDate: '',
+    endDate: ''
   })
 
   // Enhanced state
@@ -179,6 +196,24 @@ export default function CrewModule() {
     medicalExpiry: ''
   })
 
+  const [editingRosterEntry, setEditingRosterEntry] = useState<RosterEntry | null>(null)
+  const [editRosterData, setEditRosterData] = useState({
+    crewId: '',
+    crewName: '',
+    position: 'flight_attendant' as const,
+    base: 'JFK',
+    route: '',
+    startDate: '',
+    endDate: '',
+    dutyType: 'flight' as const,
+    status: 'scheduled' as const,
+    flightNumber: ''
+  })
+
+  // Track crew monthly hours for compliance
+  const [crewMonthlyHours, setCrewMonthlyHours] = useState<Record<string, number>>({})
+  const [crewDutyHistory, setCrewDutyHistory] = useState<Record<string, { endDate: string; dutyHours: number }[]>>({})
+
   // Handlers
   const handleAddCrew = () => {
     addCrewMember({
@@ -212,31 +247,136 @@ export default function CrewModule() {
   }
 
   const handleApproveBid = (bidId: string) => {
-    setCrewBids(crewBids.map(b => b.id === bidId ? { ...b, status: 'approved' as const } : b))
+    const bid = crewBids.find(b => b.id === bidId)
+    if (!bid) return
+
+    // Compliance checks before approving
+    const complianceIssues = checkComplianceForAssignment(bid.crewId, bid.startDate, bid.endDate)
+    
+    if (complianceIssues.length > 0) {
+      toast({ 
+        title: 'Compliance Check Failed', 
+        description: `Cannot approve bid due to: ${complianceIssues.join(', ')}`,
+        variant: 'destructive'
+      })
+      return
+    }
+
+    // Update bid status
+    setCrewBids(crewBids.map(b => b.id === bidId ? { ...b, status: 'approved' as const, pairingId: `PR${Math.random().toString().substr(2, 6)}` } : b))
+
+    // Create a roster entry for the approved bid
+    const crew = crewMembers.find(c => c.id === bid.crewId)
+    if (crew) {
+      const newRosterEntry: RosterEntry = {
+        id: `R${rosterEntries.length + 1}`,
+        crewId: crew.id,
+        crewName: `${crew.firstName} ${crew.lastName}`,
+        position: crew.position,
+        base: crew.base,
+        route: bid.route,
+        startDate: bid.startDate,
+        endDate: bid.endDate,
+        dutyType: 'flight',
+        status: 'scheduled',
+        flightNumber: `${bid.route.split('-')[0]}${100 + rosterEntries.length}`
+      }
+      setRosterEntries([...rosterEntries, newRosterEntry])
+
+      // Update crew duty history
+      updateCrewDutyHistory(crew.id, bid.endDate, 8) // Assume 8 hours duty
+    }
+
+    toast({ title: 'Bid Approved', description: `${bid.crewName} has been assigned to ${bid.route}` })
   }
 
   const handleRejectBid = (bidId: string) => {
     setCrewBids(crewBids.map(b => b.id === bidId ? { ...b, status: 'rejected' as const } : b))
+    toast({ title: 'Bid Rejected', description: 'The bid has been rejected' })
   }
 
   const handleGenerateRoster = () => {
-    // Simulate roster generation
-    const generatedRoster: RosterEntry[] = crewMembers.slice(0, 10).map((crew, i) => ({
-      id: `R${i + 1}`,
-      crewId: crew.id,
-      crewName: `${crew.firstName} ${crew.lastName}`,
-      position: crew.position,
-      base: crew.base,
-      pairingId: `PR${Math.random().toString().substr(2, 6)}`,
-      flightNumber: `AA${100 + i}`,
-      route: i % 2 === 0 ? 'JFK-LHR' : 'LAX-TYO',
-      startDate: rosterConfig.startDate,
-      endDate: rosterConfig.endDate,
-      dutyType: i % 4 === 0 ? 'standby' : 'flight',
-      status: 'scheduled'
-    }))
+    if (!rosterConfig.startDate || !rosterConfig.endDate) {
+      toast({ 
+        title: 'Missing Dates', 
+        description: 'Please select start and end dates for the roster',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    // Get available crew members (filter by base if needed)
+    let availableCrew = [...crewMembers]
+    if (rosterConfig.base && rosterConfig.base !== 'all') {
+      availableCrew = availableCrew.filter(c => c.base === rosterConfig.base)
+    }
+
+    // Get approved bids to consider if option is enabled
+    const approvedBids = rosterConfig.considerBids 
+      ? crewBids.filter(b => b.status === 'approved')
+      : []
+
+    // Generate roster entries
+    const generatedRoster: RosterEntry[] = []
+    const routes = ['JFK-LHR', 'LAX-TYO', 'SFO-HKG', 'ORD-LAX', 'MIA-CDG']
+    let flightNum = 100
+
+    availableCrew.forEach((crew, i) => {
+      // Check if crew has an approved bid
+      const approvedBid = approvedBids.find(b => b.crewId === crew.id)
+      
+      // Compliance check
+      const complianceIssues = checkComplianceForAssignment(
+        crew.id, 
+        approvedBid?.startDate || rosterConfig.startDate,
+        approvedBid?.endDate || rosterConfig.endDate
+      )
+
+      if (complianceIssues.length > 0) {
+        // Create compliance alert
+        const alert: ComplianceAlert = {
+          id: `CA${Date.now()}-${i}`,
+          crewId: crew.id,
+          crewName: `${crew.firstName} ${crew.lastName}`,
+          type: 'monthly_hours',
+          severity: 'warning',
+          message: complianceIssues.join('; '),
+          value: 'Exceeded',
+          limit: '100h/month',
+          createdAt: new Date().toISOString().split('T')[0]
+        }
+        setComplianceAlerts(prev => [...prev, alert])
+      }
+
+      const route = approvedBid?.route || routes[i % routes.length]
+      const startDate = approvedBid?.startDate || rosterConfig.startDate
+      const endDate = approvedBid?.endDate || rosterConfig.endDate
+
+      generatedRoster.push({
+        id: `R${generatedRoster.length + 1}`,
+        crewId: crew.id,
+        crewName: `${crew.firstName} ${crew.lastName}`,
+        position: crew.position,
+        base: crew.base,
+        pairingId: `PR${Math.random().toString().substr(2, 6)}`,
+        flightNumber: `${route.split('-')[0]}${flightNum + i}`,
+        route: route,
+        startDate: startDate,
+        endDate: endDate,
+        dutyType: i % 4 === 0 ? 'standby' : 'flight',
+        status: 'scheduled'
+      })
+
+      // Update duty history
+      updateCrewDutyHistory(crew.id, endDate, 8)
+    })
+
     setRosterEntries(generatedRoster)
     setShowGenerateRosterDialog(false)
+    toast({ 
+      title: 'Roster Generated', 
+      description: `Generated ${generatedRoster.length} roster entries from ${availableCrew.length} crew members` 
+    })
   }
 
   const handleAssignSchedule = () => {
@@ -280,6 +420,32 @@ export default function CrewModule() {
     return true
   })
 
+  // Get filtered bidding requests
+  const filteredBiddingRequests = crewBids.filter(bid => {
+    if (biddingFilter.status !== 'all' && bid.status !== biddingFilter.status) return false
+    return true
+  })
+
+  // Get filtered compliance alerts
+  const filteredComplianceAlerts = complianceAlerts.filter(alert => {
+    if (complianceFilter.severity !== 'all' && alert.severity !== complianceFilter.severity) return false
+    return true
+  })
+
+  // Get filtered schedules
+  const filteredSchedules = crewSchedules.filter(schedule => {
+    if (scheduleFilter.startDate && schedule.startDate < scheduleFilter.startDate) return false
+    if (scheduleFilter.endDate && schedule.startDate > scheduleFilter.endDate) return false
+    return true
+  })
+
+  // Get bidding history for a crew member
+  const getCrewBiddingHistory = (crewId: string) => {
+    return crewBids.filter(bid => bid.crewId === crewId).sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+  }
+
   const handleRefreshRoster = () => {
     toast({ title: 'Roster Refreshed', description: 'Latest crew data loaded' })
   }
@@ -287,8 +453,143 @@ export default function CrewModule() {
   const handleEditRosterEntry = (entryId: string) => {
     const entry = rosterEntries.find(r => r.id === entryId)
     if (entry) {
-      toast({ title: 'Edit Roster', description: `Editing ${entry.crewName}` })
+      setEditingRosterEntry(entry)
+      setEditRosterData({
+        crewId: entry.crewId,
+        crewName: entry.crewName,
+        position: entry.position as any,
+        base: entry.base,
+        route: entry.route || '',
+        startDate: entry.startDate,
+        endDate: entry.endDate,
+        dutyType: entry.dutyType,
+        status: entry.status,
+        flightNumber: entry.flightNumber || ''
+      })
+      setShowEditRosterDialog(true)
     }
+  }
+
+  const handleSaveRosterEdit = () => {
+    if (!editingRosterEntry) return
+
+    // Compliance check before saving
+    const complianceIssues = checkComplianceForAssignment(
+      editRosterData.crewId,
+      editRosterData.startDate,
+      editRosterData.endDate
+    )
+
+    if (complianceIssues.length > 0) {
+      toast({ 
+        title: 'Compliance Check Failed', 
+        description: `Cannot save changes due to: ${complianceIssues.join(', ')}`,
+        variant: 'destructive'
+      })
+      return
+    }
+
+    setRosterEntries(rosterEntries.map(r => 
+      r.id === editingRosterEntry.id 
+        ? {
+            ...r,
+            crewId: editRosterData.crewId,
+            crewName: editRosterData.crewName,
+            position: editRosterData.position,
+            base: editRosterData.base,
+            route: editRosterData.route,
+            startDate: editRosterData.startDate,
+            endDate: editRosterData.endDate,
+            dutyType: editRosterData.dutyType,
+            status: editRosterData.status,
+            flightNumber: editRosterData.flightNumber
+          }
+        : r
+    ))
+
+    setShowEditRosterDialog(false)
+    setEditingRosterEntry(null)
+    toast({ title: 'Roster Updated', description: 'Changes saved successfully' })
+  }
+
+  const handleShowBiddingHistory = (crewId: string) => {
+    setSelectedCrewForHistory(crewId)
+    setShowBiddingHistoryDialog(true)
+  }
+
+  // Compliance check functions
+  const checkComplianceForAssignment = (crewId: string, startDate: string, endDate: string): string[] => {
+    const issues: string[] = []
+    const crew = crewMembers.find(c => c.id === crewId)
+    if (!crew) return issues
+
+    // Check license expiry
+    if (crew.licenseExpiry) {
+      const licenseDate = new Date(crew.licenseExpiry)
+      const today = new Date()
+      const daysUntilExpiry = Math.ceil((licenseDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      if (daysUntilExpiry < 30) {
+        issues.push(`License expires in ${daysUntilExpiry} days`)
+      }
+    }
+
+    // Check medical expiry
+    if (crew.medicalExpiry) {
+      const medicalDate = new Date(crew.medicalExpiry)
+      const today = new Date()
+      const daysUntilExpiry = Math.ceil((medicalDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      if (daysUntilExpiry < 30) {
+        issues.push(`Medical certificate expires in ${daysUntilExpiry} days`)
+      }
+    }
+
+    // Check monthly flight hours
+    const monthlyHours = crewMonthlyHours[crewId] || 0
+    if (monthlyHours >= 100) {
+      issues.push(`Monthly flight hours limit reached (${monthlyHours}h)`)
+    } else if (monthlyHours > 90) {
+      issues.push(`Monthly flight hours approaching limit (${monthlyHours}h/100h)`)
+    }
+
+    // Check rest period
+    const dutyHistory = crewDutyHistory[crewId] || []
+    if (dutyHistory.length > 0) {
+      const lastDutyEnd = new Date(dutyHistory[dutyHistory.length - 1].endDate)
+      const newDutyStart = new Date(startDate)
+      const restHours = (newDutyStart.getTime() - lastDutyEnd.getTime()) / (1000 * 60 * 60)
+      if (restHours < rosterConfig.minRestHours) {
+        issues.push(`Insufficient rest period (${restHours.toFixed(1)}h < ${rosterConfig.minRestHours}h)`)
+      }
+    }
+
+    return issues
+  }
+
+  const updateCrewDutyHistory = (crewId: string, endDate: string, dutyHours: number) => {
+    setCrewDutyHistory(prev => ({
+      ...prev,
+      [crewId]: [...(prev[crewId] || []), { endDate, dutyHours }]
+    }))
+    setCrewMonthlyHours(prev => ({
+      ...prev,
+      [crewId]: (prev[crewId] || 0) + dutyHours
+    }))
+  }
+
+  // Filter handlers
+  const handleClearBiddingFilter = () => {
+    setBiddingFilter({ status: 'all' })
+    toast({ title: 'Filter Cleared', description: 'Bidding filter has been reset' })
+  }
+
+  const handleClearComplianceFilter = () => {
+    setComplianceFilter({ severity: 'all' })
+    toast({ title: 'Filter Cleared', description: 'Compliance filter has been reset' })
+  }
+
+  const handleClearScheduleFilter = () => {
+    setScheduleFilter({ startDate: '', endDate: '' })
+    toast({ title: 'Filter Cleared', description: 'Schedule filter has been reset' })
   }
 
   // Calculations
@@ -326,7 +627,7 @@ export default function CrewModule() {
                 <DialogTitle>Add Crew Member</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>First Name</Label>
                     <Input value={newCrew.firstName} onChange={(e) => setNewCrew({...newCrew, firstName: e.target.value})} />
@@ -482,8 +783,8 @@ export default function CrewModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[900px]">
                   <thead>
                     <tr>
                       <th>Crew</th>
@@ -580,7 +881,7 @@ export default function CrewModule() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Start Date</Label>
                           <Input type="date" value={newBid.startDate} onChange={(e) => setNewBid({...newBid, startDate: e.target.value})} />
@@ -618,8 +919,28 @@ export default function CrewModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <div className="flex gap-2 mb-4">
+                <div className="flex items-center flex-wrap gap-2">
+                  <Label className="text-sm">Status:</Label>
+                  <Select value={biddingFilter.status} onValueChange={(v) => setBiddingFilter({ ...biddingFilter, status: v })}>
+                    <SelectTrigger className="h-8 w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleClearBiddingFilter}>
+                  <Filter className="h-4 w-4 mr-2" />
+                  Clear Filter
+                </Button>
+              </div>
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[900px]">
                   <thead>
                     <tr>
                       <th>Crew</th>
@@ -632,14 +953,14 @@ export default function CrewModule() {
                     </tr>
                   </thead>
                   <tbody>
-                    {crewBids.length === 0 ? (
+                    {filteredBiddingRequests.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="text-center text-muted-foreground py-8">
                           No bids submitted
                         </td>
                       </tr>
                     ) : (
-                      crewBids.map((bid) => (
+                      filteredBiddingRequests.map((bid) => (
                         <tr key={bid.id}>
                           <td className="font-medium">{bid.crewName}</td>
                           <td className="text-sm">{bid.route}</td>
@@ -657,6 +978,9 @@ export default function CrewModule() {
                           </td>
                           <td>
                             <div className="flex gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => handleShowBiddingHistory(bid.crewId)} title="View History">
+                                <BarChart3 className="h-4 w-4" />
+                              </Button>
                               {bid.status === 'pending' && (
                                 <>
                                   <Button variant="ghost" size="sm" onClick={() => handleApproveBid(bid.id)} title="Approve">
@@ -690,7 +1014,7 @@ export default function CrewModule() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 bg-green-50 border border-green-200 rounded-sm">
                     <div className="flex items-center justify-between mb-2">
                       <div>
@@ -749,21 +1073,42 @@ export default function CrewModule() {
 
             <Card className="enterprise-card">
               <CardHeader>
-                <CardTitle>Active Alerts</CardTitle>
-                <CardDescription>
-                  Compliance alerts requiring attention
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Active Alerts</CardTitle>
+                    <CardDescription>
+                      Compliance alerts requiring attention
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center flex-wrap gap-2">
+                    <Label className="text-sm">Severity:</Label>
+                    <Select value={complianceFilter.severity} onValueChange={(v) => setComplianceFilter({ ...complianceFilter, severity: v })}>
+                      <SelectTrigger className="h-8 w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="critical">Critical</SelectItem>
+                        <SelectItem value="warning">Warning</SelectItem>
+                        <SelectItem value="info">Info</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button variant="outline" size="sm" onClick={handleClearComplianceFilter}>
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-80">
                   <div className="space-y-3">
-                    {complianceAlerts.length === 0 ? (
+                    {filteredComplianceAlerts.length === 0 ? (
                       <div className="text-center text-muted-foreground py-8">
                         <CheckCircle className="h-12 w-12 mx-auto mb-2 text-green-600" />
                         <p>No compliance alerts</p>
                       </div>
                     ) : (
-                      complianceAlerts.map((alert) => (
+                      filteredComplianceAlerts.map((alert) => (
                         <div key={alert.id} className={`p-3 border rounded-sm ${
                           alert.severity === 'critical' ? 'bg-red-50 border-red-200' : 
                           alert.severity === 'warning' ? 'bg-yellow-50 border-yellow-200' : 
@@ -771,7 +1116,7 @@ export default function CrewModule() {
                         }`}>
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
+                              <div className="flex items-center flex-wrap gap-2 mb-1">
                                 {alert.severity === 'critical' ? <AlertTriangle className="h-4 w-4 text-red-600" /> : 
                                  alert.severity === 'warning' ? <Zap className="h-4 w-4 text-yellow-600" /> : 
                                  <CheckCircle className="h-4 w-4 text-blue-600" />}
@@ -804,54 +1149,81 @@ export default function CrewModule() {
           <Card className="enterprise-card">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Crew Schedule</CardTitle>
-                <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
-                  <DialogTrigger asChild>
-                    <Button size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Assign Schedule
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Assign Crew Schedule</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div>
-                        <Label>Crew Member</Label>
-                        <Select>
-                          <SelectTrigger><SelectValue placeholder="Select crew" /></SelectTrigger>
-                          <SelectContent>
-                            {crewMembers.map(crew => (
-                              <SelectItem key={crew.id} value={crew.id}>
-                                {crew.firstName} {crew.lastName} - {crew.position}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <CardTitle>Crew Schedule</CardTitle>
+                  <CardDescription>
+                    View and manage crew schedules with flight assignments
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <div className="flex items-center flex-wrap gap-2">
+                    <Label className="text-sm">Date Range:</Label>
+                    <Input 
+                      type="date" 
+                      className="h-8 w-36" 
+                      value={scheduleFilter.startDate}
+                      onChange={(e) => setScheduleFilter({ ...scheduleFilter, startDate: e.target.value })}
+                    />
+                    <span className="text-sm text-muted-foreground">to</span>
+                    <Input 
+                      type="date" 
+                      className="h-8 w-36" 
+                      value={scheduleFilter.endDate}
+                      onChange={(e) => setScheduleFilter({ ...scheduleFilter, endDate: e.target.value })}
+                    />
+                  </div>
+                  <Button variant="outline" size="sm" onClick={handleClearScheduleFilter}>
+                    <Filter className="h-4 w-4 mr-2" />
+                    Clear
+                  </Button>
+                  <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+                    <DialogTrigger asChild>
+                      <Button size="sm">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Assign Schedule
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Assign Crew Schedule</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
                         <div>
-                          <Label>Start Time</Label>
-                          <Input type="time" />
+                          <Label>Crew Member</Label>
+                          <Select>
+                            <SelectTrigger><SelectValue placeholder="Select crew" /></SelectTrigger>
+                            <SelectContent>
+                              {crewMembers.map(crew => (
+                                <SelectItem key={crew.id} value={crew.id}>
+                                  {crew.firstName} {crew.lastName} - {crew.position}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <div>
-                          <Label>End Time</Label>
-                          <Input type="time" />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <Label>Start Time</Label>
+                            <Input type="time" />
+                          </div>
+                          <div>
+                            <Label>End Time</Label>
+                            <Input type="time" />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setShowScheduleDialog(false)}>Cancel</Button>
-                      <Button onClick={handleAssignSchedule}>Assign</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowScheduleDialog(false)}>Cancel</Button>
+                        <Button onClick={handleAssignSchedule}>Assign</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80">
-                <table className="enterprise-table">
+              <ScrollArea className="h-80 overflow-x-auto">
+                <table className="enterprise-table min-w-[800px]">
                   <thead>
                     <tr>
                       <th>Crew</th>
@@ -863,14 +1235,14 @@ export default function CrewModule() {
                     </tr>
                   </thead>
                   <tbody>
-                    {crewSchedules.length === 0 ? (
+                    {filteredSchedules.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="text-center text-muted-foreground py-8">
                           No crew schedules assigned
                         </td>
                       </tr>
                     ) : (
-                      crewSchedules.map((schedule) => {
+                      filteredSchedules.map((schedule) => {
                         const crew = crewMembers.find(c => c.id === schedule.crewId)
                         return (
                           <tr key={schedule.id}>
@@ -911,8 +1283,8 @@ export default function CrewModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80">
-                <table className="enterprise-table">
+              <ScrollArea className="h-80 overflow-x-auto">
+                <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
                       <th>Pairing</th>
@@ -971,8 +1343,8 @@ export default function CrewModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>Crew</th>
@@ -1092,7 +1464,7 @@ export default function CrewModule() {
             <DialogTitle>Generate Crew Roster</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Period</Label>
                 <Select value={rosterConfig.period} onValueChange={(v: any) => setRosterConfig({...rosterConfig, period: v})}>
@@ -1174,6 +1546,187 @@ export default function CrewModule() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowGenerateRosterDialog(false)}>Cancel</Button>
             <Button onClick={handleGenerateRoster}>Generate Roster</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Roster Dialog */}
+      <Dialog open={showEditRosterDialog} onOpenChange={setShowEditRosterDialog}>
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Roster Entry</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Crew Member</Label>
+                <Select value={editRosterData.crewId} onValueChange={(v) => {
+                  const crew = crewMembers.find(c => c.id === v)
+                  if (crew) {
+                    setEditRosterData({
+                      ...editRosterData,
+                      crewId: v,
+                      crewName: `${crew.firstName} ${crew.lastName}`,
+                      position: crew.position as any,
+                      base: crew.base
+                    })
+                  }
+                }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {crewMembers.map(crew => (
+                      <SelectItem key={crew.id} value={crew.id}>
+                        {crew.firstName} {crew.lastName} - {crew.position}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Position</Label>
+                <Select value={editRosterData.position} onValueChange={(v: any) => setEditRosterData({ ...editRosterData, position: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="captain">Captain</SelectItem>
+                    <SelectItem value="first_officer">First Officer</SelectItem>
+                    <SelectItem value="purser">Purser</SelectItem>
+                    <SelectItem value="flight_attendant">Flight Attendant</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Base</Label>
+                <Select value={editRosterData.base} onValueChange={(v) => setEditRosterData({ ...editRosterData, base: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="JFK">JFK - New York</SelectItem>
+                    <SelectItem value="LAX">LAX - Los Angeles</SelectItem>
+                    <SelectItem value="LHR">LHR - London</SelectItem>
+                    <SelectItem value="DXB">DXB - Dubai</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Flight Number</Label>
+                <Input value={editRosterData.flightNumber} onChange={(e) => setEditRosterData({ ...editRosterData, flightNumber: e.target.value })} />
+              </div>
+              <div>
+                <Label>Route</Label>
+                <Select value={editRosterData.route} onValueChange={(v) => setEditRosterData({ ...editRosterData, route: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="JFK-LHR">JFK - LHR</SelectItem>
+                    <SelectItem value="LAX-TYO">LAX - TYO</SelectItem>
+                    <SelectItem value="SFO-HKG">SFO - HKG</SelectItem>
+                    <SelectItem value="ORD-LAX">ORD - LAX</SelectItem>
+                    <SelectItem value="MIA-CDG">MIA - CDG</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div></div>
+              <div>
+                <Label>Start Date</Label>
+                <Input type="date" value={editRosterData.startDate} onChange={(e) => setEditRosterData({ ...editRosterData, startDate: e.target.value })} />
+              </div>
+              <div>
+                <Label>End Date</Label>
+                <Input type="date" value={editRosterData.endDate} onChange={(e) => setEditRosterData({ ...editRosterData, endDate: e.target.value })} />
+              </div>
+              <div>
+                <Label>Duty Type</Label>
+                <Select value={editRosterData.dutyType} onValueChange={(v: any) => setEditRosterData({ ...editRosterData, dutyType: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="flight">Flight</SelectItem>
+                    <SelectItem value="standby">Standby</SelectItem>
+                    <SelectItem value="training">Training</SelectItem>
+                    <SelectItem value="leave">Leave</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select value={editRosterData.status} onValueChange={(v: any) => setEditRosterData({ ...editRosterData, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditRosterDialog(false)}>Cancel</Button>
+            <Button onClick={handleSaveRosterEdit}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bidding History Dialog */}
+      <Dialog open={showBiddingHistoryDialog} onOpenChange={setShowBiddingHistoryDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Bidding History</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {selectedCrewForHistory && (
+              <div>
+                <div className="mb-4">
+                  <span className="text-sm text-muted-foreground">Crew Member: </span>
+                  <span className="font-medium">
+                    {crewMembers.find(c => c.id === selectedCrewForHistory)?.firstName} {' '}
+                    {crewMembers.find(c => c.id === selectedCrewForHistory)?.lastName}
+                  </span>
+                </div>
+                <ScrollArea className="h-80 overflow-x-auto">
+                  <table className="enterprise-table min-w-[800px]">
+                    <thead>
+                      <tr>
+                        <th>Date Submitted</th>
+                        <th>Route</th>
+                        <th>Period</th>
+                        <th>Priority</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getCrewBiddingHistory(selectedCrewForHistory).length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="text-center text-muted-foreground py-8">
+                            No bidding history for this crew member
+                          </td>
+                        </tr>
+                      ) : (
+                        getCrewBiddingHistory(selectedCrewForHistory).map((bid) => (
+                          <tr key={bid.id}>
+                            <td className="text-sm">{bid.createdAt}</td>
+                            <td className="text-sm">{bid.route}</td>
+                            <td className="text-sm">{bid.startDate} → {bid.endDate}</td>
+                            <td>
+                              <Badge variant={bid.priority === 'high' ? 'destructive' : bid.priority === 'medium' ? 'secondary' : 'outline'}>
+                                {bid.priority}
+                              </Badge>
+                            </td>
+                            <td className="text-sm max-w-xs truncate">{bid.reason}</td>
+                            <td>
+                              <Badge variant={bid.status === 'approved' ? 'default' : bid.status === 'rejected' ? 'destructive' : 'secondary'} className="capitalize">
+                                {bid.status}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </ScrollArea>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowBiddingHistoryDialog(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

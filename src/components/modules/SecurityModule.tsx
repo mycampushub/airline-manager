@@ -807,7 +807,7 @@ export default function SecurityModule() {
             RBAC, MFA, Audit Trail, Fraud Monitoring, and Compliance Dashboard
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => {
             initializeMFAMethods()
             initializeSessions()
@@ -927,8 +927,8 @@ export default function SecurityModule() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-96">
-                  <table className="enterprise-table">
+                <ScrollArea className="h-96 overflow-x-auto">
+                  <table className="enterprise-table min-w-[1000px]">
                     <thead>
                       <tr>
                         <th>User</th>
@@ -1005,7 +1005,7 @@ export default function SecurityModule() {
                 <div className="space-y-4">
                   {mfaMethods.map((method) => (
                     <div key={method.id} className="flex items-center justify-between p-4 border rounded-sm">
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center flex-wrap gap-4">
                         <div className={`p-3 rounded-full ${method.enabled ? 'bg-green-100' : 'bg-gray-100'}`}>
                           {method.icon}
                         </div>
@@ -1019,7 +1019,7 @@ export default function SecurityModule() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center flex-wrap gap-3">
                         <Switch
                           checked={method.enabled}
                           onCheckedChange={() => handleToggleMFA(method.id)}
@@ -1143,8 +1143,8 @@ export default function SecurityModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>User</th>
@@ -1167,7 +1167,7 @@ export default function SecurityModule() {
                           )}
                         </td>
                         <td className="text-sm">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             {session.device.includes('iPhone') ? <Smartphone className="h-4 w-4 text-blue-600" /> :
                              session.device.includes('Mac') ? <Activity className="h-4 w-4 text-gray-600" /> :
                              <Monitor className="h-4 w-4 text-gray-600" />}
@@ -1223,8 +1223,8 @@ export default function SecurityModule() {
         <TabsContent value="alerts">
           <div className="space-y-6">
             {/* Alert Filters */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center flex-wrap gap-4">
+              <div className="flex items-center flex-wrap gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <Select
                   value={alertFilter}
@@ -1242,7 +1242,7 @@ export default function SecurityModule() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center flex-wrap gap-2">
                 <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                 <Select
                   value={severityFilter}
@@ -1345,12 +1345,12 @@ export default function SecurityModule() {
                                 <AlertTriangle className="h-4 w-4" />
                               </div>
                               <div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center flex-wrap gap-2">
                                   {getSeverityBadge(alert.severity)}
                                   <span className="font-medium">{alert.title}</span>
                                 </div>
                                 <div className="text-sm text-muted-foreground mt-1">{alert.description}</div>
-                                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                                <div className="flex items-center flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
                                   <MapPin className="h-3 w-3" />
                                   <span>{alert.sourceIp}</span>
                                   <span>•</span>
@@ -1384,7 +1384,7 @@ export default function SecurityModule() {
 
             {/* Alert Details Dialog */}
             <Dialog open={showAlertDialog} onOpenChange={setShowAlertDialog}>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-[95vw] sm:max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>Security Alert Details</DialogTitle>
                   <DialogDescription>
@@ -1393,17 +1393,17 @@ export default function SecurityModule() {
                 </DialogHeader>
                 {selectedAlert && (
                   <div className="space-y-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label>Alert Type</Label>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center flex-wrap gap-2 mt-1">
                           {getSeverityBadge(selectedAlert.severity)}
                           <span className="font-medium capitalize">{selectedAlert.type.replace('_', ' ')}</span>
                         </div>
                       </div>
                       <div>
                         <Label>Severity</Label>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center flex-wrap gap-2 mt-1">
                           <Badge variant={selectedAlert.severity === 'critical' ? 'destructive' : selectedAlert.severity === 'high' ? 'secondary' : 'outline'}>
                             {selectedAlert.severity}
                           </Badge>
@@ -1426,7 +1426,7 @@ export default function SecurityModule() {
 
                     <div>
                       <Label>Current Status</Label>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center flex-wrap gap-2 mt-1">
                         {getAlertStatusBadge(selectedAlert.status)}
                         {selectedAlert.assignedTo && (
                           <span className="text-sm text-muted-foreground">• Assigned to: {selectedAlert.assignedTo}</span>
@@ -1527,8 +1527,8 @@ export default function SecurityModule() {
         <TabsContent value="audit">
           <div className="space-y-6">
             {/* Audit Filters */}
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center flex-wrap gap-4 flex-wrap">
+              <div className="flex items-center flex-wrap gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <Select value={auditFilter.module} onValueChange={(v) => setAuditFilter(prev => ({ ...prev, module: v }))}>
                   <SelectTrigger className="w-40">
@@ -1547,11 +1547,11 @@ export default function SecurityModule() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center flex-wrap gap-2">
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search audits..." className="w-64" />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center flex-wrap gap-2">
                 <Download className="h-4 w-4 text-muted-foreground" />
                 <Button variant="outline" size="sm" onClick={handleExportAuditLog}>
                   Export Logs
@@ -1615,8 +1615,8 @@ export default function SecurityModule() {
                 <CardDescription>Detailed system activity log with change tracking</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-96">
-                  <table className="enterprise-table">
+                <ScrollArea className="h-96 overflow-x-auto">
+                  <table className="enterprise-table min-w-[1200px]">
                     <thead>
                       <tr>
                         <th>Timestamp</th>
@@ -1757,7 +1757,7 @@ export default function SecurityModule() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="p-4 bg-red-50 border border-red-200 rounded-sm">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <AlertOctagon className="h-5 w-5 text-red-600" />
                         <span className="font-medium">Critical</span>
                       </div>
@@ -1768,7 +1768,7 @@ export default function SecurityModule() {
                   </div>
                   <div className="p-4 bg-orange-50 border border-orange-200 rounded-sm">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <AlertTriangle className="h-5 w-5 text-orange-600" />
                         <span className="font-medium">High</span>
                       </div>
@@ -1779,7 +1779,7 @@ export default function SecurityModule() {
                   </div>
                   <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-sm">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <AlertWarningIcon className="h-5 w-5 text-yellow-600" />
                         <span className="font-medium">Medium</span>
                       </div>
@@ -1790,7 +1790,7 @@ export default function SecurityModule() {
                   </div>
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-sm">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <Info className="h-5 w-5 text-blue-600" />
                         <span className="font-medium">Low</span>
                       </div>
@@ -1816,7 +1816,7 @@ export default function SecurityModule() {
                       <div key={check.id} className="p-4 border rounded-sm">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center flex-wrap gap-2 mb-2">
                               <span className="font-semibold">{check.name}</span>
                               {getStatusBadge(check.status)}
                               <span className="text-sm text-muted-foreground ml-2">{check.framework}</span>
@@ -1832,7 +1832,7 @@ export default function SecurityModule() {
                             <div className="text-xs text-muted-foreground">compliance score</div>
                           </div>
                         </div>
-                        <div className="grid grid-cols-4 gap-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
                           <div>
                             <div className="text-muted-foreground">Total Requirements</div>
                             <div className="font-medium">{check.requirements.total}</div>
@@ -1890,7 +1890,7 @@ export default function SecurityModule() {
                       <div key={role.id} className="p-4 border rounded-sm">
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               <ShieldCheck className="h-5 w-5 text-blue-600" />
                               <span className="font-semibold">{role.name}</span>
                               {role.system && <Badge variant="secondary" className="ml-2">System</Badge>}
@@ -1902,7 +1902,7 @@ export default function SecurityModule() {
                             <div className="text-xs text-muted-foreground">users</div>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                           <div>
                             <div className="text-muted-foreground">Created</div>
                             <div className="font-medium">{new Date(role.createdAt).toLocaleDateString()}</div>
@@ -1951,7 +1951,7 @@ export default function SecurityModule() {
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <Label>Minimum Password Length</Label>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <Slider
                           value={[passwordPolicy.minLength]}
                           onValueChange={(value) => setPasswordPolicy(prev => ({ ...prev, minLength: value[0] }))}

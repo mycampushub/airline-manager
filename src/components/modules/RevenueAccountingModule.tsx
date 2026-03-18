@@ -252,8 +252,8 @@ export default function RevenueAccountingModule() {
               <CardDescription>Match ticket sales with payment records</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80">
-                <table className="enterprise-table">
+              <ScrollArea className="h-80 overflow-x-auto">
+                <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
                       <th>Ticket</th>
@@ -307,7 +307,7 @@ export default function RevenueAccountingModule() {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                 <div className="p-4 bg-secondary/30 rounded-sm">
                   <div className="text-sm text-muted-foreground">Receivable</div>
                   <div className="text-2xl font-bold text-green-600">${interlineTotal.receivable.toLocaleString()}</div>
@@ -321,7 +321,8 @@ export default function RevenueAccountingModule() {
                   <div className="text-2xl font-bold">${(interlineTotal.receivable - interlineTotal.payable).toLocaleString()}</div>
                 </div>
               </div>
-              <table className="enterprise-table">
+              <div className="overflow-x-auto">
+                <table className="enterprise-table min-w-[900px]">
                 <thead>
                   <tr>
                     <th>Partner</th>
@@ -347,6 +348,7 @@ export default function RevenueAccountingModule() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -364,7 +366,7 @@ export default function RevenueAccountingModule() {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div className="p-4 bg-secondary/30 rounded-sm">
                   <div className="text-sm text-muted-foreground">BSP Sales (Current)</div>
                   <div className="text-2xl font-bold">${bspTotal.current.toLocaleString()}</div>
@@ -374,7 +376,8 @@ export default function RevenueAccountingModule() {
                   <div className="text-2xl font-bold">${(bspTotal.current * 0.71).toLocaleString()}</div>
                 </div>
               </div>
-              <table className="enterprise-table">
+              <div className="overflow-x-auto">
+                <table className="enterprise-table min-w-[900px]">
                 <thead>
                   <tr>
                     <th>Settlement Period</th>
@@ -398,6 +401,7 @@ export default function RevenueAccountingModule() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -415,7 +419,8 @@ export default function RevenueAccountingModule() {
               </Button>
             </CardHeader>
             <CardContent>
-              <table className="enterprise-table">
+              <div className="overflow-x-auto">
+              <table className="enterprise-table min-w-[900px]">
                 <thead>
                   <tr>
                     <th>Ticket</th>
@@ -449,6 +454,7 @@ export default function RevenueAccountingModule() {
                   )}
                 </tbody>
               </table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

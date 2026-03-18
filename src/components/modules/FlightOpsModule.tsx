@@ -49,7 +49,10 @@ import {
   ArrowRight,
   Save,
   Eye,
-  AlertCircle
+  AlertCircle,
+  Thermometer,
+  Wind,
+  Gauge as GaugeIcon
 } from 'lucide-react'
 import { type FlightSchedule, type DisruptionEvent } from '@/lib/store'
 
@@ -102,7 +105,7 @@ interface MaintenanceEvent {
 }
 
 export default function FlightOpsModule() {
-  const { flightSchedules, flightInstances, disruptions, createFlightSchedule, createDisruption } = useAirlineStore()
+  const { flightSchedules, flightInstances, disruptions, createFlightSchedule, updateFlightSchedule, createDisruption, setDisruptions } = useAirlineStore()
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('schedule')
   const [showScheduleDialog, setShowScheduleDialog] = useState(false)
@@ -182,6 +185,21 @@ export default function FlightOpsModule() {
     utilizationRate: 85
   })
 
+  // Edit dialogs state
+  const [showEditRouteDialog, setShowEditRouteDialog] = useState(false)
+  const [showEditScheduleDialog, setShowEditScheduleDialog] = useState(false)
+  const [showEditSeasonalDialog, setShowEditSeasonalDialog] = useState(false)
+  const [showEditFleetDialog, setShowEditFleetDialog] = useState(false)
+  const [editingRoute, setEditingRoute] = useState<Route | null>(null)
+  const [editingSchedule, setEditingSchedule] = useState<FlightSchedule | null>(null)
+  const [editingSeasonalSchedule, setEditingSeasonalSchedule] = useState<SeasonalSchedule | null>(null)
+  const [editingFleetAssignment, setEditingFleetAssignment] = useState<FleetAssignment | null>(null)
+
+  // Flight release state
+  const [showFlightReleaseDialog, setShowFlightReleaseDialog] = useState(false)
+  const [generatedFlightRelease, setGeneratedFlightRelease] = useState<any>(null)
+  const [flightReleaseApproved, setFlightReleaseApproved] = useState(false)
+
   const [selectedSchedule, setSelectedSchedule] = useState<FlightSchedule | null>(null)
 
   // Disruption state
@@ -196,21 +214,23 @@ export default function FlightOpsModule() {
 
   // Dispatch state
   const [selectedFlightForDispatch, setSelectedFlightForDispatch] = useState<FlightSchedule | null>(null)
+  const [selectedFlightForSchedule, setSelectedFlightForSchedule] = useState<FlightSchedule | null>(null)
   const [dispatchWeather, setDispatchWeather] = useState({
-    departure: { condition: 'Clear skies', temp: 15, windSpeed: 10, windDirection: 270, visibility: 10 },
-    destination: { condition: 'Overcast', temp: 12, windSpeed: 15, windDirection: 310, visibility: 8 }
+    departure: { condition: 'Clear skies', temp: 15, windSpeed: 10, windDirection: 270, visibility: 10, pressure: 1013, dewPoint: 8, cloudCeiling: 'Unlimited' },
+    destination: { condition: 'Overcast', temp: 12, windSpeed: 15, windDirection: 310, visibility: 8, pressure: 1010, dewPoint: 9, cloudCeiling: '3000ft AGL' }
   })
   const [notams, setNotams] = useState([
     { id: 'A1234/24', airport: 'JFK', message: 'RWY 09L/27R closed for maintenance until 15DEC', type: 'maintenance' as const, validFrom: '2024-12-01', validTo: '2024-12-15' },
-    { id: 'B5678/24', airport: 'JFK', message: 'Taxiway B partial closure due to construction', type: 'construction' as const, validFrom: '2024-12-01', validTo: '2024-12-20' }
+    { id: 'B5678/24', airport: 'JFK', message: 'Taxiway B partial closure due to construction', type: 'construction' as const, validFrom: '2024-12-01', validTo: '2024-12-20' },
+    { id: 'C9012/24', airport: 'LHR', message: 'ILS approach out of service - use visual approach', type: 'navigation' as const, validFrom: '2024-12-05', validTo: '2024-12-10' }
   ])
   const [atcRestrictions, setAtcRestrictions] = useState([
-    { id: '1', region: 'EUR', type: 'Flow control', level: 'Moderate', description: 'Reduced slot availability' },
-    { id: '2', region: 'NAT', type: 'Route restrictions', level: 'Active', description: 'NAT Track A suspended' }
+    { id: '1', region: 'EUR', type: 'Flow control', level: 'Moderate', description: 'Reduced slot availability', slotDelay: 15 },
+    { id: '2', region: 'NAT', type: 'Route restrictions', level: 'Active', description: 'NAT Track A suspended', slotDelay: 30 }
   ])
   const [alternateAirports, setAlternateAirports] = useState([
-    { code: 'MAN', name: 'Manchester', type: 'Primary', distance: 200, weather: 'VFR' },
-    { code: 'BHX', name: 'Birmingham', type: 'Secondary', distance: 150, weather: 'VFR' }
+    { code: 'MAN', name: 'Manchester', type: 'Primary', distance: 200, weather: 'VFR', estimatedDelay: 0 },
+    { code: 'BHX', name: 'Birmingham', type: 'Secondary', distance: 150, weather: 'VFR', estimatedDelay: 5 }
   ])
   const [fuelPlan, setFuelPlan] = useState({
     tripFuel: 18450,
@@ -370,77 +390,251 @@ export default function FlightOpsModule() {
   }
 
   const handleResolveDisruption = (disruptionId: string) => {
-    const { resolveDisruption } = useAirlineStore.getState()
-    resolveDisruption(disruptionId)
+    const disruption = disruptions.find(d => d.id === disruptionId)
+    if (!disruption) return
+
+    // Find and update the disruption in store
+    const updatedDisruptions = disruptions.map(d => 
+      d.id === disruptionId ? { ...d, status: 'resolved', resolvedAt: new Date().toISOString() } : d
+    )
+    setDisruptions(updatedDisruptions)
+    
+    toast({ 
+      title: 'Disruption Resolved', 
+      description: `Disruption for ${disruption.flightNumber} has been resolved` 
+    })
   }
 
   const handleAutoReaccommodate = (disruptionId: string) => {
     const disruption = disruptions.find(d => d.id === disruptionId)
     if (!disruption) return
 
-    // Simulate auto-reaccommodation
-    console.log(`Auto-reaccommodating ${disruption.impact.passengers} passengers for ${disruption.flightNumber}`)
-    // In a real system, this would:
-    // 1. Find alternative flights
-    // 2. Rebook passengers automatically
-    // 3. Send notifications
-    // 4. Update PNRs
+    // Simulate auto-reaccommodation with realistic details
+    const passengersReaccommodated = Math.floor(disruption.impact.passengers * 0.85) // 85% reaccommodated
+    const alternativeFlights = Math.ceil(passengersReaccommodated / 150) // ~150 per flight
+    
+    toast({ 
+      title: 'Auto-Reaccommodation Complete', 
+      description: `${passengersReaccommodated} passengers rebooked across ${alternativeFlights} alternative flights` 
+    })
   }
 
   // Dispatch handlers
   const handleGenerateFlightRelease = () => {
-    toast({ title: 'Flight Release Generated', description: `Flight ${selectedFlightForDispatch?.flightNumber} release has been generated` })
-    console.log('Generating flight release for:', selectedFlightForDispatch?.flightNumber)
+    if (!selectedFlightForDispatch) {
+      toast({ title: 'No Flight Selected', description: 'Please select a flight first', variant: 'destructive' })
+      return
+    }
+
+    setSelectedFlightForSchedule(selectedFlightForDispatch)
+    setFlightReleaseApproved(false)
+
+    // Generate a complete flight release with all required data
+    const flightRelease = {
+      flightNumber: selectedFlightForDispatch.flightNumber,
+      origin: selectedFlightForDispatch.origin,
+      destination: selectedFlightForDispatch.destination,
+      aircraftType: selectedFlightForDispatch.aircraftType,
+      departureTime: selectedFlightForDispatch.departureTime || '08:00',
+      arrivalTime: selectedFlightForDispatch.arrivalTime || '16:25',
+      generatedAt: new Date().toISOString(),
+      weather: {
+        departure: dispatchWeather.departure,
+        destination: dispatchWeather.destination
+      },
+      notams: notams,
+      atcRestrictions: atcRestrictions,
+      alternateAirports: alternateAirports,
+      fuelPlan: {
+        ...fuelPlan,
+        total: totalFuel
+      },
+      route: {
+        distance: selectedFlightForDispatch?.distance || 0,
+        flightTime: selectedFlightForDispatch?.duration || 0
+      },
+      crew: {
+        captain: 'Capt. J. Smith',
+        firstOfficer: 'F/O M. Johnson',
+        cabinCrew: 4
+      },
+      status: 'Ready for departure'
+    }
+
+    setGeneratedFlightRelease(flightRelease)
+    setShowFlightReleaseDialog(true)
+
+    toast({ title: 'Flight Release Generated', description: `Flight ${selectedFlightForDispatch.flightNumber} release has been generated` })
+  }
+
+  const handleApproveFlightRelease = () => {
+    setFlightReleaseApproved(true)
+    toast({ title: 'Flight Release Approved', description: `Flight ${generatedFlightRelease?.flightNumber} has been approved for departure` })
   }
 
   const handleRefreshWeather = () => {
-    // Simulate weather refresh
+    // Simulate more realistic weather refresh with conditions
+    const weatherConditions = ['Clear skies', 'Partly cloudy', 'Overcast', 'Light rain', 'Scattered clouds', 'Few clouds']
+    const cloudCeilings = ['Unlimited', 'Unlimited', 'Unlimited', '5000ft AGL', '8000ft AGL', '2500ft AGL', '1500ft AGL']
+    
     setDispatchWeather({
-      departure: { ...dispatchWeather.departure, temp: Math.round(dispatchWeather.departure.temp + (Math.random() - 0.5) * 5) },
-      destination: { ...dispatchWeather.destination, temp: Math.round(dispatchWeather.destination.temp + (Math.random() - 0.5) * 5) }
+      departure: { 
+        ...dispatchWeather.departure, 
+        condition: weatherConditions[Math.floor(Math.random() * weatherConditions.length)],
+        temp: Math.round(dispatchWeather.departure.temp + (Math.random() - 0.5) * 8),
+        windSpeed: Math.max(0, Math.min(50, dispatchWeather.departure.windSpeed + Math.round((Math.random() - 0.5) * 10))),
+        windDirection: (dispatchWeather.departure.windDirection + Math.round((Math.random() - 0.5) * 30) + 360) % 360,
+        visibility: Math.max(1, Math.min(20, Math.round(dispatchWeather.departure.visibility + (Math.random() - 0.5) * 3))),
+        pressure: Math.round(dispatchWeather.departure.pressure + (Math.random() - 0.5) * 5),
+        dewPoint: Math.round(dispatchWeather.departure.temp - Math.random() * 10),
+        cloudCeiling: cloudCeilings[Math.floor(Math.random() * cloudCeilings.length)]
+      },
+      destination: { 
+        ...dispatchWeather.destination, 
+        condition: weatherConditions[Math.floor(Math.random() * weatherConditions.length)],
+        temp: Math.round(dispatchWeather.destination.temp + (Math.random() - 0.5) * 8),
+        windSpeed: Math.max(0, Math.min(50, dispatchWeather.destination.windSpeed + Math.round((Math.random() - 0.5) * 10))),
+        windDirection: (dispatchWeather.destination.windDirection + Math.round((Math.random() - 0.5) * 30) + 360) % 360,
+        visibility: Math.max(1, Math.min(20, Math.round(dispatchWeather.destination.visibility + (Math.random() - 0.5) * 3))),
+        pressure: Math.round(dispatchWeather.destination.pressure + (Math.random() - 0.5) * 5),
+        dewPoint: Math.round(dispatchWeather.destination.temp - Math.random() * 10),
+        cloudCeiling: cloudCeilings[Math.floor(Math.random() * cloudCeilings.length)]
+      }
     })
     toast({ title: 'Weather Refreshed', description: 'Latest weather information loaded' })
   }
 
   const handleRefreshNotams = () => {
-    // Simulate NOTAM refresh
-    console.log('Refreshing NOTAMs')
-    toast({ title: 'NOTAMs Refreshed', description: 'Latest NOTAM information loaded' })
+    // Simulate NOTAM refresh with new realistic NOTAMs
+    const notamTypes = ['maintenance', 'construction', 'navigation', 'obstacle', 'airspace']
+    const airports = ['JFK', 'LHR', 'LAX', 'TYO', 'SFO', 'DXB', 'FRA', 'PAR', 'SIN', 'HKG']
+    const messages = [
+      'RWY 04R/22L closed for maintenance',
+      'ILS approach out of service - use visual approach',
+      'Taxiway Alpha closed between intersections B and C',
+      'Crane operations 500ft AGL near terminal 3',
+      'Temporary restricted airspace active for event',
+      'Ground radar unreliable - use visual confirmation',
+      'Fuel truck operations on apron C',
+      'De-icing equipment in use at stands 1-10'
+    ]
+    
+    // Add 1-2 new NOTAMs randomly
+    const newNotamsCount = Math.floor(Math.random() * 2) + 1
+    const newNotams = Array.from({ length: newNotamsCount }, (_, i) => ({
+      id: `${String.fromCharCode(65 + Math.floor(Math.random() * 26))}${Math.floor(Math.random() * 9000) + 1000}/24`,
+      airport: airports[Math.floor(Math.random() * airports.length)],
+      message: messages[Math.floor(Math.random() * messages.length)],
+      type: notamTypes[Math.floor(Math.random() * notamTypes.length)] as 'maintenance' | 'construction' | 'navigation' | 'obstacle' | 'airspace',
+      validFrom: new Date().toISOString().split('T')[0],
+      validTo: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    }))
+    
+    setNotams([...newNotams, ...notams].slice(0, 10)) // Keep max 10 NOTAMs
+    toast({ title: 'NOTAMs Refreshed', description: `${newNotamsCount} new NOTAM(s) loaded` })
   }
 
   const handleUpdateATC = () => {
-    // Simulate ATC update
-    console.log('Updating ATC restrictions')
+    // Simulate ATC update with dynamic restrictions
+    const regions = ['EUR', 'NAT', 'PAC', 'USA', 'ASIA', 'MID']
+    const restrictionTypes = ['Flow control', 'Route restrictions', 'Slot reductions', 'Ground delay', 'Miles-in-trail']
+    const levels = ['Active', 'Moderate', 'Low', 'High']
+    
+    // Update existing restrictions with new values
+    const updatedRestrictions = atcRestrictions.map(restriction => ({
+      ...restriction,
+      level: levels[Math.floor(Math.random() * levels.length)],
+      slotDelay: Math.max(0, restriction.slotDelay + Math.round((Math.random() - 0.5) * 15))
+    }))
+    
+    // Occasionally add a new restriction
+    if (Math.random() > 0.7) {
+      const newRestriction = {
+        id: String(updatedRestrictions.length + 1),
+        region: regions[Math.floor(Math.random() * regions.length)],
+        type: restrictionTypes[Math.floor(Math.random() * restrictionTypes.length)],
+        level: levels[Math.floor(Math.random() * levels.length)],
+        description: `Updated at ${new Date().toLocaleTimeString()}`,
+        slotDelay: Math.floor(Math.random() * 45)
+      }
+      setAtcRestrictions([newRestriction, ...updatedRestrictions].slice(0, 8))
+    } else {
+      setAtcRestrictions(updatedRestrictions)
+    }
+    
+    // Update alternate airports with new delays
+    setAlternateAirports(alternateAirports.map(alt => ({
+      ...alt,
+      estimatedDelay: Math.max(0, alt.estimatedDelay + Math.round((Math.random() - 0.5) * 10))
+    })))
+    
     toast({ title: 'ATC Updated', description: 'ATC restrictions have been updated' })
   }
 
-  // Additional handlers for Edit buttons
+  // Additional handlers for Edit buttons - now with dialogs
   const handleEditRoute = (routeId: string) => {
     const route = routes.find(r => r.id === routeId)
     if (route) {
-      toast({ title: 'Edit Route', description: `Editing ${route.origin} → ${route.destination}` })
+      setEditingRoute(route)
+      setShowEditRouteDialog(true)
     }
   }
 
   const handleEditSchedule = (scheduleId: string) => {
     const schedule = flightSchedules.find(s => s.id === scheduleId)
     if (schedule) {
-      toast({ title: 'Edit Schedule', description: `Editing ${schedule.flightNumber}` })
+      setEditingSchedule(schedule)
+      setShowEditScheduleDialog(true)
     }
   }
 
   const handleEditSeasonalSchedule = (scheduleId: string) => {
     const schedule = seasonalSchedules.find(s => s.id === scheduleId)
     if (schedule) {
-      toast({ title: 'Edit Seasonal Schedule', description: `Editing ${schedule.season} Season` })
+      setEditingSeasonalSchedule(schedule)
+      setShowEditSeasonalDialog(true)
     }
   }
 
   const handleEditFleetAssignment = (assignmentId: string) => {
     const assignment = fleetAssignments.find(a => a.id === assignmentId)
     if (assignment) {
-      toast({ title: 'Edit Fleet Assignment', description: `Editing ${assignment.registration}` })
+      setEditingFleetAssignment(assignment)
+      setShowEditFleetDialog(true)
     }
+  }
+
+  // Save handlers for edit dialogs
+  const handleSaveRoute = () => {
+    if (!editingRoute) return
+    setRoutes(routes.map(r => r.id === editingRoute.id ? editingRoute : r))
+    setShowEditRouteDialog(false)
+    setEditingRoute(null)
+    toast({ title: 'Route Updated', description: `${editingRoute.origin} → ${editingRoute.destination} has been updated` })
+  }
+
+  const handleSaveSchedule = () => {
+    if (!editingSchedule) return
+    updateFlightSchedule(editingSchedule.id, editingSchedule)
+    toast({ title: 'Schedule Updated', description: `${editingSchedule.flightNumber} has been updated` })
+    setShowEditScheduleDialog(false)
+    setEditingSchedule(null)
+  }
+
+  const handleSaveSeasonalSchedule = () => {
+    if (!editingSeasonalSchedule) return
+    setSeasonalSchedules(seasonalSchedules.map(s => s.id === editingSeasonalSchedule.id ? editingSeasonalSchedule : s))
+    setShowEditSeasonalDialog(false)
+    setEditingSeasonalSchedule(null)
+    toast({ title: 'Seasonal Schedule Updated', description: `${editingSeasonalSchedule.season} season has been updated` })
+  }
+
+  const handleSaveFleetAssignment = () => {
+    if (!editingFleetAssignment) return
+    setFleetAssignments(fleetAssignments.map(f => f.id === editingFleetAssignment.id ? editingFleetAssignment : f))
+    setShowEditFleetDialog(false)
+    setEditingFleetAssignment(null)
+    toast({ title: 'Fleet Assignment Updated', description: `${editingFleetAssignment.registration} has been updated` })
   }
 
   const handleDownloadPDF = () => {
@@ -448,7 +642,98 @@ export default function FlightOpsModule() {
     const origin = selectedFlightForDispatch?.origin || 'N/A'
     const dest = selectedFlightForDispatch?.destination || 'N/A'
     
-    const pdfContent = `Flight Release\nGenerated: ${new Date().toISOString()}\n\nFlight: ${flightNum}\nRoute: ${origin} → ${dest}\nStatus: Ready for departure`
+    const pdfContent = `================================================================================
+                              FLIGHT RELEASE DOCUMENT
+================================================================================
+
+Generated: ${new Date().toLocaleString()}
+Flight: ${flightNum}
+Route: ${origin} → ${dest}
+Aircraft: ${selectedFlightForDispatch?.aircraftType || 'N/A'}
+Status: Ready for departure
+
+--------------------------------------------------------------------------------
+                              FLIGHT INFORMATION
+--------------------------------------------------------------------------------
+
+Departure Time: ${selectedFlightForDispatch?.departureTime || 'N/A'}
+Arrival Time: ${selectedFlightForDispatch?.arrivalTime || 'N/A'}
+Flight Duration: ${selectedFlightForDispatch?.duration || 0} minutes
+Distance: ${selectedFlightForDispatch?.distance || 0} km
+
+--------------------------------------------------------------------------------
+                              WEATHER INFORMATION
+--------------------------------------------------------------------------------
+
+DEPARTURE (${origin}):
+  Conditions: ${dispatchWeather.departure.condition}
+  Temperature: ${dispatchWeather.departure.temp}°C
+  Wind: ${dispatchWeather.departure.windSpeed}kt from ${dispatchWeather.departure.windDirection}°
+  Visibility: ${dispatchWeather.departure.visibility}km
+  Pressure: ${dispatchWeather.departure.pressure} hPa
+  Dew Point: ${dispatchWeather.departure.dewPoint}°C
+  Cloud Ceiling: ${dispatchWeather.departure.cloudCeiling}
+
+DESTINATION (${dest}):
+  Conditions: ${dispatchWeather.destination.condition}
+  Temperature: ${dispatchWeather.destination.temp}°C
+  Wind: ${dispatchWeather.destination.windSpeed}kt from ${dispatchWeather.destination.windDirection}°
+  Visibility: ${dispatchWeather.destination.visibility}km
+  Pressure: ${dispatchWeather.destination.pressure} hPa
+  Dew Point: ${dispatchWeather.destination.dewPoint}°C
+  Cloud Ceiling: ${dispatchWeather.destination.cloudCeiling}
+
+--------------------------------------------------------------------------------
+                              ACTIVE NOTAMs
+--------------------------------------------------------------------------------
+
+${notams.map(n => `  ${n.id} - ${n.airport}
+  Type: ${n.type}
+  Valid: ${n.validFrom} to ${n.validTo}
+  ${n.message}`).join('\n\n')}
+
+--------------------------------------------------------------------------------
+                              ATC RESTRICTIONS
+--------------------------------------------------------------------------------
+
+${atcRestrictions.map(r => `  ${r.region} - ${r.type}
+  Level: ${r.level}
+  Slot Delay: ${r.slotDelay}min
+  ${r.description}`).join('\n\n')}
+
+--------------------------------------------------------------------------------
+                              ALTERNATE AIRPORTS
+--------------------------------------------------------------------------------
+
+${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
+  Distance: ${a.distance}nm
+  Weather: ${a.weather}
+  Est. Delay: ${a.estimatedDelay}min`).join('\n')}
+
+--------------------------------------------------------------------------------
+                              FUEL PLAN
+--------------------------------------------------------------------------------
+
+  Trip Fuel:      ${fuelPlan.tripFuel.toLocaleString()} kg
+  Reserve Fuel:   ${fuelPlan.reserve.toLocaleString()} kg
+  Alternate Fuel:  ${fuelPlan.alternate.toLocaleString()} kg
+  Taxi Fuel:      ${fuelPlan.taxi.toLocaleString()} kg
+  Contingency:    ${fuelPlan.contingency.toLocaleString()} kg
+  -----------------------------------------------------------------------------
+  TOTAL FUEL:     ${totalFuel.toLocaleString()} kg
+
+--------------------------------------------------------------------------------
+                              CREW INFORMATION
+--------------------------------------------------------------------------------
+
+  Captain:      Capt. J. Smith
+  First Officer: F/O M. Johnson
+  Cabin Crew:   4 Flight Attendants
+
+================================================================================
+                              END OF FLIGHT RELEASE
+================================================================================
+`
     
     const blob = new Blob([pdfContent], { type: 'text/plain' })
     const link = document.createElement('a')
@@ -536,7 +821,7 @@ export default function FlightOpsModule() {
           <Card className="enterprise-card">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center flex-wrap gap-2">
                   <Route className="h-5 w-5" />
                   Route Planning
                 </CardTitle>
@@ -552,7 +837,7 @@ export default function FlightOpsModule() {
                       <DialogTitle>Add New Route</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Origin Airport</Label>
                           <Input value={newRoute.origin} onChange={(e) => setNewRoute({...newRoute, origin: e.target.value})} placeholder="JFK" />
@@ -574,7 +859,7 @@ export default function FlightOpsModule() {
                         <Label>Available Aircraft Types</Label>
                         <div className="space-y-2">
                           {['B737-800', 'A320-200', 'A330-300', 'B777-300ER', 'A350-900', 'A380'].map((type) => (
-                            <div key={type} className="flex items-center space-x-2">
+                            <div key={type} className="flex items-center flex-wrap space-x-2">
                               <input 
                                 type="checkbox" 
                                 id={`ac-${type}`}
@@ -593,7 +878,7 @@ export default function FlightOpsModule() {
                           ))}
                         </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         <div>
                           <Label>Route Priority</Label>
                           <Select value={newRoute.priority} onValueChange={(v: any) => setNewRoute({...newRoute, priority: v})}>
@@ -634,8 +919,8 @@ export default function FlightOpsModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80">
-                <table className="enterprise-table">
+              <ScrollArea className="h-80 overflow-x-auto">
+                <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
                       <th>Route</th>
@@ -683,7 +968,7 @@ export default function FlightOpsModule() {
           <Card className="enterprise-card">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center flex-wrap gap-2">
                   <CalendarClock className="h-5 w-5" />
                   Flight Schedules
                 </CardTitle>
@@ -699,7 +984,7 @@ export default function FlightOpsModule() {
                       <DialogTitle>Create Flight Schedule</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4 max-h-96 overflow-y-auto">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Route</Label>
                           <Select value={newSchedule.routeId} onValueChange={(v) => setNewSchedule({...newSchedule, routeId: v})}>
@@ -789,8 +1074,8 @@ export default function FlightOpsModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80">
-                <table className="enterprise-table">
+              <ScrollArea className="h-80 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>Flight</th>
@@ -845,7 +1130,7 @@ export default function FlightOpsModule() {
             <Card className="enterprise-card">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <CalendarClock className="h-5 w-5" />
                     Seasonal Schedules
                   </CardTitle>
@@ -861,7 +1146,7 @@ export default function FlightOpsModule() {
                         <DialogTitle>Add Seasonal Schedule</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <Label>Season</Label>
                             <Select value={newSeasonalSchedule.season} onValueChange={(v: any) => setNewSeasonalSchedule({...newSeasonalSchedule, season: v})}>
@@ -883,7 +1168,7 @@ export default function FlightOpsModule() {
                           </div>
                           <div>
                             <Label>Frequency Multiplier</Label>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center flex-wrap gap-4">
                               <Slider
                                 min={0.5}
                                 max={1.5}
@@ -898,7 +1183,7 @@ export default function FlightOpsModule() {
                         </div>
                         <div>
                           <Label>Pricing Multiplier</Label>
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center flex-wrap gap-4">
                             <Slider
                               min={0.5}
                               max={2.0}
@@ -906,7 +1191,7 @@ export default function FlightOpsModule() {
                               value={newSeasonalSchedule.pricingMultiplier}
                               onValueChange={(v) => setNewSeasonalSchedule({...newSeasonalSchedule, pricingMultiplier: v})}
                               className="flex-1"
-                              />
+                            />
                             <span className="text-sm text-muted-foreground w-12">{newSeasonalSchedule.pricingMultiplier}x</span>
                           </div>
                         </div>
@@ -924,8 +1209,8 @@ export default function FlightOpsModule() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-80">
-                  <table className="enterprise-table">
+                <ScrollArea className="h-80 overflow-x-auto">
+                  <table className="enterprise-table min-w-[800px]">
                     <thead>
                       <tr>
                         <th>Season</th>
@@ -961,7 +1246,7 @@ export default function FlightOpsModule() {
             <Card className="enterprise-card">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center flex-wrap gap-2">
                     <Database className="h-5 w-5" />
                     Fleet Assignment
                   </CardTitle>
@@ -977,7 +1262,7 @@ export default function FlightOpsModule() {
                         <DialogTitle>Assign Aircraft to Route</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 py-4 max-h-96 overflow-y-auto">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <Label>Registration</Label>
                             <Select value={newFleetAssignment.registration} onValueChange={(v) => setNewFleetAssignment({...newFleetAssignment, registration: v})}>
@@ -1011,7 +1296,7 @@ export default function FlightOpsModule() {
                           </div>
                           <div>
                             <Label>Target Utilization %</Label>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center flex-wrap gap-4">
                               <Slider
                                 min={60}
                                 max={100}
@@ -1027,7 +1312,7 @@ export default function FlightOpsModule() {
                           <Label>Assigned Routes</Label>
                           <div className="space-y-2">
                             {routes.map(route => (
-                              <div key={route.id} className="flex items-center space-x-2">
+                              <div key={route.id} className="flex items-center flex-wrap space-x-2">
                                 <input 
                                   type="checkbox"
                                   id={`route-${route.id}`}
@@ -1056,8 +1341,8 @@ export default function FlightOpsModule() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-80">
-                  <table className="enterprise-table">
+                <ScrollArea className="h-80 overflow-x-auto">
+                  <table className="enterprise-table min-w-[900px]">
                     <thead>
                       <tr>
                         <th>Registration</th>
@@ -1077,7 +1362,7 @@ export default function FlightOpsModule() {
                           <td>{assignment.base}</td>
                           <td className="text-sm">{assignment.routes.join(', ')}</td>
                           <td>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
                                 <div 
                                   className={`h-full transition-all ${assignment.utilizationRate >= 95 ? 'bg-green-500' : assignment.utilizationRate >= 85 ? 'bg-blue-500' : 'bg-yellow-500'}`}
@@ -1125,7 +1410,7 @@ export default function FlightOpsModule() {
                       <DialogTitle>Log Disruption Event</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Flight Number</Label>
                           <Select value={newDisruption.flightNumber} onValueChange={(v) => setNewDisruption({...newDisruption, flightNumber: v})}>
@@ -1174,7 +1459,7 @@ export default function FlightOpsModule() {
                         <Textarea value={newDisruption.reason} onChange={(e) => setNewDisruption({...newDisruption, reason: e.target.value})} placeholder="Severe weather conditions at departure airport" rows={3} />
                       </div>
                       <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-sm">
-                        <div className="flex items-center gap-2 text-sm">
+                        <div className="flex items-center flex-wrap gap-2 text-sm">
                           <AlertCircle className="h-4 w-4 text-yellow-600" />
                           <span className="text-yellow-800">
                             Auto-reaccommodation will be available after logging. Affected passengers will be calculated automatically.
@@ -1194,8 +1479,8 @@ export default function FlightOpsModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
                       <th>Flight</th>
@@ -1236,7 +1521,7 @@ export default function FlightOpsModule() {
                             </Badge>
                           </td>
                           <td>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center flex-wrap gap-1">
                               {disruption.status === 'active' && (
                                 <>
                                   <Button variant="ghost" size="sm" onClick={() => handleAutoReaccommodate(disruption.id)} title="Auto-reaccommodate passengers">
@@ -1304,10 +1589,10 @@ export default function FlightOpsModule() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-3 bg-secondary/30 rounded-sm">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <Cloud className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">Departure Weather</span>
                       </div>
@@ -1319,11 +1604,13 @@ export default function FlightOpsModule() {
                       <div>{dispatchWeather.departure.condition}, {dispatchWeather.departure.temp}°C</div>
                       <div>Wind: {dispatchWeather.departure.windSpeed}kt from {dispatchWeather.departure.windDirection}°</div>
                       <div>Visibility: {dispatchWeather.departure.visibility}km</div>
+                      <div>Pressure: {dispatchWeather.departure.pressure} hPa</div>
+                      <div>Cloud Ceiling: {dispatchWeather.departure.cloudCeiling}</div>
                     </div>
                   </div>
                   <div className="p-3 bg-secondary/30 rounded-sm">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <Cloud className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">Destination Weather</span>
                       </div>
@@ -1335,6 +1622,8 @@ export default function FlightOpsModule() {
                       <div>{dispatchWeather.destination.condition}, {dispatchWeather.destination.temp}°C</div>
                       <div>Wind: {dispatchWeather.destination.windSpeed}kt from {dispatchWeather.destination.windDirection}°</div>
                       <div>Visibility: {dispatchWeather.destination.visibility}km</div>
+                      <div>Pressure: {dispatchWeather.destination.pressure} hPa</div>
+                      <div>Cloud Ceiling: {dispatchWeather.destination.cloudCeiling}</div>
                     </div>
                   </div>
                 </div>
@@ -1362,7 +1651,7 @@ export default function FlightOpsModule() {
                   </ScrollArea>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <Button className="w-full" onClick={handleGenerateFlightRelease}>
                     <FileText className="h-4 w-4 mr-2" />
                     Generate Flight Release
@@ -1407,8 +1696,9 @@ export default function FlightOpsModule() {
                         <div>
                           <div className="font-medium">{restriction.type} - {restriction.region}</div>
                           <div className="text-xs text-muted-foreground">{restriction.description}</div>
+                          <div className="text-xs text-orange-600">Slot Delay: {restriction.slotDelay}min</div>
                         </div>
-                        <Badge variant={restriction.level === 'Active' ? 'destructive' : 'outline'}>
+                        <Badge variant={restriction.level === 'Active' || restriction.level === 'High' ? 'destructive' : 'outline'}>
                           {restriction.level}
                         </Badge>
                       </div>
@@ -1421,11 +1711,12 @@ export default function FlightOpsModule() {
                   <div className="space-y-2">
                     {alternateAirports.map(alt => (
                       <div key={alt.code} className="flex items-center justify-between text-sm p-2 bg-secondary/30 rounded-sm">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center flex-wrap gap-2">
                           <MapPin className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <div className="font-medium">{alt.code} ({alt.name})</div>
                             <div className="text-xs text-muted-foreground">{alt.distance}nm • {alt.weather}</div>
+                            {alt.estimatedDelay > 0 && <div className="text-xs text-orange-600">Est. Delay: {alt.estimatedDelay}min</div>}
                           </div>
                         </div>
                         <Badge variant={alt.type === 'Primary' ? 'default' : 'secondary'}>{alt.type}</Badge>
@@ -1438,13 +1729,13 @@ export default function FlightOpsModule() {
                   <h3 className="text-sm font-medium mb-2">Fuel Planning</h3>
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-sm">
                     <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <Fuel className="h-5 w-5 text-primary" />
                         <span className="font-medium">Fuel Requirements</span>
                       </div>
-                      <Gauge className="h-5 w-5 text-primary" />
+                      <GaugeIcon className="h-5 w-5 text-primary" />
                     </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground">Trip Fuel:</span>
                         <div className="font-medium">{fuelPlan.tripFuel.toLocaleString()} kg</div>
@@ -1509,6 +1800,489 @@ export default function FlightOpsModule() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Route Dialog */}
+      <Dialog open={showEditRouteDialog} onOpenChange={setShowEditRouteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Route</DialogTitle>
+          </DialogHeader>
+          {editingRoute && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Origin Airport</Label>
+                  <Input value={editingRoute.origin} onChange={(e) => setEditingRoute({...editingRoute, origin: e.target.value})} />
+                </div>
+                <div>
+                  <Label>Destination Airport</Label>
+                  <Input value={editingRoute.destination} onChange={(e) => setEditingRoute({...editingRoute, destination: e.target.value})} />
+                </div>
+                <div>
+                  <Label>Distance (km)</Label>
+                  <Input type="number" value={editingRoute.distance} onChange={(e) => setEditingRoute({...editingRoute, distance: Number(e.target.value)})} />
+                </div>
+                <div>
+                  <Label>Flight Time (min)</Label>
+                  <Input type="number" value={editingRoute.flightTime} onChange={(e) => setEditingRoute({...editingRoute, flightTime: Number(e.target.value)})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Route Priority</Label>
+                  <Select value={editingRoute.priority} onValueChange={(v: any) => setEditingRoute({...editingRoute, priority: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Demand Level</Label>
+                  <Select value={editingRoute.demand} onValueChange={(v: any) => setEditingRoute({...editingRoute, demand: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Aircraft Types</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {['B737-800', 'A320-200', 'A330-300', 'B777-300ER', 'A350-900', 'A380'].map(type => (
+                    <Badge key={type} variant={editingRoute.aircraftTypes.includes(type) ? 'default' : 'outline'} className="cursor-pointer" onClick={() => {
+                      if (editingRoute.aircraftTypes.includes(type)) {
+                        setEditingRoute({...editingRoute, aircraftTypes: editingRoute.aircraftTypes.filter(t => t !== type)})
+                      } else {
+                        setEditingRoute({...editingRoute, aircraftTypes: [...editingRoute.aircraftTypes, type]})
+                      }
+                    }}>
+                      {type}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditRouteDialog(false)}>Cancel</Button>
+            <Button onClick={handleSaveRoute}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Seasonal Schedule Dialog */}
+      <Dialog open={showEditSeasonalDialog} onOpenChange={setShowEditSeasonalDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Seasonal Schedule</DialogTitle>
+          </DialogHeader>
+          {editingSeasonalSchedule && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Season</Label>
+                  <Select value={editingSeasonalSchedule.season} onValueChange={(v: any) => setEditingSeasonalSchedule({...editingSeasonalSchedule, season: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low Season</SelectItem>
+                      <SelectItem value="shoulder">Shoulder Season</SelectItem>
+                      <SelectItem value="peak">Peak Season</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Start Date</Label>
+                  <Input type="date" value={editingSeasonalSchedule.startDate} onChange={(e) => setEditingSeasonalSchedule({...editingSeasonalSchedule, startDate: e.target.value})} />
+                </div>
+                <div>
+                  <Label>End Date</Label>
+                  <Input type="date" value={editingSeasonalSchedule.endDate} onChange={(e) => setEditingSeasonalSchedule({...editingSeasonalSchedule, endDate: e.target.value})} />
+                </div>
+              </div>
+              <div>
+                <Label>Frequency Multiplier</Label>
+                <div className="flex items-center flex-wrap gap-4 mt-2">
+                  <Slider min={0.5} max={1.5} step={0.1} value={[editingSeasonalSchedule.frequencyMultiplier]} onValueChange={(v) => setEditingSeasonalSchedule({...editingSeasonalSchedule, frequencyMultiplier: v[0]})} className="flex-1" />
+                  <span className="text-sm text-muted-foreground w-12">{editingSeasonalSchedule.frequencyMultiplier}x</span>
+                </div>
+              </div>
+              <div>
+                <Label>Pricing Multiplier</Label>
+                <div className="flex items-center flex-wrap gap-4 mt-2">
+                  <Slider min={0.5} max={2.0} step={0.05} value={[editingSeasonalSchedule.pricingMultiplier]} onValueChange={(v) => setEditingSeasonalSchedule({...editingSeasonalSchedule, pricingMultiplier: v[0]})} className="flex-1" />
+                  <span className="text-sm text-muted-foreground w-12">{editingSeasonalSchedule.pricingMultiplier}x</span>
+                </div>
+              </div>
+              <div>
+                <Label>Notes</Label>
+                <Textarea value={editingSeasonalSchedule.notes} onChange={(e) => setEditingSeasonalSchedule({...editingSeasonalSchedule, notes: e.target.value})} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditSeasonalDialog(false)}>Cancel</Button>
+            <Button onClick={handleSaveSeasonalSchedule}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Fleet Assignment Dialog */}
+      <Dialog open={showEditFleetDialog} onOpenChange={setShowEditFleetDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Fleet Assignment</DialogTitle>
+          </DialogHeader>
+          {editingFleetAssignment && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Registration</Label>
+                  <Input value={editingFleetAssignment.registration} onChange={(e) => setEditingFleetAssignment({...editingFleetAssignment, registration: e.target.value})} />
+                </div>
+                <div>
+                  <Label>Aircraft Type</Label>
+                  <Select value={editingFleetAssignment.aircraftType} onValueChange={(v) => setEditingFleetAssignment({...editingFleetAssignment, aircraftType: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="B737-800">B737-800</SelectItem>
+                      <SelectItem value="A320-200">A320-200</SelectItem>
+                      <SelectItem value="A330-300">A330-300</SelectItem>
+                      <SelectItem value="B777-300ER">B777-300ER</SelectItem>
+                      <SelectItem value="A350-900">A350-900</SelectItem>
+                      <SelectItem value="A380">A380</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Base Airport</Label>
+                  <Input value={editingFleetAssignment.base} onChange={(e) => setEditingFleetAssignment({...editingFleetAssignment, base: e.target.value})} />
+                </div>
+              </div>
+              <div>
+                <Label>Target Utilization %</Label>
+                <div className="flex items-center flex-wrap gap-4 mt-2">
+                  <Slider min={60} max={100} value={[editingFleetAssignment.utilizationRate]} onValueChange={(v) => setEditingFleetAssignment({...editingFleetAssignment, utilizationRate: v[0]})} className="flex-1" />
+                  <span className="text-sm text-muted-foreground w-12">{editingFleetAssignment.utilizationRate}%</span>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditFleetDialog(false)}>Cancel</Button>
+            <Button onClick={handleSaveFleetAssignment}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Flight Schedule Dialog */}
+      <Dialog open={showEditScheduleDialog} onOpenChange={setShowEditScheduleDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Flight Schedule</DialogTitle>
+          </DialogHeader>
+          {editingSchedule && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Flight Number</Label>
+                  <Input value={editingSchedule.flightNumber} onChange={(e) => setEditingSchedule({...editingSchedule, flightNumber: e.target.value})} />
+                </div>
+                <div>
+                  <Label>Route</Label>
+                  <div className="text-sm font-medium mt-2">{editingSchedule.origin} → {editingSchedule.destination}</div>
+                </div>
+                <div>
+                  <Label>Departure Time</Label>
+                  <Input type="time" value={editingSchedule.departureTime} onChange={(e) => setEditingSchedule({...editingSchedule, departureTime: e.target.value})} />
+                </div>
+                <div>
+                  <Label>Arrival Time</Label>
+                  <Input type="time" value={editingSchedule.arrivalTime} onChange={(e) => setEditingSchedule({...editingSchedule, arrivalTime: e.target.value})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Aircraft Type</Label>
+                  <Select value={editingSchedule.aircraftType} onValueChange={(v) => setEditingSchedule({...editingSchedule, aircraftType: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="B737-800">B737-800</SelectItem>
+                      <SelectItem value="A320-200">A320-200</SelectItem>
+                      <SelectItem value="A330-300">A330-300</SelectItem>
+                      <SelectItem value="B777-300ER">B777-300ER</SelectItem>
+                      <SelectItem value="A350-900">A350-900</SelectItem>
+                      <SelectItem value="A380">A380</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <Select value={editingSchedule.status} onValueChange={(v: any) => setEditingSchedule({...editingSchedule, status: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="seasonal">Seasonal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Operating Days</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => {
+                    const dayNum = i + 1
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => {
+                          setEditingSchedule(prev => ({
+                            ...prev!,
+                            daysOfWeek: prev!.daysOfWeek.includes(dayNum)
+                              ? prev!.daysOfWeek.filter(d => d !== dayNum)
+                              : [...prev!.daysOfWeek, dayNum]
+                          }))
+                        }}
+                        className={`px-3 py-2 text-sm rounded-md border ${
+                          editingSchedule.daysOfWeek.includes(dayNum)
+                            ? 'bg-primary text-primary-foreground'
+                            : 'border-gray-300 hover:bg-secondary'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditScheduleDialog(false)}>Cancel</Button>
+            <Button onClick={handleSaveSchedule}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Flight Release Dialog */}
+      <Dialog open={showFlightReleaseDialog} onOpenChange={setShowFlightReleaseDialog}>
+        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Flight Release - {generatedFlightRelease?.flightNumber}</DialogTitle>
+          </DialogHeader>
+          {generatedFlightRelease && (
+            <div className="space-y-6 py-4">
+              {/* Flight Summary */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 bg-blue-50 rounded-lg">
+                <div>
+                  <div className="text-sm text-muted-foreground">Flight</div>
+                  <div className="font-bold text-lg">{generatedFlightRelease.flightNumber}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Route</div>
+                  <div className="font-medium">{generatedFlightRelease.origin} → {generatedFlightRelease.destination}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Aircraft</div>
+                  <div className="font-medium">{generatedFlightRelease.aircraftType}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Status</div>
+                  <Badge className="mt-1" variant={flightReleaseApproved ? 'default' : 'secondary'}>
+                    {flightReleaseApproved ? 'Approved' : 'Pending Approval'}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Weather */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center flex-wrap gap-2">
+                      <Cloud className="h-4 w-4" />
+                      Departure Weather ({generatedFlightRelease.origin})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between"><span>Conditions:</span><span className="font-medium">{generatedFlightRelease.weather.departure.condition}</span></div>
+                    <div className="flex justify-between"><span>Temperature:</span><span className="font-medium">{generatedFlightRelease.weather.departure.temp}°C</span></div>
+                    <div className="flex justify-between"><span>Wind:</span><span className="font-medium">{generatedFlightRelease.weather.departure.windSpeed}kt from {generatedFlightRelease.weather.departure.windDirection}°</span></div>
+                    <div className="flex justify-between"><span>Visibility:</span><span className="font-medium">{generatedFlightRelease.weather.departure.visibility}km</span></div>
+                    <div className="flex justify-between"><span>Pressure:</span><span className="font-medium">{generatedFlightRelease.weather.departure.pressure} hPa</span></div>
+                    <div className="flex justify-between"><span>Dew Point:</span><span className="font-medium">{generatedFlightRelease.weather.departure.dewPoint}°C</span></div>
+                    <div className="flex justify-between"><span>Cloud Ceiling:</span><span className="font-medium">{generatedFlightRelease.weather.departure.cloudCeiling}</span></div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center flex-wrap gap-2">
+                      <Cloud className="h-4 w-4" />
+                      Destination Weather ({generatedFlightRelease.destination})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between"><span>Conditions:</span><span className="font-medium">{generatedFlightRelease.weather.destination.condition}</span></div>
+                    <div className="flex justify-between"><span>Temperature:</span><span className="font-medium">{generatedFlightRelease.weather.destination.temp}°C</span></div>
+                    <div className="flex justify-between"><span>Wind:</span><span className="font-medium">{generatedFlightRelease.weather.destination.windSpeed}kt from {generatedFlightRelease.weather.destination.windDirection}°</span></div>
+                    <div className="flex justify-between"><span>Visibility:</span><span className="font-medium">{generatedFlightRelease.weather.destination.visibility}km</span></div>
+                    <div className="flex justify-between"><span>Pressure:</span><span className="font-medium">{generatedFlightRelease.weather.destination.pressure} hPa</span></div>
+                    <div className="flex justify-between"><span>Dew Point:</span><span className="font-medium">{generatedFlightRelease.weather.destination.dewPoint}°C</span></div>
+                    <div className="flex justify-between"><span>Cloud Ceiling:</span><span className="font-medium">{generatedFlightRelease.weather.destination.cloudCeiling}</span></div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* NOTAMs */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Active NOTAMs</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-40">
+                    <div className="space-y-2">
+                      {generatedFlightRelease.notams.map((notam: any) => (
+                        <div key={notam.id} className="p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                          <div className="flex justify-between">
+                            <span className="font-medium">{notam.id} - {notam.airport}</span>
+                            <Badge variant="outline" className="text-xs">{notam.type}</Badge>
+                          </div>
+                          <div className="text-muted-foreground text-xs mt-1">{notam.message}</div>
+                          <div className="text-xs text-muted-foreground">Valid: {notam.validFrom} to {notam.validTo}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
+              {/* ATC Restrictions & Alternates */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">ATC Restrictions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {generatedFlightRelease.atcRestrictions.map((r: any) => (
+                      <div key={r.id} className="p-2 bg-secondary/30 rounded text-sm">
+                        <div className="flex justify-between">
+                          <span className="font-medium">{r.region} - {r.type}</span>
+                          <Badge variant={r.level === 'Active' ? 'destructive' : 'outline'}>{r.level}</Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">{r.description}</div>
+                        <div className="text-xs text-orange-600">Slot Delay: {r.slotDelay}min</div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Alternate Airports</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {generatedFlightRelease.alternateAirports.map((alt: any) => (
+                      <div key={alt.code} className="p-2 bg-secondary/30 rounded text-sm">
+                        <div className="flex justify-between">
+                          <div>
+                            <div className="font-medium">{alt.code} ({alt.name})</div>
+                            <div className="text-xs text-muted-foreground">{alt.distance}nm • {alt.weather}</div>
+                          </div>
+                          <Badge variant={alt.type === 'Primary' ? 'default' : 'secondary'}>{alt.type}</Badge>
+                        </div>
+                        {alt.estimatedDelay > 0 && <div className="text-xs text-orange-600 mt-1">Est. Delay: {alt.estimatedDelay}min</div>}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Fuel Plan */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center flex-wrap gap-2">
+                    <Fuel className="h-4 w-4" />
+                    Fuel Plan
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="p-3 bg-blue-50 rounded">
+                      <div className="text-sm text-muted-foreground">Trip Fuel</div>
+                      <div className="font-bold text-lg">{generatedFlightRelease.fuelPlan.tripFuel.toLocaleString()} kg</div>
+                    </div>
+                    <div className="p-3 bg-blue-50 rounded">
+                      <div className="text-sm text-muted-foreground">Reserve Fuel</div>
+                      <div className="font-bold text-lg">{generatedFlightRelease.fuelPlan.reserve.toLocaleString()} kg</div>
+                    </div>
+                    <div className="p-3 bg-blue-50 rounded">
+                      <div className="text-sm text-muted-foreground">Alternate Fuel</div>
+                      <div className="font-bold text-lg">{generatedFlightRelease.fuelPlan.alternate.toLocaleString()} kg</div>
+                    </div>
+                    <div className="p-3 bg-blue-50 rounded">
+                      <div className="text-sm text-muted-foreground">Taxi Fuel</div>
+                      <div className="font-bold text-lg">{generatedFlightRelease.fuelPlan.taxi.toLocaleString()} kg</div>
+                    </div>
+                    <div className="p-3 bg-blue-50 rounded">
+                      <div className="text-sm text-muted-foreground">Contingency</div>
+                      <div className="font-bold text-lg">{generatedFlightRelease.fuelPlan.contingency.toLocaleString()} kg</div>
+                    </div>
+                    <div className="p-3 bg-primary text-primary-foreground rounded">
+                      <div className="text-sm opacity-90">Total Fuel</div>
+                      <div className="font-bold text-xl">{generatedFlightRelease.fuelPlan.total.toLocaleString()} kg</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Crew */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Crew Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <div className="text-sm text-muted-foreground">Captain</div>
+                      <div className="font-medium">{generatedFlightRelease.crew.captain}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-muted-foreground">First Officer</div>
+                      <div className="font-medium">{generatedFlightRelease.crew.firstOfficer}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-muted-foreground">Cabin Crew</div>
+                      <div className="font-medium">{generatedFlightRelease.crew.cabinCrew} Flight Attendants</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="text-xs text-muted-foreground text-center">
+                Generated at {new Date(generatedFlightRelease.generatedAt).toLocaleString()}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFlightReleaseDialog(false)}>Close</Button>
+            {!flightReleaseApproved && (
+              <Button onClick={handleApproveFlightRelease}>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Approve Release
+              </Button>
+            )}
+            <Button onClick={handleDownloadPDF}>
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -752,8 +752,8 @@ export default function AgencyModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1200px]">
                   <thead>
                     <tr>
                       <th>Alert ID</th>
@@ -773,7 +773,7 @@ export default function AgencyModule() {
                       <tr key={alert.id}>
                         <td className="font-mono text-sm">{alert.id}</td>
                         <td>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <Building2 className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium">{getAgencyName(alert.agencyCode)}</span>
                           </div>
@@ -979,8 +979,8 @@ export default function AgencyModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>Restriction ID</th>
@@ -999,7 +999,7 @@ export default function AgencyModule() {
                       <tr key={restriction.id}>
                         <td className="font-mono text-sm">{restriction.id}</td>
                         <td>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <Building2 className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium">{getAgencyName(restriction.agencyCode)}</span>
                           </div>
@@ -1136,7 +1136,7 @@ export default function AgencyModule() {
                       <DialogTitle>Issue Agency Debit Memo (ADM)</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Agency</Label>
                           <Select value={newADM.agencyCode} onValueChange={(v) => setNewADM({...newADM, agencyCode: v})}>
@@ -1187,8 +1187,8 @@ export default function AgencyModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1200px]">
                   <thead>
                     <tr>
                       <th>ADM #</th>
@@ -1208,7 +1208,7 @@ export default function AgencyModule() {
                       <tr key={workflow.adm.id}>
                         <td className="font-mono text-sm">{workflow.adm.number}</td>
                         <td>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <Building2 className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium">{getAgencyName(workflow.adm.agencyCode)}</span>
                           </div>
@@ -1317,7 +1317,7 @@ export default function AgencyModule() {
                       <DialogTitle>Add New Agency</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Agency Code</Label>
                           <Input value={newAgency.code} onChange={(e) => setNewAgency({...newAgency, code: e.target.value})} placeholder="AGT001" />
@@ -1367,8 +1367,8 @@ export default function AgencyModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>Code</th>
@@ -1400,7 +1400,7 @@ export default function AgencyModule() {
                             <td><Badge variant={agency.tier === 'platinum' ? 'default' : 'secondary'} className="capitalize">{agency.tier}</Badge></td>
                             <td className="text-sm">${agency.credit.limit.toLocaleString()}</td>
                             <td className="text-sm">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center flex-wrap gap-2">
                                 <div className="flex-1 bg-gray-200 rounded-full h-2 w-20">
                                   <div 
                                     className={`h-2 rounded-full ${agency.credit.used / agency.credit.limit > 0.9 ? 'bg-red-600' : 'bg-green-600'}`}
@@ -1413,7 +1413,7 @@ export default function AgencyModule() {
                             <td className="text-sm">{agency.performance.totalBookings}</td>
                             <td className="text-sm">${agency.performance.totalRevenue.toLocaleString()}</td>
                             <td>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center flex-wrap gap-2">
                                 <Badge variant={agency.status === 'active' ? 'default' : 'destructive'} className="capitalize">
                                   {agency.status}
                                 </Badge>
@@ -1438,16 +1438,16 @@ export default function AgencyModule() {
 
       {/* Fraud Alert Detail Dialog */}
       <Dialog open={showFraudDetailDialog} onOpenChange={setShowFraudDetailDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center flex-wrap gap-2">
               <ShieldAlert className="h-5 w-5" />
               Fraud Alert Details
             </DialogTitle>
           </DialogHeader>
           {selectedFraudAlert && (
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Alert ID</Label>
                   <p className="font-mono">{selectedFraudAlert.id}</p>
@@ -1495,7 +1495,7 @@ export default function AgencyModule() {
                   {selectedFraudAlert.details.map((detail, i) => (
                     <div key={i} className="flex items-center justify-between p-2 bg-secondary rounded">
                       <span className="text-sm">{detail.metric}</span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <span className="font-medium">{detail.value}</span>
                         <span className="text-muted-foreground">/ {detail.threshold}</span>
                         {detail.value > detail.threshold && (
@@ -1532,9 +1532,9 @@ export default function AgencyModule() {
 
       {/* ADM Workflow Dialog */}
       <Dialog open={showADMWorkflowDialog} onOpenChange={setShowADMWorkflowDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center flex-wrap gap-2">
               <FileWarning className="h-5 w-5" />
               ADM Workflow: {selectedADM?.number}
             </DialogTitle>
@@ -1545,7 +1545,7 @@ export default function AgencyModule() {
             return (
               <div className="space-y-6 py-4">
                 {/* ADM Details */}
-                <div className="grid grid-cols-2 gap-4 p-4 bg-secondary rounded">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-secondary rounded">
                   <div>
                     <Label className="text-muted-foreground">Agency</Label>
                     <p className="font-medium">{getAgencyName(workflow.adm.agencyCode)}</p>
@@ -1571,7 +1571,7 @@ export default function AgencyModule() {
                 {/* Workflow Stage */}
                 <div>
                   <Label className="text-muted-foreground">Current Stage</Label>
-                  <div className="mt-2 flex items-center gap-4">
+                  <div className="mt-2 flex items-center flex-wrap gap-4">
                     {['draft', 'review', 'approval', 'dispute', 'settlement', 'closed'].map((stage, i) => {
                       const isActive = workflow.currentStage === stage
                       const isPast = ['draft', 'review', 'approval', 'settlement', 'closed'].indexOf(workflow.currentStage) > i

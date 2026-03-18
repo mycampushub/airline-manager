@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Slider } from '@/components/ui/slider'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { 
   Plus, 
   Search, 
@@ -63,7 +64,8 @@ import {
   RefreshCw,
   Printer,
   Share2,
-  Building
+  Building,
+  ShoppingCart
 } from 'lucide-react'
 import { useAirlineStore, type PNR, type Passenger, type FlightSegment, type Ticket, type TaxBreakdown } from '@/lib/store'
 
@@ -523,6 +525,18 @@ export default function PSSModule() {
   // In-memory ticket audit trail
   const [ticketAuditTrail, setTicketAuditTrail] = useState<any[]>([])
 
+  // O&D Booking State
+  const [selectedODRoute, setSelectedODRoute] = useState<ODRoute | null>(null)
+  const [showBookingDialog, setShowBookingDialog] = useState(false)
+  const [bookingForm, setBookingForm] = useState({
+    origin: '',
+    destination: '',
+    date: '',
+    passengers: 1,
+    cabinClass: 'economy' as CabinClass,
+    fareClass: 'Y'
+  })
+
   // Additional Form State for Fare Class Management
   const [newFareClass, setNewFareClass] = useState({
     code: '',
@@ -542,6 +556,172 @@ export default function PSSModule() {
     baseMarkup: 0,
     demandMultiplier: 1
   })
+
+  // Form Validation State
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Validation Functions
+  const validatePNRForm = (): boolean => {
+    const newErrors: Record<string, string> = {}
+
+    // Validate passengers
+    if (passengers.length === 0) {
+      newErrors.passengers = 'At least one passenger is required'
+    }
+
+    // Validate segments
+    if (segments.length === 0) {
+      newErrors.segments = 'At least one flight segment is required'
+    }
+
+    // Validate contact info
+    if (!newPNR.contactInfo.email || !/^[^\s@]+@\s+\.\s]+$/.test(newPNR.contactInfo.email)) {
+      newErrors.contactInfo = 'Please enter a valid email address'
+    }
+
+    // Validate phone
+    if (!newPNR.contactInfo.phone) {
+      newErrors.phone = 'Phone number is required'
+    }
+
+    // Validate departure dates
+    segments.forEach((seg, index) => {
+      if (!seg.departureDate) {
+        newErrors[`segment${index}_departureDate`] = `Departure date is required for segment ${index + 1}`
+      }
+      if (!seg.departureTime) {
+        newErrors[`segment${index}_departureTime`] = `Departure time is required for segment ${index + 1}`
+      }
+    })
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const validateFareClassForm = (): boolean => {
+    const newErrors: Record<string, string> = {}
+
+    if (!newFareClass.code) {
+      newErrors.code = 'Fare class code is required'
+    }
+    if (!newFareClass.name) {
+      newErrors.name = 'Fare class name is required'
+    }
+    if (!newFareClass.capacity || newFareClass.capacity <= 0) {
+      newErrors.capacity = 'Capacity must be greater than 0'
+    }
+    if (!newFareClass.price || newFareClass.price < 0) {
+      newErrors.price = 'Price must be greater than 0'
+    }
+    if (newFareClass.hierarchy < 1 || newFareClass.hierarchy > 13) {
+      newErrors.hierarchy = 'Hierarchy must be between 1 and 13'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const validateFareFamilyForm = (): boolean => {
+    const newErrors: Record<string, string> = {}
+
+    if (!newFareFamily.name) {
+      newErrors.name = 'Fare family name is required'
+    }
+    if (!newFareFamily.cabin) {
+      newErrors.cabin = 'Cabin class is required'
+    }
+    if (newFareFamily.fareClasses.length === 0) {
+      newErrors.fareClasses = 'At least one fare class is required'
+    }
+    if (newFareFamily.features.trim() === '') {
+      newErrors.features = 'Features description is required'
+    }
+    if (newFareFamily.baseMarkup < 0) {
+      newErrors.baseMarkup = 'Base markup must be >= 0'
+    }
+    if (newFareFamily.demandMultiplier < 0 || newFareFamily.demandMultiplier > 3) {
+      newErrors.demandMultiplier = 'Demand multiplier must be between 0 and 3'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const validateBookingForm = (): boolean => {
+    const newErrors: Record<string, string> = {}
+
+    if (!bookingForm.origin || !bookingForm.destination) {
+      newErrors.origin = 'Origin and destination are required'
+    }
+    if (bookingForm.origin === bookingForm.destination) {
+      newErrors.destination = 'Origin and destination must be different'
+    }
+    if (!bookingForm.date) {
+      newErrors.date = 'Travel date is required'
+    }
+    if (!bookingForm.passengers || bookingForm.passengers < 1) {
+      newErrors.passengers = 'At least 1 passenger is required'
+    }
+    if (bookingForm.passengers > 9) {
+      newErrors.passengers = 'Maximum 9 passengers per booking'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  // Form Reset Functions
+  const resetPNRForm = () => {
+    setNewPNR({
+      contactInfo: { email: '', phone: '', address: '' },
+      remarks: ['']
+    })
+    setSegments([{ ...newSegment }])
+    setPassengers([{ ...newPassenger }])
+    setErrors({})
+  }
+
+  const resetFareClassForm = () => {
+    setNewFareClass({
+      code: '',
+      name: '',
+      hierarchy: 1,
+      capacity: 50,
+      price: 0,
+      restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }
+    })
+    setErrors({})
+  }
+
+  const resetFareFamilyForm = () => {
+    setNewFareFamily({
+      name: '',
+      cabin: 'economy',
+      fareClasses: [],
+      features: '',
+      baseMarkup: 0,
+      demandMultiplier: 1
+    })
+    setErrors({})
+  }
+
+  // Loading Wrapper
+  const withLoading = async (fn: () => Promise<void>) => {
+    setIsSubmitting(true)
+    try {
+      await fn()
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Loading states
+  const [isLoading, setIsLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  // Validation errors
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
   // Additional Form State for Block Inventory
   const [newBlockInventory, setNewBlockInventory] = useState({
@@ -739,6 +919,13 @@ export default function PSSModule() {
   
   const handleSaveSeatSelection = () => {
     if (selectedSeats.size === 0) {
+      toast({ title: 'No Seats Selected', description: 'Please select at least one seat to save' })
+      return
+    }
+    
+    // If no PNR is selected, create a new one
+    if (!selectedPNR) {
+      toast({ title: 'No PNR Selected', description: 'Please select or create a PNR first' })
       return
     }
     
@@ -748,10 +935,19 @@ export default function PSSModule() {
       return sum + (seat?.price || 0)
     }, 0)
     
-    // Save seats to state
+    // Update the selected PNR with the selected seats
+    updatePNR(selectedPNR.pnrNumber, {
+      seats: Array.from(selectedSeats),
+      remarks: [
+        ...(selectedPNR.remarks || []),
+        `Seat(s) selected: ${Array.from(selectedSeats).join(', ')} on ${selectedAircraft}`
+      ]
+    })
+    
+    // Also save to savedSeatAssignments for reference
     const newAssignments = Array.from(selectedSeats).map(seatId => ({
       seatId,
-      pnrNumber: selectedPNR?.pnrNumber || `PNR${Date.now()}`,
+      pnrNumber: selectedPNR.pnrNumber,
       price: seats.find(s => s.id === seatId)?.price || 0,
       timestamp: new Date().toISOString()
     }))
@@ -767,6 +963,11 @@ export default function PSSModule() {
     
     setSelectedSeats(new Set())
     setSelectedSeat(null)
+    
+    toast({
+      title: 'Seats Saved',
+      description: `${selectedSeats.size} seat(s) saved to PNR ${selectedPNR.pnrNumber}`
+    })
   }
 
   // REAL-TIME FARE CLASS CONTROL with confirmation and history
@@ -973,53 +1174,76 @@ export default function PSSModule() {
     return Array.from(new Set(allClasses)).sort()
   }
 
-  const handleCreatePNR = () => {
-    // Validate that we have at least one passenger and one segment
-    if (passengers.length === 0 || segments.length === 0) return
+  const handleCreatePNR = async () => {
+    // Validate form first
+    if (!validatePNRForm()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please fix the errors before submitting',
+        variant: 'destructive'
+      })
+      return
+    }
 
-    // Calculate fare based on segments and passengers
-    const baseFarePerSegment = 250
-    const totalBaseFare = baseFarePerSegment * segments.length * passengers.length
-    const taxes = Math.round(totalBaseFare * 0.2) // 20% taxes
-    const fees = Math.round(totalBaseFare * 0.1) // 10% fees
-    const total = totalBaseFare + taxes + fees
+    setIsSubmitting(true)
+    try {
+      // Calculate fare based on segments and passengers
+      const baseFarePerSegment = 250
+      const totalBaseFare = baseFarePerSegment * segments.length * passengers.length
+      const taxes = Math.round(totalBaseFare * 0.2) // 20% taxes
+      const fees = Math.round(totalBaseFare * 0.1) // 10% fees
+      const total = totalBaseFare + taxes + fees
 
-    createPNR({
-      passengers: passengers.map(p => ({
-        ...p,
-        id: p.id || `PAX-${Date.now()}-${Math.random().toString(36).substring(7)}`
-      })),
-      segments: segments.map(s => ({
-        ...s,
-        id: s.id || `SEG-${Date.now()}-${Math.random().toString(36).substring(7)}`
-      })),
-      contactInfo: newPNR.contactInfo,
-      remarks: newPNR.remarks.filter(r => r.trim()),
-      fareQuote: {
-        baseFare: totalBaseFare,
-        taxes,
-        fees,
-        total,
-        currency: 'USD',
-        fareRules: segments.length > 1 
-          ? ['Multi-city booking', 'Same fare class required for all segments']
-          : ['Non-refundable', 'No changes allowed']
-      },
-      paymentInfo: {
-        paymentMethod: 'credit_card',
-        amount: total,
-        currency: 'USD'
-      },
-      seats: Array.from(selectedSeats)
-    })
-    setSeatsOccupied(prev => {
-      const newOccupied = new Set(prev)
-      selectedSeats.forEach(seat => newOccupied.add(seat))
-      return newOccupied
-    })
-    setSelectedSeats(new Set())
-    setShowCreateDialog(false)
-    resetForms()
+      createPNR({
+        passengers: passengers.map(p => ({
+          ...p,
+          id: p.id || `PAX-${Date.now()}-${Math.random().toString(36).substring(7)}`
+        })),
+        segments: segments.map(s => ({
+          ...s,
+          id: s.id || `SEG-${Date.now()}-${Math.random().toString(36).substring(7)}`
+        })),
+        contactInfo: newPNR.contactInfo,
+        remarks: newPNR.remarks.filter(r => r.trim()),
+        fareQuote: {
+          baseFare: totalBaseFare,
+          taxes,
+          fees,
+          total,
+          currency: 'USD',
+          fareRules: segments.length > 1
+            ? ['Multi-city booking', 'Same fare class required for all segments']
+            : ['Non-refundable', 'No changes allowed']
+        },
+        paymentInfo: {
+          paymentMethod: 'credit_card',
+          amount: total,
+          currency: 'USD'
+        },
+        seats: Array.from(selectedSeats)
+      })
+      setSeatsOccupied(prev => {
+        const newOccupied = new Set(prev)
+        selectedSeats.forEach(seat => newOccupied.add(seat))
+        return newOccupied
+      })
+      setSelectedSeats(new Set())
+      setShowCreateDialog(false)
+      resetPNRForm()
+      toast({
+        title: 'PNR Created',
+        description: `Successfully created PNR for ${passengers.length} passenger(s)`
+      })
+    } catch (error) {
+      console.error('Error creating PNR:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to create PNR. Please try again.',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleIssueTicket = (pnr: PNR) => {
@@ -1204,6 +1428,115 @@ export default function PSSModule() {
 
     setShowWaitlistDialog(false)
     setWaitlistFlight({ flightNumber: '', date: '' })
+  }
+
+  // O&D Booking Handler
+  const handleBookRoute = (route: ODRoute) => {
+    setSelectedODRoute(route)
+    setBookingForm({
+      origin: route.segments[0].origin,
+      destination: route.segments[route.segments.length - 1].destination,
+      date: odDate || new Date().toISOString().split('T')[0],
+      passengers: 1,
+      cabinClass: 'economy',
+      fareClass: route.availableFareClasses[0] || 'Y'
+    })
+    setShowBookingDialog(true)
+  }
+
+  const handleCreateBooking = async () => {
+    if (!selectedODRoute) return
+
+    // Validate form first
+    if (!validateBookingForm()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please fix the errors before submitting',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      // Create passengers based on booking form
+      const passengers: Passenger[] = Array.from({ length: bookingForm.passengers }, (_, i) => ({
+        id: `PAX-${Date.now()}-${i}`,
+        title: i === 0 ? 'Mr' : 'Ms',
+        firstName: `Passenger${i + 1}`,
+        lastName: 'Test',
+        dateOfBirth: '1990-01-01',
+        passportNumber: `P${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
+        passportExpiry: '2028-12-31',
+        nationality: 'US',
+        ssr: []
+      }))
+
+      // Create PNR from selected O&D route
+      const newPNR: PNR = {
+        pnrNumber: `OD${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        createdAt: new Date().toISOString(),
+        createdBy: 'web',
+        status: 'confirmed',
+        passengers,
+        segments: selectedODRoute.segments.map((seg, idx) => ({
+          ...seg,
+          id: `SEG-${Date.now()}-${idx}`,
+          fareClass: bookingForm.fareClass,
+          boardingClass: bookingForm.cabinClass as 'economy' | 'business' | 'first'
+        })),
+        fareQuote: {
+          baseFare: Math.round(selectedODRoute.totalPrice / bookingForm.passengers * 0.8),
+          taxes: Math.round(selectedODRoute.totalPrice / bookingForm.passengers * 0.15),
+          fees: Math.round(selectedODRoute.totalPrice / bookingForm.passengers * 0.05),
+          total: selectedODRoute.totalPrice,
+          currency: 'USD',
+          fareRules: ['O&D booking', `Route: ${selectedODRoute.origin}-${selectedODRoute.destination}`]
+        },
+        contactInfo: {
+          email: `passenger${1}@example.com`,
+          phone: '+1-555-0123456',
+          address: '123 Main St, New York, NY'
+        },
+        paymentInfo: {
+          paymentMethod: 'credit_card',
+          amount: selectedODRoute.totalPrice * bookingForm.passengers,
+          currency: 'USD'
+        },
+        seats: [],
+        source: 'web',
+        isGroup: bookingForm.passengers > 1
+      }
+
+      createPNR(newPNR)
+      setShowBookingDialog(false)
+      toast({
+        title: 'Booking Created',
+        description: `PNR ${newPNR.pnrNumber} created for ${newPNR.passengers.length} passenger(s)`
+      })
+
+      // Clear selection and reset form
+      setSelectedODRoute(null)
+      setBookingForm({
+        origin: '',
+        destination: '',
+        date: '',
+        passengers: 1,
+        cabinClass: 'economy',
+        fareClass: 'Y'
+      })
+      setOdRoutes([])
+      setErrors({})
+    } catch (error) {
+      console.error('Error creating booking:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to create booking. Please try again.',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   // ============ TICKETING HANDLERS ============
@@ -1408,8 +1741,6 @@ export default function PSSModule() {
     }
 
     // In a real application, this would trigger a file download
-    console.log('BSP Report Generated:', report)
-    
     // Generate CSV download
     const headers = ['Period', 'Total Tickets', 'Total Amount', 'Issued', 'Voided', 'Refunded']
     const rows = [[bspReportPeriod, report.summary.totalTickets, report.summary.totalAmount, report.summary.issued, report.summary.voided, report.summary.refunded]]
@@ -1739,35 +2070,52 @@ export default function PSSModule() {
   }
 
   // Fare Class Management Handlers
-  const handleSaveFareClass = () => {
-    if (!newFareClass.code || !newFareClass.name) {
-      toast({ title: 'Validation Error', description: 'Please enter fare class code and name', variant: 'destructive' })
+  const handleSaveFareClass = async () => {
+    // Validate form first
+    if (!validateFareClassForm()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please fix the errors before submitting',
+        variant: 'destructive'
+      })
       return
     }
 
-    const existing = fareClasses.find(fc => fc.code === newFareClass.code)
-    if (existing) {
-      toast({ title: 'Validation Error', description: 'Fare class code already exists', variant: 'destructive' })
-      return
-    }
+    setIsSubmitting(true)
+    try {
+      const existing = fareClasses.find(fc => fc.code === newFareClass.code)
+      if (existing) {
+        toast({
+          title: 'Validation Error',
+          description: 'Fare class code already exists',
+          variant: 'destructive'
+        })
+        return
+      }
 
-    setFareClasses([...fareClasses, {
-      ...newFareClass,
-      sold: 0,
-      available: newFareClass.capacity,
-      isOpen: true,
-      parentCode: null
-    }])
-    setShowFareClassDialog(false)
-    setNewFareClass({
-      code: '',
-      name: '',
-      hierarchy: 1,
-      capacity: 50,
-      price: 0,
-      restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }
-    })
-    toast({ title: 'Fare Class Created', description: `Fare class ${newFareClass.code} created` })
+      setFareClasses([...fareClasses, {
+        ...newFareClass,
+        sold: 0,
+        available: newFareClass.capacity,
+        isOpen: true,
+        parentCode: null
+      }])
+      setShowFareClassDialog(false)
+      resetFareClassForm()
+      toast({
+        title: 'Fare Class Created',
+        description: `Fare class ${newFareClass.code} created successfully`
+      })
+    } catch (error) {
+      console.error('Error saving fare class:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to save fare class. Please try again.',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleEditFareClass = (code: string) => {
@@ -1918,28 +2266,41 @@ export default function PSSModule() {
   }
 
   // Fare Family Handlers
-  const handleSaveFareFamily = () => {
-    if (!newFareFamily.name || newFareFamily.fareClasses.length === 0) {
-      toast({ title: 'Validation Error', description: 'Please enter family name and select at least one fare class', variant: 'destructive' })
+  const handleSaveFareFamily = async () => {
+    // Validate form first
+    if (!validateFareFamilyForm()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please fix the errors before submitting',
+        variant: 'destructive'
+      })
       return
     }
 
-    addFareFamily({
-      name: newFareFamily.name,
-      cabin: newFareFamily.cabin,
-      fareClasses: newFareFamily.fareClasses,
-      features: newFareFamily.features.split(',').map(f => f.trim())
-    })
-    setShowFareFamilyDialog(false)
-    setNewFareFamily({
-      name: '',
-      cabin: 'economy',
-      fareClasses: [],
-      features: '',
-      baseMarkup: 0,
-      demandMultiplier: 1
-    })
-    toast({ title: 'Fare Family Created', description: `Fare family "${newFareFamily.name}" created` })
+    setIsSubmitting(true)
+    try {
+      addFareFamily({
+        name: newFareFamily.name,
+        cabin: newFareFamily.cabin,
+        fareClasses: newFareFamily.fareClasses,
+        features: newFareFamily.features.split(',').map(f => f.trim())
+      })
+      setShowFareFamilyDialog(false)
+      resetFareFamilyForm()
+      toast({
+        title: 'Fare Family Created',
+        description: `Fare family "${newFareFamily.name}" created successfully`
+      })
+    } catch (error) {
+      console.error('Error saving fare family:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to save fare family. Please try again.',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleEditFareFamily = (id: string) => {
@@ -2061,7 +2422,7 @@ export default function PSSModule() {
             Core Reservation, Ticketing, and Inventory Management
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleCheckTimeLimits}>
             <Clock className="h-4 w-4 mr-2" />
             Check Time Limits
@@ -2081,7 +2442,7 @@ export default function PSSModule() {
                 New PNR
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto max-w-[95vw] sm:max-w-4xl">
               <DialogHeader>
                 <DialogTitle>Create New PNR</DialogTitle>
               </DialogHeader>
@@ -2106,7 +2467,7 @@ export default function PSSModule() {
                             </Button>
                           )}
                         </div>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                           <div>
                             <Label className="text-xs">Flight Number</Label>
                             <Input 
@@ -2193,7 +2554,7 @@ export default function PSSModule() {
                               </Button>
                             )}
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                               <Label className="text-xs">Title</Label>
                               <Select value={passenger.title} onValueChange={(v) => handleUpdatePassenger(index, 'title', v)}>
@@ -2269,14 +2630,28 @@ export default function PSSModule() {
                 {/* Contact Info */}
                 <div>
                   <h3 className="text-sm font-medium mb-2">Contact Information</h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label>Email</Label>
-                      <Input value={newPNR.contactInfo.email} onChange={(e) => setNewPNR({...newPNR, contactInfo: {...newPNR.contactInfo, email: e.target.value}})} />
+                      <Input 
+                        value={newPNR.contactInfo.email} 
+                        onChange={(e) => setNewPNR({...newPNR, contactInfo: {...newPNR.contactInfo, email: e.target.value}})} 
+                        className={errors.contactInfo ? 'border-red-500' : ''}
+                      />
+                      {errors.contactInfo && (
+                        <p className="text-xs text-red-500 mt-1">{errors.contactInfo}</p>
+                      )}
                     </div>
                     <div>
                       <Label>Phone</Label>
-                      <Input value={newPNR.contactInfo.phone} onChange={(e) => setNewPNR({...newPNR, contactInfo: {...newPNR.contactInfo, phone: e.target.value}})} />
+                      <Input 
+                        value={newPNR.contactInfo.phone} 
+                        onChange={(e) => setNewPNR({...newPNR, contactInfo: {...newPNR.contactInfo, phone: e.target.value}})} 
+                        className={errors.phone ? 'border-red-500' : ''}
+                      />
+                      {errors.phone && (
+                        <p className="text-xs text-red-500 mt-1">{errors.phone}</p>
+                      )}
                     </div>
                     <div className="col-span-2">
                       <Label>Address</Label>
@@ -2286,7 +2661,7 @@ export default function PSSModule() {
                 </div>
 
                 {/* Booking Type & Remarks */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Booking Type</Label>
                     <div className="flex gap-2 mt-1">
@@ -2341,7 +2716,10 @@ export default function PSSModule() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
-                <Button onClick={handleCreatePNR}>Create PNR</Button>
+                <Button onClick={handleCreatePNR} disabled={isSubmitting}>
+                  {isSubmitting && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                  {isSubmitting ? 'Creating...' : 'Create PNR'}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -2367,7 +2745,7 @@ export default function PSSModule() {
                     Create, modify, split, merge, and manage passenger name records
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={() => setShowMergeDialog(true)}>
                     <Merge className="h-4 w-4 mr-2" />
                     Merge PNRs
@@ -2389,8 +2767,8 @@ export default function PSSModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[900px]">
                   <thead>
                     <tr>
                       <th>PNR</th>
@@ -2420,7 +2798,7 @@ export default function PSSModule() {
                           </td>
                           <td>
                             {pnr.segments.map((s, i) => (
-                              <div key={i} className="text-sm flex items-center gap-1">
+                              <div key={i} className="text-sm flex items-center flex-wrap gap-1">
                                 {s.origin} <ArrowRight className="h-3 w-3" /> {s.destination}
                               </div>
                             ))}
@@ -2433,7 +2811,7 @@ export default function PSSModule() {
                           </td>
                           <td className="text-sm">${pnr.fareQuote.total}</td>
                           <td>
-                            <div className="flex items-center gap-1 flex-wrap">
+                            <div className="flex items-center flex-wrap gap-1 flex-wrap">
                               <Button variant="ghost" size="sm" onClick={() => setSelectedPNR(pnr)} title="View Details">
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -2493,7 +2871,7 @@ export default function PSSModule() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
                     <Label className="text-muted-foreground">Status</Label>
                     <p className="font-medium capitalize">{selectedPNR.status}</p>
@@ -2569,7 +2947,7 @@ export default function PSSModule() {
 
                 <div>
                   <h3 className="font-medium mb-2">Fare Quote</h3>
-                  <div className="grid grid-cols-4 gap-4 p-3 bg-secondary/30 rounded-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-3 bg-secondary/30 rounded-sm">
                     <div>
                       <Label className="text-muted-foreground">Base Fare</Label>
                       <p className="font-medium">${selectedPNR.fareQuote.baseFare}</p>
@@ -2604,12 +2982,12 @@ export default function PSSModule() {
                   Tax Calculator
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-[95vw] sm:max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>Tax Breakdown Calculator</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label>Origin Airport</Label>
                       <Input 
@@ -2635,7 +3013,7 @@ export default function PSSModule() {
                       onChange={(e) => setTaxCalculatorParams({...taxCalculatorParams, fare: parseFloat(e.target.value) || 0})}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label>Route Type</Label>
                       <Select 
@@ -2680,11 +3058,11 @@ export default function PSSModule() {
                       <div className="space-y-2 max-h-64 overflow-y-auto">
                         {calculatedTaxes.map((tax, idx) => (
                           <div key={idx} className="flex items-center justify-between p-2 bg-secondary/20 rounded">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               <Badge variant="outline" className="font-mono">{tax.code}</Badge>
                               <span className="text-sm">{tax.name}</span>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               <span className="font-medium">${tax.amount.toFixed(2)}</span>
                               {taxRates.find(r => r.code === tax.code)?.refundable && (
                                 <Badge variant="default" className="text-xs">Refundable</Badge>
@@ -2714,7 +3092,7 @@ export default function PSSModule() {
                   Refund Fee Calculator
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-[95vw] sm:max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>Refund Fee Calculator</DialogTitle>
                 </DialogHeader>
@@ -2728,7 +3106,7 @@ export default function PSSModule() {
                     />
                     <p className="text-xs text-muted-foreground mt-1">Hours remaining before flight departure</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label>Fare Class</Label>
                       <Select 
@@ -2815,13 +3193,13 @@ export default function PSSModule() {
                   BSP/ARC Reporting
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-[95vw] sm:max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>BSP/ARC Reporting</DialogTitle>
                   <DialogDescription>Generate settlement, billing, and refund reports</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label>Report Period</Label>
                       <Select 
@@ -2898,8 +3276,8 @@ export default function PSSModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
                       <th>Ticket Number</th>
@@ -2947,7 +3325,7 @@ export default function PSSModule() {
                             </Badge>
                           </td>
                           <td>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center flex-wrap gap-1">
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
@@ -3031,8 +3409,8 @@ export default function PSSModule() {
                   No EMDs issued yet
                 </div>
               ) : (
-                <ScrollArea className="h-48">
-                  <table className="enterprise-table">
+                <ScrollArea className="h-48 overflow-x-auto">
+                  <table className="enterprise-table min-w-[900px]">
                     <thead>
                       <tr>
                         <th>EMD Number</th>
@@ -3078,7 +3456,7 @@ export default function PSSModule() {
 
           {/* PARTIAL EXCHANGE DIALOG */}
           <Dialog open={showPartialExchangeDialog} onOpenChange={setShowPartialExchangeDialog}>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Partial Exchange - {selectedTicket?.ticketNumber}</DialogTitle>
                 <DialogDescription>
@@ -3091,7 +3469,7 @@ export default function PSSModule() {
                     {/* Original Ticket Info */}
                     <div className="p-4 bg-secondary/20 rounded-lg">
                       <h4 className="font-medium mb-3">Original Ticket Information</h4>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-muted-foreground">Passenger:</span> {selectedTicket.passengerName}
                         </div>
@@ -3129,7 +3507,7 @@ export default function PSSModule() {
                             }}
                           >
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center flex-wrap gap-3">
                                 <Checkbox 
                                   checked={selectedSegmentsForExchange.includes(segment.id)}
                                   readOnly
@@ -3198,7 +3576,7 @@ export default function PSSModule() {
 
                     {/* Fare Rules */}
                     <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                      <h4 className="font-medium mb-2 flex items-center flex-wrap gap-2">
                         <Info className="h-4 w-4" />
                         Fare Rules & Restrictions
                       </h4>
@@ -3242,7 +3620,7 @@ export default function PSSModule() {
 
           {/* INVOLUNTARY REFUND DIALOG */}
           <Dialog open={showInvoluntaryRefundDialog} onOpenChange={setShowInvoluntaryRefundDialog}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Involuntary Refund - {selectedTicket?.ticketNumber}</DialogTitle>
                 <DialogDescription>
@@ -3253,7 +3631,7 @@ export default function PSSModule() {
                 {selectedTicket && (
                   <>
                     <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                      <h4 className="font-medium mb-3 flex items-center gap-2 text-red-800">
+                      <h4 className="font-medium mb-3 flex items-center flex-wrap gap-2 text-red-800">
                         <AlertTriangle className="h-4 w-4" />
                         Involuntary Refund Information
                       </h4>
@@ -3382,12 +3760,12 @@ export default function PSSModule() {
 
           {/* TICKET DETAIL DIALOG */}
           <Dialog open={showTicketDetailDialog} onOpenChange={setShowTicketDetailDialog}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center justify-between">
                   <span>Ticket Details - {selectedTicket?.ticketNumber}</span>
                   {selectedTicket?.isCodeshare && (
-                    <Badge variant="outline" className="flex items-center gap-1">
+                    <Badge variant="outline" className="flex items-center flex-wrap gap-1">
                       <Share2 className="h-3 w-3" />
                       Codeshare
                     </Badge>
@@ -3397,7 +3775,7 @@ export default function PSSModule() {
               {selectedTicket && (
                 <div className="space-y-4 py-4">
                   {/* Quick Stats */}
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <Card className="p-3">
                       <div className="text-xs text-muted-foreground">Status</div>
                       <Badge 
@@ -3430,7 +3808,7 @@ export default function PSSModule() {
                   </div>
 
                   {/* Passenger & PNR Info */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Card className="p-4">
                       <h4 className="font-medium mb-3">Passenger Information</h4>
                       <div className="space-y-2 text-sm">
@@ -3489,7 +3867,7 @@ export default function PSSModule() {
                     <h4 className="font-medium mb-3">Flight Segments</h4>
                     <div className="space-y-3">
                       {selectedTicket.segments.map((segment, idx) => (
-                        <div key={idx} className="flex items-center gap-4 p-3 bg-secondary/20 rounded-lg">
+                        <div key={idx} className="flex items-center flex-wrap gap-4 p-3 bg-secondary/20 rounded-lg">
                           <div className="flex-1">
                             <div className="font-medium">{segment.flightNumber}</div>
                             <div className="text-sm text-muted-foreground">
@@ -3512,7 +3890,7 @@ export default function PSSModule() {
                   </Card>
 
                   {/* Fare Breakdown */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Card className="p-4">
                       <h4 className="font-medium mb-3">Fare Breakdown</h4>
                       <div className="space-y-2 text-sm">
@@ -3559,7 +3937,7 @@ export default function PSSModule() {
                   {selectedTicket.taxes.length > 0 && (
                     <Card className="p-4">
                       <h4 className="font-medium mb-3">Tax Breakdown</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                         {selectedTicket.taxes.map((tax, idx) => (
                           <div key={idx} className="flex justify-between p-2 bg-secondary/20 rounded">
                             <div>
@@ -3634,7 +4012,7 @@ export default function PSSModule() {
                       </Button>
                     </div>
                     <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-blue-900">
+                      <div className="flex items-center flex-wrap gap-2 text-sm text-blue-900">
                         <Info className="h-4 w-4" />
                         <span>Mobile ticket includes QR code for boarding</span>
                       </div>
@@ -3660,7 +4038,7 @@ export default function PSSModule() {
 
           {/* AUDIT TRAIL DIALOG */}
           <Dialog open={showAuditTrailDialog} onOpenChange={setShowAuditTrailDialog}>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   Ticket Audit Trail - {selectedTicket?.ticketNumber}
@@ -3715,7 +4093,7 @@ export default function PSSModule() {
                             .map((entry, idx) => (
                               <div key={idx} className="p-3 border rounded-lg">
                                 <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center flex-wrap gap-2">
                                     <Badge variant="outline" className="capitalize">
                                       {entry.action.replace('_', ' ')}
                                     </Badge>
@@ -3787,7 +4165,7 @@ export default function PSSModule() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="enterprise-card">
                   <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
+                    <CardTitle className="text-base flex items-center flex-wrap gap-2">
                       <Layers className="h-4 w-4" />
                       Fare Class Control
                     </CardTitle>
@@ -3797,7 +4175,7 @@ export default function PSSModule() {
                       {fareClasses.slice(0, 6).map((fc) => (
                         <div key={fc.code} className="flex items-center justify-between text-sm">
                           <span className="font-medium">{fc.code} - {fc.name}</span>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <span className="text-muted-foreground">{fc.sold}/{fc.capacity}</span>
                             <Badge variant={fc.isOpen ? 'default' : 'secondary'} className="text-xs">
                               {fc.isOpen ? 'Open' : 'Closed'}
@@ -3811,7 +4189,7 @@ export default function PSSModule() {
 
                 <Card className="enterprise-card">
                   <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
+                    <CardTitle className="text-base flex items-center flex-wrap gap-2">
                       <TrendingUp className="h-4 w-4" />
                       Overbooking Control
                     </CardTitle>
@@ -3844,7 +4222,7 @@ export default function PSSModule() {
 
                 <Card className="enterprise-card">
                   <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
+                    <CardTitle className="text-base flex items-center flex-wrap gap-2">
                       <Armchair className="h-4 w-4" />
                       Seat Map Summary
                     </CardTitle>
@@ -3885,17 +4263,18 @@ export default function PSSModule() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <table className="enterprise-table">
-                    <thead>
-                      <tr>
-                        <th>Family</th>
-                        <th>Cabin</th>
-                        <th>Fare Classes</th>
-                        <th>Features</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
+                  <div className="overflow-x-auto">
+                    <table className="enterprise-table min-w-[900px]">
+                      <thead>
+                        <tr>
+                          <th>Family</th>
+                          <th>Cabin</th>
+                          <th>Fare Classes</th>
+                          <th>Features</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
                     <tbody>
                       {fareFamilies.map((family) => (
                         <tr key={family.id}>
@@ -3923,6 +4302,7 @@ export default function PSSModule() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -3933,8 +4313,8 @@ export default function PSSModule() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Interactive Seat Map</CardTitle>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-4">
+                      <div className="flex items-center flex-wrap gap-2">
                         <Label>Aircraft:</Label>
                         <Select value={selectedAircraft} onValueChange={setSelectedAircraft}>
                           <SelectTrigger className="w-40">
@@ -3948,7 +4328,7 @@ export default function PSSModule() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <Label>Cabin:</Label>
                         <Select value={selectedCabin} onValueChange={(v: CabinClass) => setSelectedCabin(v)}>
                           <SelectTrigger className="w-32">
@@ -3969,24 +4349,24 @@ export default function PSSModule() {
                 </CardHeader>
                 <CardContent>
                   {/* Legend */}
-                  <div className="flex items-center gap-6 mb-6 text-sm">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center flex-wrap gap-6 mb-6 text-sm">
+                    <div className="flex items-center flex-wrap gap-2">
                       <div className="w-6 h-6 bg-green-100 border border-green-300 rounded"></div>
                       <span>Available</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       <div className="w-6 h-6 bg-amber-100 border border-amber-400 rounded"></div>
                       <span>Premium</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       <div className="w-6 h-6 bg-gray-100 border border-gray-300 rounded"></div>
                       <span>Occupied</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       <div className="w-6 h-6 bg-red-100 border border-red-300 rounded"></div>
                       <span>Blocked</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       <div className="w-6 h-6 bg-blue-500 border border-blue-600 rounded"></div>
                       <span>Selected</span>
                     </div>
@@ -3995,31 +4375,31 @@ export default function PSSModule() {
                   {/* Seat Map */}
                   <ScrollArea className="max-h-96">
                     <div className="flex justify-center">
-                      <div className="space-y-1">
+                      <div className="space-y-1 w-full max-w-4xl px-2 sm:px-0">
                         {/* Aircraft nose */}
                         <div className="w-full flex justify-center mb-4">
-                          <div className="bg-gray-200 text-gray-600 px-6 py-2 rounded-t-full text-sm font-medium">
+                          <div className="bg-gray-200 text-gray-600 px-4 sm:px-6 py-2 rounded-t-full text-xs sm:text-sm font-medium">
                             {selectedAircraft} - {selectedCabin.toUpperCase()}
                           </div>
                         </div>
                         
                         {/* Seats grid */}
-                        <div className="bg-gray-50 p-6 rounded-lg border">
+                        <div className="bg-gray-50 p-3 sm:p-6 rounded-lg border">
                           {Array.from(new Set(seats.map(s => s.row))).sort((a, b) => a - b).map((row) => (
-                            <div key={row} className="flex items-center justify-center gap-2 mb-2">
-                              <span className="w-8 text-center text-sm font-medium text-muted-foreground">{row}</span>
-                              <div className="flex items-center gap-1">
+                            <div key={row} className="flex items-center justify-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                              <span className="w-6 sm:w-8 text-center text-xs sm:text-sm font-medium text-muted-foreground">{row}</span>
+                              <div className="flex items-center flex-wrap gap-0.5 sm:gap-1 overflow-x-auto">
                                 {seats.filter(s => s.row === row).sort((a, b) => a.column.localeCompare(b.column)).map((seat) => (
                                   <button
                                     key={seat.id}
                                     onClick={() => handleSeatClick(seat)}
                                     disabled={seat.status === 'occupied' || seat.status === 'blocked'}
                                     className={`
-                                      w-10 h-10 rounded border-2 flex items-center justify-center text-xs font-medium
+                                      w-8 h-8 sm:w-10 sm:h-10 rounded border-2 flex items-center justify-center text-[10px] sm:text-xs font-medium flex-shrink-0
                                       ${getSeatColor(seat.status)}
                                       ${seat.isExitRow ? 'ring-2 ring-orange-400' : ''}
                                       ${seat.isWindow ? 'rounded-l' : ''}
-                                      ${seat.isAisle ? 'mx-1' : ''}
+                                      ${seat.isAisle ? 'mx-0.5 sm:mx-1' : ''}
                                       transition-all
                                     `}
                                     title={`${seat.id}${seat.isWindow ? ' (Window)' : ''}${seat.isAisle ? ' (Aisle)' : ''}${seat.isExitRow ? ' (Exit Row)' : ''} - $${seat.price}`}
@@ -4028,14 +4408,14 @@ export default function PSSModule() {
                                   </button>
                                 ))}
                               </div>
-                              <span className="w-8 text-center text-sm font-medium text-muted-foreground">{row}</span>
+                              <span className="w-6 sm:w-8 text-center text-xs sm:text-sm font-medium text-muted-foreground">{row}</span>
                             </div>
                           ))}
                         </div>
 
                         {/* Aircraft tail */}
                         <div className="w-full flex justify-center mt-4">
-                          <div className="bg-gray-200 text-gray-600 px-8 py-2 rounded-b-full text-sm">
+                          <div className="bg-gray-200 text-gray-600 px-6 sm:px-8 py-2 rounded-b-full text-xs sm:text-sm">
                             ◄
                           </div>
                         </div>
@@ -4050,23 +4430,23 @@ export default function PSSModule() {
                         <div className="flex items-center justify-between">
                           <div className="space-y-2">
                             <h4 className="font-semibold">Seat {selectedSeat.id}</h4>
-                            <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center flex-wrap gap-4 text-sm">
                               <span className="text-muted-foreground">Price:</span>
                               <span className="font-semibold text-lg">${selectedSeat.price}</span>
                               {selectedSeat.status === 'premium' && (
                                 <Badge variant="secondary">Premium</Badge>
                               )}
                             </div>
-                            <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center flex-wrap gap-4 text-sm">
                               <span className="text-muted-foreground">Characteristics:</span>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center flex-wrap gap-2">
                                 {selectedSeat.isWindow && <Badge variant="outline">Window</Badge>}
                                 {selectedSeat.isAisle && <Badge variant="outline">Aisle</Badge>}
                                 {selectedSeat.isExitRow && <Badge variant="outline">Exit Row</Badge>}
                                 {selectedSeat.isWing && <Badge variant="outline">Wing</Badge>}
                               </div>
                             </div>
-                            <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center flex-wrap gap-4 text-sm">
                               <span className="text-muted-foreground">Legroom:</span>
                               <span>{selectedSeat.legroom} inches</span>
                               <span className="text-muted-foreground ml-4">Recline:</span>
@@ -4113,7 +4493,7 @@ export default function PSSModule() {
                             <Label>Configuration Name</Label>
                             <Input placeholder="e.g., Standard 3-3 Layout" />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <Label>Economy Rows</Label>
                               <Input type="number" defaultValue={24} />
@@ -4186,7 +4566,7 @@ export default function PSSModule() {
                           <Card key={route.id} className="border-2">
                             <CardContent className="pt-4">
                               <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center flex-wrap gap-3">
                                   <Badge variant={idx === 0 ? 'default' : 'secondary'}>
                                     {idx === 0 ? 'Best Price' : `${route.stops} Stop${route.stops > 1 ? 's' : ''}`}
                                   </Badge>
@@ -4200,13 +4580,13 @@ export default function PSSModule() {
                               
                               <div className="space-y-2">
                                 {route.segments.map((seg, segIdx) => (
-                                  <div key={segIdx} className="flex items-center gap-3 text-sm p-2 bg-secondary/20 rounded">
+                                  <div key={segIdx} className="flex items-center flex-wrap gap-3 text-sm p-2 bg-secondary/20 rounded">
                                     <div className="flex-1">
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center flex-wrap gap-2">
                                         <span className="font-semibold">{seg.flightNumber}</span>
                                         <span className="text-muted-foreground">{seg.aircraft}</span>
                                       </div>
-                                      <div className="flex items-center gap-2 mt-1">
+                                      <div className="flex items-center flex-wrap gap-2 mt-1">
                                         <span className="font-medium">{seg.origin}</span>
                                         <ArrowRight className="h-3 w-3 text-muted-foreground" />
                                         <span className="font-medium">{seg.destination}</span>
@@ -4226,7 +4606,7 @@ export default function PSSModule() {
                                 ))}
                               </div>
 
-                              <div className="mt-3 flex items-center gap-2">
+                              <div className="mt-3 flex items-center flex-wrap gap-2">
                                 <span className="text-xs text-muted-foreground">Fare Classes:</span>
                                 {route.availableFareClasses.slice(0, 5).map(fc => (
                                   <Badge key={fc} variant="outline" className="text-xs">{fc}</Badge>
@@ -4234,6 +4614,15 @@ export default function PSSModule() {
                                 {route.availableFareClasses.length > 5 && (
                                   <Badge variant="outline" className="text-xs">+{route.availableFareClasses.length - 5} more</Badge>
                                 )}
+                              </div>
+                              <div className="mt-4 pt-4 border-t">
+                                <Button 
+                                  className="w-full" 
+                                  onClick={() => handleBookRoute(route)}
+                                >
+                                  <ShoppingCart className="h-4 w-4 mr-2" />
+                                  Book This Route
+                                </Button>
                               </div>
                             </CardContent>
                           </Card>
@@ -4264,12 +4653,12 @@ export default function PSSModule() {
                       Add Fare Class
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-md max-w-[95vw] sm:max-w-md">
                     <DialogHeader>
                       <DialogTitle>{editingFareClass ? 'Edit Fare Class' : 'Configure Fare Class'}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Fare Class Code</Label>
                           <Input 
@@ -4278,7 +4667,11 @@ export default function PSSModule() {
                             placeholder="e.g., Y, B, M" 
                             maxLength={1} 
                             disabled={!!editingFareClass}
+                            className={errors.code ? 'border-red-500' : ''}
                           />
+                          {errors.code && (
+                            <p className="text-xs text-red-500 mt-1">{errors.code}</p>
+                          )}
                         </div>
                         <div>
                           <Label>Name</Label>
@@ -4286,10 +4679,14 @@ export default function PSSModule() {
                             value={editingFareClass ? editingFareClass.name : newFareClass.name} 
                             onChange={(e) => editingFareClass ? setEditingFareClass({...editingFareClass, name: e.target.value}) : setNewFareClass({...newFareClass, name: e.target.value})} 
                             placeholder="e.g., Economy Full" 
+                            className={errors.name ? 'border-red-500' : ''}
                           />
+                          {errors.name && (
+                            <p className="text-xs text-red-500 mt-1">{errors.name}</p>
+                          )}
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Hierarchy Level</Label>
                           <Input 
@@ -4297,7 +4694,11 @@ export default function PSSModule() {
                             value={editingFareClass ? editingFareClass.hierarchy : newFareClass.hierarchy} 
                             onChange={(e) => editingFareClass ? setEditingFareClass({...editingFareClass, hierarchy: Number(e.target.value)}) : setNewFareClass({...newFareClass, hierarchy: Number(e.target.value)})} 
                             placeholder="1-10" 
+                            className={errors.hierarchy ? 'border-red-500' : ''}
                           />
+                          {errors.hierarchy && (
+                            <p className="text-xs text-red-500 mt-1">{errors.hierarchy}</p>
+                          )}
                         </div>
                         <div>
                           <Label>Capacity</Label>
@@ -4306,7 +4707,11 @@ export default function PSSModule() {
                             value={editingFareClass ? editingFareClass.capacity : newFareClass.capacity} 
                             onChange={(e) => editingFareClass ? setEditingFareClass({...editingFareClass, capacity: Number(e.target.value)}) : setNewFareClass({...newFareClass, capacity: Number(e.target.value)})} 
                             placeholder="Number of seats" 
+                            className={errors.capacity ? 'border-red-500' : ''}
                           />
+                          {errors.capacity && (
+                            <p className="text-xs text-red-500 mt-1">{errors.capacity}</p>
+                          )}
                         </div>
                       </div>
                       <div>
@@ -4316,9 +4721,13 @@ export default function PSSModule() {
                           value={editingFareClass ? editingFareClass.price : newFareClass.price} 
                           onChange={(e) => editingFareClass ? setEditingFareClass({...editingFareClass, price: Number(e.target.value)}) : setNewFareClass({...newFareClass, price: Number(e.target.value)})} 
                           placeholder="Base price" 
+                          className={errors.price ? 'border-red-500' : ''}
                         />
+                        {errors.price && (
+                          <p className="text-xs text-red-500 mt-1">{errors.price}</p>
+                        )}
                       </div>
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         <div>
                           <Label>Advance Purchase (days)</Label>
                           <Input 
@@ -4347,8 +4756,12 @@ export default function PSSModule() {
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => { setShowFareClassDialog(false); setEditingFareClass(null) }}>Cancel</Button>
-                      <Button onClick={() => editingFareClass ? handleUpdateFareClass(editingFareClass.code) : handleSaveFareClass()}>
-                        {editingFareClass ? 'Update Fare Class' : 'Save Fare Class'}
+                      <Button 
+                        onClick={() => editingFareClass ? handleUpdateFareClass(editingFareClass.code) : handleSaveFareClass()}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                        {isSubmitting ? 'Saving...' : (editingFareClass ? 'Update Fare Class' : 'Save Fare Class')}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -4357,8 +4770,8 @@ export default function PSSModule() {
 
               <Card className="enterprise-card">
                 <CardContent className="pt-6">
-                  <ScrollArea className="max-h-96">
-                    <table className="enterprise-table">
+                  <ScrollArea className="max-h-96 overflow-x-auto">
+                    <table className="enterprise-table min-w-[1000px]">
                       <thead>
                         <tr>
                           <th>Code</th>
@@ -4397,7 +4810,7 @@ export default function PSSModule() {
                               </Button>
                             </td>
                             <td>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center flex-wrap gap-1">
                                 <Button variant="ghost" size="sm" onClick={() => handleEditFareClass(fc.code)}>
                                   <Edit className="h-4 w-4" />
                                 </Button>
@@ -4464,7 +4877,7 @@ export default function PSSModule() {
                     <div className="space-y-6 py-4">
                       <div>
                         <Label>Economy Overbooking Limit</Label>
-                        <div className="flex items-center gap-4 mt-2">
+                        <div className="flex items-center flex-wrap gap-4 mt-2">
                           <Slider
                             value={[overbookingSettings.economy]}
                             onValueChange={(v) => setOverbookingSettings({...overbookingSettings, economy: v[0]})}
@@ -4478,7 +4891,7 @@ export default function PSSModule() {
                       </div>
                       <div>
                         <Label>Business Overbooking Limit</Label>
-                        <div className="flex items-center gap-4 mt-2">
+                        <div className="flex items-center flex-wrap gap-4 mt-2">
                           <Slider
                             value={[overbookingSettings.business]}
                             onValueChange={(v) => setOverbookingSettings({...overbookingSettings, business: v[0]})}
@@ -4492,7 +4905,7 @@ export default function PSSModule() {
                       </div>
                       <div>
                         <Label>First Overbooking Limit</Label>
-                        <div className="flex items-center gap-4 mt-2">
+                        <div className="flex items-center flex-wrap gap-4 mt-2">
                           <Slider
                             value={[overbookingSettings.first]}
                             onValueChange={(v) => setOverbookingSettings({...overbookingSettings, first: v[0]})}
@@ -4507,7 +4920,7 @@ export default function PSSModule() {
                       <Separator />
                       <div>
                         <Label>Load Factor Threshold for Auto-Adjust (%)</Label>
-                        <div className="flex items-center gap-4 mt-2">
+                        <div className="flex items-center flex-wrap gap-4 mt-2">
                           <Slider
                             value={[overbookingSettings.loadFactorThreshold]}
                             onValueChange={(v) => setOverbookingSettings({...overbookingSettings, loadFactorThreshold: v[0]})}
@@ -4602,7 +5015,8 @@ export default function PSSModule() {
                   <CardTitle className="text-base">Seasonal Overbooking Adjustments</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <table className="enterprise-table">
+                  <div className="overflow-x-auto">
+                    <table className="enterprise-table min-w-[800px]">
                     <thead>
                       <tr>
                         <th>Season</th>
@@ -4640,6 +5054,7 @@ export default function PSSModule() {
                       </tr>
                     </tbody>
                   </table>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -4720,7 +5135,7 @@ export default function PSSModule() {
                                 Expires: {new Date(block.expiresAt).toLocaleString()}
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               <Badge variant={block.status === 'active' ? 'default' : 'secondary'}>
                                 {block.status}
                               </Badge>
@@ -4797,7 +5212,7 @@ export default function PSSModule() {
                             <div className="text-xs text-muted-foreground mb-2">
                               {group.route} | {group.date}
                             </div>
-                            <div className="flex items-center gap-4 text-xs">
+                            <div className="flex items-center flex-wrap gap-4 text-xs">
                               <div>
                                 <span className="text-muted-foreground">Utilization:</span>
                                 <span className="font-medium ml-1">{group.utilized}/{group.seats}</span>
@@ -4830,7 +5245,7 @@ export default function PSSModule() {
                   <CardContent className="space-y-4">
                     <div>
                       <Label>Load Factor Threshold (%)</Label>
-                      <div className="flex items-center gap-4 mt-2">
+                      <div className="flex items-center flex-wrap gap-4 mt-2">
                         <Slider
                           value={[loadFactorThreshold]}
                           onValueChange={(v) => setLoadFactorThreshold(v[0])}
@@ -4886,7 +5301,7 @@ export default function PSSModule() {
                               <Label>Route</Label>
                               <Input value={newBlackoutDate.route} onChange={(e) => setNewBlackoutDate({...newBlackoutDate, route: e.target.value})} placeholder="e.g., JFK-LHR or * for all routes" />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div>
                                 <Label>Start Date</Label>
                                 <Input type="date" value={newBlackoutDate.startDate} onChange={(e) => setNewBlackoutDate({...newBlackoutDate, startDate: e.target.value})} />
@@ -4943,7 +5358,7 @@ export default function PSSModule() {
                         {blackoutDates.map((blackout) => (
                           <div key={blackout.id} className="p-3 bg-red-50 border border-red-200 rounded flex items-center justify-between">
                             <div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center flex-wrap gap-2">
                                 <Badge variant="destructive" className="text-xs">
                                   <Calendar className="h-3 w-3 mr-1" />
                                   Blackout
@@ -4982,20 +5397,28 @@ export default function PSSModule() {
                           Create Fare Family
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
+                      <DialogContent className="max-w-2xl max-w-[95vw] sm:max-w-2xl">
                         <DialogHeader>
                           <DialogTitle>Configure Fare Family</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <Label>Family Name</Label>
-                              <Input value={newFareFamily.name} onChange={(e) => setNewFareFamily({...newFareFamily, name: e.target.value})} placeholder="e.g., Premium Economy" />
+                              <Input 
+                                value={newFareFamily.name} 
+                                onChange={(e) => setNewFareFamily({...newFareFamily, name: e.target.value})} 
+                                placeholder="e.g., Premium Economy" 
+                                className={errors.name ? 'border-red-500' : ''}
+                              />
+                              {errors.name && (
+                                <p className="text-xs text-red-500 mt-1">{errors.name}</p>
+                              )}
                             </div>
                             <div>
                               <Label>Cabin Class</Label>
                               <Select value={newFareFamily.cabin} onValueChange={(v) => setNewFareFamily({...newFareFamily, cabin: v as CabinClass})}>
-                                <SelectTrigger>
+                                <SelectTrigger className={errors.cabin ? 'border-red-500' : ''}>
                                   <SelectValue placeholder="Select cabin" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -5004,6 +5427,9 @@ export default function PSSModule() {
                                   <SelectItem value="first">First</SelectItem>
                                 </SelectContent>
                               </Select>
+                              {errors.cabin && (
+                                <p className="text-xs text-red-500 mt-1">{errors.cabin}</p>
+                              )}
                             </div>
                           </div>
                           <div>
@@ -5013,7 +5439,7 @@ export default function PSSModule() {
                                 <Badge 
                                   key={fc.code} 
                                   variant={newFareFamily.fareClasses.includes(fc.code) ? 'default' : 'outline'} 
-                                  className="cursor-pointer hover:bg-secondary"
+                                  className={`cursor-pointer hover:bg-secondary ${errors.fareClasses ? 'ring-2 ring-red-500' : ''}`}
                                   onClick={() => {
                                     const newClasses = newFareFamily.fareClasses.includes(fc.code)
                                       ? newFareFamily.fareClasses.filter(c => c !== fc.code)
@@ -5026,25 +5452,58 @@ export default function PSSModule() {
                                 </Badge>
                               ))}
                             </div>
+                            {errors.fareClasses && (
+                              <p className="text-xs text-red-500 mt-1">{errors.fareClasses}</p>
+                            )}
                           </div>
                           <div>
                             <Label>Features & Benefits</Label>
-                            <Textarea value={newFareFamily.features} onChange={(e) => setNewFareFamily({...newFareFamily, features: e.target.value})} placeholder="Enter features separated by commas..." />
+                            <Textarea 
+                              value={newFareFamily.features} 
+                              onChange={(e) => setNewFareFamily({...newFareFamily, features: e.target.value})} 
+                              placeholder="Enter features separated by commas..." 
+                              className={errors.features ? 'border-red-500' : ''}
+                            />
+                            {errors.features && (
+                              <p className="text-xs text-red-500 mt-1">{errors.features}</p>
+                            )}
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <Label>Base Markup (%)</Label>
-                              <Input type="number" value={newFareFamily.baseMarkup} onChange={(e) => setNewFareFamily({...newFareFamily, baseMarkup: Number(e.target.value)})} placeholder="0" />
+                              <Input 
+                                type="number" 
+                                value={newFareFamily.baseMarkup} 
+                                onChange={(e) => setNewFareFamily({...newFareFamily, baseMarkup: Number(e.target.value)})} 
+                                placeholder="0" 
+                                className={errors.baseMarkup ? 'border-red-500' : ''}
+                              />
+                              {errors.baseMarkup && (
+                                <p className="text-xs text-red-500 mt-1">{errors.baseMarkup}</p>
+                              )}
                             </div>
                             <div>
                               <Label>Demand Multiplier</Label>
-                              <Input type="number" step="0.1" value={newFareFamily.demandMultiplier} onChange={(e) => setNewFareFamily({...newFareFamily, demandMultiplier: Number(e.target.value)})} placeholder="1.0" />
+                              <Input 
+                                type="number" 
+                                step="0.1" 
+                                value={newFareFamily.demandMultiplier} 
+                                onChange={(e) => setNewFareFamily({...newFareFamily, demandMultiplier: Number(e.target.value)})} 
+                                placeholder="1.0" 
+                                className={errors.demandMultiplier ? 'border-red-500' : ''}
+                              />
+                              {errors.demandMultiplier && (
+                                <p className="text-xs text-red-500 mt-1">{errors.demandMultiplier}</p>
+                              )}
                             </div>
                           </div>
                         </div>
                         <DialogFooter>
                           <Button variant="outline" onClick={() => setShowFareFamilyDialog(false)}>Cancel</Button>
-                          <Button onClick={handleSaveFareFamily}>Save Family</Button>
+                          <Button onClick={handleSaveFareFamily} disabled={isSubmitting}>
+                            {isSubmitting && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                            {isSubmitting ? 'Saving...' : 'Save Family'}
+                          </Button>
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
@@ -5076,7 +5535,7 @@ export default function PSSModule() {
                             <Label className="text-xs text-muted-foreground">Features</Label>
                             <div className="mt-1 space-y-1">
                               {family.features.slice(0, 3).map((feature, idx) => (
-                                <div key={idx} className="text-xs flex items-center gap-1">
+                                <div key={idx} className="text-xs flex items-center flex-wrap gap-1">
                                   <CheckCircle className="h-3 w-3 text-green-600" />
                                   {feature}
                                 </div>
@@ -5115,8 +5574,8 @@ export default function PSSModule() {
                   <CardDescription>Configure inventory and pricing by route</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="max-h-80">
-                    <table className="enterprise-table">
+                  <ScrollArea className="max-h-80 overflow-x-auto">
+                    <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
                           <th>Route</th>
@@ -5135,7 +5594,7 @@ export default function PSSModule() {
                           <td>200</td>
                           <td>176</td>
                           <td>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               <div className="w-20 bg-gray-200 rounded-full h-2">
                                 <div className="bg-yellow-600 h-2 rounded-full" style={{ width: '88%' }} />
                               </div>
@@ -5155,7 +5614,7 @@ export default function PSSModule() {
                           <td>180</td>
                           <td>135</td>
                           <td>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               <div className="w-20 bg-gray-200 rounded-full h-2">
                                 <div className="bg-green-600 h-2 rounded-full" style={{ width: '75%' }} />
                               </div>
@@ -5175,7 +5634,7 @@ export default function PSSModule() {
                           <td>40</td>
                           <td>32</td>
                           <td>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               <div className="w-20 bg-gray-200 rounded-full h-2">
                                 <div className="bg-green-600 h-2 rounded-full" style={{ width: '80%' }} />
                               </div>
@@ -5201,7 +5660,7 @@ export default function PSSModule() {
 
       {/* PNR Split Dialog */}
       <Dialog open={showSplitDialog} onOpenChange={setShowSplitDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Split PNR - {selectedPNR?.pnrNumber}</DialogTitle>
           </DialogHeader>
@@ -5211,7 +5670,7 @@ export default function PSSModule() {
             </p>
             <div className="space-y-3">
               {selectedPNR?.passengers.map((p, idx) => (
-                <div key={idx} className="flex items-center gap-3 p-3 border rounded-lg">
+                <div key={idx} className="flex items-center flex-wrap gap-3 p-3 border rounded-lg">
                   <Checkbox
                     id={`pax-${idx}`}
                     checked={splitPassengerGroups.some(g => g.includes(idx))}
@@ -5235,7 +5694,7 @@ export default function PSSModule() {
               ))}
             </div>
             {splitPassengerGroups.length === 0 && (
-              <p className="text-sm text-amber-600 flex items-center gap-2">
+              <p className="text-sm text-amber-600 flex items-center flex-wrap gap-2">
                 <AlertTriangle className="h-4 w-4" />
                 Select at least one passenger to split
               </p>
@@ -5254,7 +5713,7 @@ export default function PSSModule() {
 
       {/* PNR Merge Dialog */}
       <Dialog open={showMergeDialog} onOpenChange={setShowMergeDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Merge Multiple PNRs</DialogTitle>
           </DialogHeader>
@@ -5264,7 +5723,7 @@ export default function PSSModule() {
             </p>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {pnrs.filter(p => p.status !== 'cancelled').map((pnr) => (
-                <div key={pnr.pnrNumber} className="flex items-center gap-3 p-3 border rounded-lg">
+                <div key={pnr.pnrNumber} className="flex items-center flex-wrap gap-3 p-3 border rounded-lg">
                   <Checkbox
                     id={`pnr-${pnr.pnrNumber}`}
                     checked={selectedPNRsForMerge.includes(pnr.pnrNumber)}
@@ -5291,7 +5750,7 @@ export default function PSSModule() {
               ))}
             </div>
             {selectedPNRsForMerge.length < 2 && (
-              <p className="text-sm text-amber-600 flex items-center gap-2">
+              <p className="text-sm text-amber-600 flex items-center flex-wrap gap-2">
                 <AlertTriangle className="h-4 w-4" />
                 Select at least 2 PNRs to merge
               </p>
@@ -5310,7 +5769,7 @@ export default function PSSModule() {
 
       {/* Fare Re-quote Dialog */}
       <Dialog open={showRequoteDialog} onOpenChange={setShowRequoteDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Fare Re-quote - {selectedPNR?.pnrNumber}</DialogTitle>
           </DialogHeader>
@@ -5320,7 +5779,7 @@ export default function PSSModule() {
                 <p className="text-sm text-muted-foreground">
                   Recalculate fare based on current demand and availability.
                 </p>
-                <div className="grid grid-cols-2 gap-4 p-4 bg-secondary/30 rounded-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-secondary/30 rounded-lg">
                   <div>
                     <Label className="text-muted-foreground">Current Fare</Label>
                     <p className="text-2xl font-bold">${selectedPNR?.fareQuote.total}</p>
@@ -5339,7 +5798,7 @@ export default function PSSModule() {
               </>
             ) : (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 bg-secondary/30 rounded-lg">
                     <Label className="text-muted-foreground">Original Fare</Label>
                     <p className="text-2xl font-bold">${requoteResult.originalFare}</p>
@@ -5358,7 +5817,7 @@ export default function PSSModule() {
                     Demand Factor: {requoteResult.demandFactor.toFixed(1)}% | Time to Departure: {requoteResult.timeToDeparture.toFixed(0)} days
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <Label>Base Fare</Label>
                     <p>${requoteResult.breakdown.originalBaseFare} → ${requoteResult.breakdown.newBaseFare}</p>
@@ -5447,12 +5906,12 @@ export default function PSSModule() {
 
       {/* Waitlist Processing Dialog */}
       <Dialog open={showWaitlistDialog} onOpenChange={setShowWaitlistDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Process Waitlist</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Flight Number</Label>
                 <Input
@@ -5494,7 +5953,7 @@ export default function PSSModule() {
             </div>
 
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-900 flex items-center gap-2">
+              <p className="text-sm text-amber-900 flex items-center flex-wrap gap-2">
                 <AlertTriangle className="h-4 w-4" />
                 Processing will promote eligible waitlisted PNRs to confirmed status based on available inventory
               </p>
@@ -5512,16 +5971,141 @@ export default function PSSModule() {
         </DialogContent>
       </Dialog>
 
+      {/* Booking Dialog */}
+      <Dialog open={showBookingDialog} onOpenChange={setShowBookingDialog}>
+        <DialogContent className="max-w-2xl max-w-[95vw] sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Complete Your Booking</DialogTitle>
+            <DialogDescription>
+              {selectedODRoute && `${selectedODRoute.origin} → ${selectedODRoute.destination} • $${selectedODRoute.totalPrice} per person`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {selectedODRoute && (
+              <>
+                <div className="p-4 bg-secondary/30 rounded-lg">
+                  <h4 className="font-medium mb-3">Selected Route Details</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Route:</span>
+                      <span>{selectedODRoute.origin} → {selectedODRoute.destination}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Stops:</span>
+                      <span>{selectedODRoute.stops} {selectedODRoute.stops === 1 ? 'stop' : 'stops'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Duration:</span>
+                      <span>{formatDuration(selectedODRoute.totalDuration)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Flight(s):</span>
+                      <span>{selectedODRoute.segments.map(s => s.flightNumber).join(', ')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Available Classes:</span>
+                      <span>{selectedODRoute.availableFareClasses.join(', ')}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Number of Passengers</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="9"
+                      value={bookingForm.passengers}
+                      onChange={(e) => setBookingForm({ ...bookingForm, passengers: parseInt(e.target.value) || 1 })}
+                      className={errors.passengers ? 'border-red-500' : ''}
+                    />
+                    {errors.passengers && (
+                      <p className="text-xs text-red-500 mt-1">{errors.passengers}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Cabin Class</Label>
+                    <Select 
+                      value={bookingForm.cabinClass} 
+                      onValueChange={(v: any) => setBookingForm({ ...bookingForm, cabinClass: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="economy">Economy</SelectItem>
+                        <SelectItem value="business">Business</SelectItem>
+                        <SelectItem value="first">First</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Fare Class</Label>
+                    <Select 
+                      value={bookingForm.fareClass} 
+                      onValueChange={(v: any) => setBookingForm({ ...bookingForm, fareClass: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedODRoute.availableFareClasses.map(fc => (
+                          <SelectItem key={fc} value={fc}>{fc}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {errors.origin && (
+                  <p className="text-xs text-red-500">{errors.origin}</p>
+                )}
+                {errors.destination && (
+                  <p className="text-xs text-red-500">{errors.destination}</p>
+                )}
+                {errors.date && (
+                  <p className="text-xs text-red-500">{errors.date}</p>
+                )}
+
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Price Information</AlertTitle>
+                  <AlertDescription>
+                    Total Price: <strong>${(selectedODRoute.totalPrice * bookingForm.passengers).toLocaleString()}</strong> for {bookingForm.passengers} passenger(s)
+                  </AlertDescription>
+                </Alert>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBookingDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateBooking} disabled={!selectedODRoute || isSubmitting}>
+              {isSubmitting && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+              {isSubmitting ? 'Booking...' : (
+                <>
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Complete Booking
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* SSR Management Dialog */}
       <Dialog open={showSSRDialog} onOpenChange={setShowSSRDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>SSR Management - {passengers[selectedPassengerSSR || 0]?.firstName} {passengers[selectedPassengerSSR || 0]?.lastName}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
               <h4 className="font-medium mb-2">Available SSRs</h4>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {[
                   { code: 'VGML', name: 'Vegetarian Meal', price: 0 },
                   { code: 'MLML', name: 'Muslim Meal', price: 0 },
@@ -5555,7 +6139,7 @@ export default function PSSModule() {
                 <div className="space-y-2">
                   {passengers[selectedPassengerSSR].ssr!.map(ssr => (
                     <div key={ssr.code} className="flex items-center justify-between p-2 bg-secondary/20 rounded">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <Badge variant="outline" className="font-mono">{ssr.code}</Badge>
                         <span className="text-sm">{ssr.name}</span>
                         {ssr.price > 0 && <span className="text-sm text-muted-foreground">(${ssr.price})</span>}
@@ -5577,14 +6161,14 @@ export default function PSSModule() {
 
       {/* Fare Rules Dialog */}
       <Dialog open={showFareRulesDialog} onOpenChange={setShowFareRulesDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Fare Rule Validation</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {fareRuleViolations.length === 0 ? (
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center gap-2 text-green-900">
+                <div className="flex items-center flex-wrap gap-2 text-green-900">
                   <CheckCircle className="h-5 w-5" />
                   <span className="font-medium">All fare rules validated successfully!</span>
                 </div>
@@ -5592,7 +6176,7 @@ export default function PSSModule() {
             ) : (
               <>
                 <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-red-900 mb-2">
+                  <div className="flex items-center flex-wrap gap-2 text-red-900 mb-2">
                     <XCircle className="h-5 w-5" />
                     <span className="font-medium">{fareRuleViolations.length} fare rule violation(s) found</span>
                   </div>
@@ -5654,7 +6238,7 @@ export default function PSSModule() {
               />
             </div>
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-900 flex items-center gap-2">
+              <p className="text-sm text-amber-900 flex items-center flex-wrap gap-2">
                 <Clock className="h-4 w-4" />
                 Extending time limit gives customer more time to complete payment
               </p>
@@ -5675,7 +6259,7 @@ export default function PSSModule() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center gap-2 text-green-900">
+              <div className="flex items-center flex-wrap gap-2 text-green-900">
                 <CheckCircle className="h-5 w-5" />
                 <span className="font-medium">Segments validated as married segments!</span>
               </div>
@@ -5884,7 +6468,7 @@ export default function PSSModule() {
                   <Label>EMD Number</Label>
                   <Input value={selectedEMD.emdNumber} readOnly className="mt-1 font-mono" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Passenger</Label>
                     <p className="text-sm mt-1">{selectedEMD.passengerName}</p>
@@ -5924,3 +6508,83 @@ export default function PSSModule() {
     </div>
   )
 }
+
+// ================= VALIDATION FUNCTIONS =================
+
+const validatePNRForm = (): boolean => {
+  const errors: Record<string, string> = {}
+
+  // Validate passengers
+  if (passengers.length === 0) {
+    errors.passengers = 'At least one passenger is required'
+  }
+
+  // Validate segments
+  if (segments.length === 0) {
+    errors.segments = 'At least one flight segment is required'
+  }
+
+  // Validate each passenger
+  passengers.forEach((pax, index) => {
+    if (!pax.firstName || !pax.lastName) {
+      errors[`passenger-${index}-name`] = `${pax.firstName ? 'First name is required' : 'Last name is required'}`
+    }
+    if (!pax.dateOfBirth || !pax.passportNumber) {
+      errors[`passenger-${index}-docs`] = 'Date of birth and passport are required'
+    }
+    if (!pax.nationality) {
+      errors[`passenger-${index}-nationality`] = 'Nationality is required'
+    }
+  })
+
+  // Validate segments
+  segments.forEach((seg, index) => {
+    if (!seg.flightNumber || !seg.origin || !seg.destination) {
+      errors[`segment-${index}-details`] = 'All flight details are required'
+    }
+  })
+
+  return Object.keys(errors).length === 0
+}
+
+const validateBookingForm = (): boolean => {
+  const errors: Record<string, string> = {}
+
+  if (!bookingForm.origin || !bookingForm.destination) {
+    errors.origin = 'Origin and destination are required'
+  }
+  if (!bookingForm.date) {
+    errors.date = 'Travel date is required'
+  }
+  if (bookingForm.passengers < 1) {
+    errors.passengers = 'At least 1 passenger is required'
+  }
+  if (bookingForm.passengers > 9) {
+    errors.passengers = 'Maximum 9 passengers per booking'
+  }
+
+  return Object.keys(errors).length === 0
+}
+
+const validateFareClassForm = (): boolean => {
+  const errors: Record<string, string> = {}
+
+  if (!newFareClass.code || !newFareClass.name) {
+    errors.code = 'Fare class code is required'
+    errors.name = 'Fare class name is required'
+  }
+  if (!newFareClass.hierarchy || newFareClass.hierarchy < 1 || newFareClass.hierarchy > 13) {
+    errors.hierarchy = 'Hierarchy must be between 1 and 13'
+  }
+  if (!newFareClass.capacity || newFareClass.capacity < 1 || newFareClass.capacity > 500) {
+    errors.capacity = 'Capacity must be between 1 and 500'
+  }
+  if (!newFareClass.price || newFareClass.price <= 0) {
+    errors.price = 'Price must be greater than 0'
+  }
+
+  return Object.keys(errors).length === 0
+}
+
+// ================== END VALIDATION =================
+

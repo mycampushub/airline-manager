@@ -1,13 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { useAirlineStore } from '@/lib/store'
 import { 
@@ -31,7 +37,10 @@ import {
   Download,
   Filter,
   RefreshCw,
-  Wrench
+  Wrench,
+  Plus,
+  XCircle,
+  X
 } from 'lucide-react'
 
 interface StatCardProps {
@@ -43,6 +52,31 @@ interface StatCardProps {
   prefix?: string
   suffix?: string
   detail?: string
+}
+
+interface Alert {
+  id: number
+  type: 'critical' | 'warning' | 'info'
+  title: string
+  message: string
+  time: string
+  acknowledged: boolean
+  status: 'open' | 'in_progress' | 'resolved' | 'dismissed'
+}
+
+interface FilterOptions {
+  dateRange: 'today' | 'week' | 'month' | 'custom'
+  alertType: 'all' | 'critical' | 'warning' | 'info'
+  alertStatus: 'all' | 'open' | 'in_progress' | 'resolved' | 'dismissed'
+  showAcknowledged: boolean
+  startDate?: string
+  endDate?: string
+}
+
+interface NewAlert {
+  type: 'critical' | 'warning' | 'info'
+  title: string
+  message: string
 }
 
 const StatCard = ({ 
@@ -62,7 +96,7 @@ const StatCard = ({
     </CardHeader>
     <CardContent>
       <div className="text-2xl font-bold">{prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}</div>
-      <div className="flex items-center gap-1 mt-1">
+      <div className="flex items-center flex-wrap gap-1 mt-1">
         {trend === 'up' && <TrendingUp className="h-3 w-3 text-green-600" />}
         {trend === 'down' && <TrendingDown className="h-3 w-3 text-red-600" />}
         <span className={`text-xs ${trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-muted-foreground'}`}>
@@ -81,18 +115,56 @@ export default function DashboardModule() {
   const [dateRange, setDateRange] = useState('today')
   const [showFiltersDialog, setShowFiltersDialog] = useState(false)
   const metrics = kpiDashboard.metrics
-  const [selectedAlert, setSelectedAlert] = useState<any>(null)
+  const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null)
   const [activeTab, setActiveTab] = useState('overview')
-  const [alerts, setAlerts] = useState([
+  const [showCreateAlertDialog, setShowCreateAlertDialog] = useState(false)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  
+  // Filters state
+  const [filters, setFilters] = useState<FilterOptions>({
+    dateRange: 'today',
+    alertType: 'all',
+    alertStatus: 'all',
+    showAcknowledged: true
+  })
+  
+  // New alert form state
+  const [newAlert, setNewAlert] = useState<NewAlert>({
+    type: 'warning',
+    title: '',
+    message: ''
+  })
+  
+  // Alerts state
+  const [alerts, setAlerts] = useState<Alert[]>([
     { id: 1, type: 'critical', title: 'Flight SQ321 Delayed', message: 'Weather conditions at SIN causing 2h delay', time: '10 min ago', acknowledged: false, status: 'open' },
     { id: 2, type: 'warning', title: 'Low Inventory on SIN-LHR', message: 'Y class at 15% remaining', time: '25 min ago', acknowledged: false, status: 'open' },
     { id: 3, type: 'info', title: 'New GDS Integration', message: 'Travelport connection established', time: '1 hour ago', acknowledged: true, status: 'resolved' },
     { id: 4, type: 'warning', title: 'Crew Duty Time Alert', message: 'Crew member approaching duty limit', time: '2 hours ago', acknowledged: false, status: 'open' }
   ])
 
+  // Real-time updates with auto-refresh
+  useEffect(() => {
+    if (autoRefresh && !intervalRef.current) {
+      intervalRef.current = setInterval(() => {
+        handleAutoRefresh()
+      }, 30000) // Refresh every 30 seconds
+    }
+    
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [autoRefresh])
+  
   // Handlers for Dashboard Module
   const handleSetToday = () => {
     setDateRange('today')
+    setFilters({ ...filters, dateRange: 'today' })
     toast({ title: 'Date Range', description: 'Showing today\'s operations' })
   }
 
@@ -100,9 +172,37 @@ export default function DashboardModule() {
     setShowFiltersDialog(true)
   }
 
-  const handleRefresh = () => {
+  const handleApplyFilters = () => {
+    setDateRange(filters.dateRange)
+    setShowFiltersDialog(false)
+    toast({ title: 'Filters Applied', description: 'Dashboard data filtered successfully' })
+  }
+
+  const handleClearFilters = () => {
+    setFilters({
+      dateRange: 'today',
+      alertType: 'all',
+      alertStatus: 'all',
+      showAcknowledged: true
+    })
+    setDateRange('today')
+    setShowFiltersDialog(false)
+    toast({ title: 'Filters Cleared', description: 'All filters have been reset' })
+  }
+
+  const handleAutoRefresh = () => {
+    setIsRefreshing(true)
     updateKPIDashboard(dateRange)
-    toast({ title: 'Refreshing', description: 'Dashboard data refreshed' })
+    setTimeout(() => setIsRefreshing(false), 500)
+  }
+
+  const handleRefresh = () => {
+    setIsRefreshing(true)
+    updateKPIDashboard(dateRange)
+    setTimeout(() => {
+      setIsRefreshing(false)
+      toast({ title: 'Refreshing', description: 'Dashboard data refreshed' })
+    }, 500)
   }
 
   const handleDownloadReport = () => {
@@ -131,8 +231,35 @@ export default function DashboardModule() {
   }
 
   const handleClearResolved = () => {
-    setAlerts(alerts.filter(a => !a.acknowledged || a.status !== 'resolved'))
+    setAlerts(alerts.filter(a => a.status !== 'resolved' && a.status !== 'dismissed'))
     toast({ title: 'Resolved Alerts Cleared', description: 'Cleared resolved alerts' })
+  }
+
+  const handleDismissAlert = (alert: Alert) => {
+    setAlerts(alerts.map(a => a.id === alert.id ? { ...a, status: 'dismissed' as const, acknowledged: true } : a))
+    toast({ title: 'Alert Dismissed', description: `Alert "${alert.title}" has been dismissed` })
+  }
+
+  const handleCreateAlert = () => {
+    if (!newAlert.title.trim() || !newAlert.message.trim()) {
+      toast({ title: 'Error', description: 'Please fill in all required fields', variant: 'destructive' })
+      return
+    }
+    
+    const alert: Alert = {
+      id: Date.now(),
+      type: newAlert.type,
+      title: newAlert.title,
+      message: newAlert.message,
+      time: 'Just now',
+      acknowledged: false,
+      status: 'open'
+    }
+    
+    setAlerts([alert, ...alerts])
+    setNewAlert({ type: 'warning', title: '', message: '' })
+    setShowCreateAlertDialog(false)
+    toast({ title: 'Alert Created', description: `New alert "${alert.title}" has been created` })
   }
 
   const handleAcknowledgeAlert = (alert: any) => {
@@ -143,22 +270,23 @@ export default function DashboardModule() {
     setSelectedAlert(alert)
   }
 
-  const handleAcknowledgeSingleAlert = (alert: any) => {
+  const handleAcknowledgeSingleAlert = (alert: Alert) => {
     setAlerts(alerts.map(a => a.id === alert.id ? { ...a, acknowledged: true } : a))
     setSelectedAlert(null)
+    toast({ title: 'Alert Acknowledged', description: `Alert "${alert.title}" acknowledged` })
   }
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Executive Dashboard</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Real-time overview of airline operations and performance
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={handleSetToday}>
             <Calendar className="h-4 w-4 mr-2" />
             Today
@@ -167,8 +295,16 @@ export default function DashboardModule() {
             <Filter className="h-4 w-4 mr-2" />
             Filters
           </Button>
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
+          <div className="flex items-center flex-wrap gap-2 border rounded-md px-3 py-1">
+            <Switch 
+              checked={autoRefresh} 
+              onCheckedChange={setAutoRefresh}
+              className="scale-75"
+            />
+            <span className="text-xs text-muted-foreground">Auto-refresh</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button size="sm" onClick={handleDownloadReport}>
@@ -182,8 +318,8 @@ export default function DashboardModule() {
       {alerts.filter(a => !a.acknowledged && a.type === 'critical').length > 0 && (
         <Card className="border-red-500 bg-red-50 dark:bg-red-950">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center flex-wrap gap-3">
                 <AlertTriangle className="h-5 w-5 text-red-600" />
                 <div>
                   <div className="font-medium text-red-900 dark:text-red-100">
@@ -253,7 +389,7 @@ export default function DashboardModule() {
           </div>
 
           {/* Secondary KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard
               title="Yield"
               value={metrics.yield.value}
@@ -300,56 +436,56 @@ export default function DashboardModule() {
                   <CardDescription>Real-time flight status and operations</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-72">
-                    <table className="enterprise-table">
-                      <thead>
-                        <tr>
-                          <th>Flight</th>
-                          <th>Route</th>
-                          <th>Dep</th>
-                          <th>Arr</th>
-                          <th>Aircraft</th>
-                          <th>Load</th>
-                          <th>Status</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {flightInstances.length === 0 ? (
+                  <ScrollArea className="h-72 overflow-x-auto">
+                    <table className="enterprise-table min-w-[900px]">
+                        <thead>
                           <tr>
-                            <td colSpan={8} className="text-center text-muted-foreground py-8">
-                              No active flights today
-                            </td>
+                            <th>Flight</th>
+                            <th>Route</th>
+                            <th>Dep</th>
+                            <th>Arr</th>
+                            <th>Aircraft</th>
+                            <th>Load</th>
+                            <th>Status</th>
+                            <th>Actions</th>
                           </tr>
-                        ) : (
-                          flightInstances.slice(0, 10).map((flight) => (
-                            <tr key={flight.id}>
-                              <td className="font-medium">{flight.flightNumber}</td>
-                              <td>{flight.origin} → {flight.destination}</td>
-                              <td>{flight.scheduledDeparture}</td>
-                              <td>{flight.scheduledArrival}</td>
-                              <td>{flight.aircraftType}</td>
-                              <td>{flight.loadFactor}%</td>
-                              <td>
-                                <Badge 
-                                  variant={flight.status === 'scheduled' ? 'default' : 
-                                          flight.status === 'delayed' ? 'destructive' :
-                                          flight.status === 'departed' ? 'secondary' : 'default'}
-                                  className="capitalize"
-                                >
-                                  {flight.status}
-                                </Badge>
-                              </td>
-                              <td>
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
+                        </thead>
+                        <tbody>
+                          {flightInstances.length === 0 ? (
+                            <tr>
+                              <td colSpan={8} className="text-center text-muted-foreground py-8">
+                                No active flights today
                               </td>
                             </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                          ) : (
+                            flightInstances.slice(0, 10).map((flight) => (
+                              <tr key={flight.id}>
+                                <td className="font-medium">{flight.flightNumber}</td>
+                                <td>{flight.origin} → {flight.destination}</td>
+                                <td>{flight.scheduledDeparture}</td>
+                                <td>{flight.scheduledArrival}</td>
+                                <td>{flight.aircraftType}</td>
+                                <td>{flight.loadFactor}%</td>
+                                <td>
+                                  <Badge 
+                                    variant={flight.status === 'scheduled' ? 'default' : 
+                                            flight.status === 'delayed' ? 'destructive' :
+                                            flight.status === 'departed' ? 'secondary' : 'default'}
+                                    className="capitalize"
+                                  >
+                                    {flight.status}
+                                  </Badge>
+                                </td>
+                                <td>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
                   </ScrollArea>
                 </CardContent>
               </Card>
@@ -369,7 +505,7 @@ export default function DashboardModule() {
                           <span className="font-medium capitalize">{channel.channel.replace('_', ' ')}</span>
                           <span className="text-muted-foreground">${(channel.revenue / 1000).toFixed(1)}K</span>
                         </div>
-                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                        <div className="h-2 min-w-[100px] bg-secondary rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-primary transition-all"
                             style={{ width: `${channel.share}%` }}
@@ -473,15 +609,15 @@ export default function DashboardModule() {
                     { station: 'DXB', flights: 28, ontime: 97, delay: 3, status: 'good' },
                     { station: 'SIN', flights: 25, ontime: 90, delay: 10, status: 'good' }
                   ].map((s, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-secondary/30 rounded-sm">
-                      <div className="flex items-center gap-3">
+                    <div key={i} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-secondary/30 rounded-sm gap-2">
+                      <div className="flex items-center flex-wrap gap-3">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <div className="font-medium">{s.station}</div>
                           <div className="text-xs text-muted-foreground">{s.flights} flights today</div>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right sm:text-left">
                         <div className="text-sm font-medium">{s.ontime}% on-time</div>
                         <Badge variant={s.status === 'good' ? 'default' : 'secondary'} className="text-xs">
                           {s.delay} delayed
@@ -502,28 +638,28 @@ export default function DashboardModule() {
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-sm">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       <CheckCircle className="h-5 w-5 text-green-600" />
                       <span className="font-medium">In Service</span>
                     </div>
                     <span className="text-2xl font-bold">42</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-sm">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       <Plane className="h-5 w-5 text-blue-600" />
                       <span className="font-medium">In Flight</span>
                     </div>
                     <span className="text-2xl font-bold">12</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-sm">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       <Wrench className="h-5 w-5 text-yellow-600" />
                       <span className="font-medium">Maintenance</span>
                     </div>
                     <span className="text-2xl font-bold">5</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-sm">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       <Clock className="h-5 w-5 text-muted-foreground" />
                       <span className="font-medium">Standby</span>
                     </div>
@@ -541,41 +677,41 @@ export default function DashboardModule() {
               <CardDescription>Current work orders and scheduled maintenance</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-64">
-                <table className="enterprise-table">
-                  <thead>
-                    <tr>
-                      <th>WO #</th>
-                      <th>Aircraft</th>
-                      <th>Type</th>
-                      <th>Station</th>
-                      <th>Priority</th>
-                      <th>Started</th>
-                      <th>Est. Completion</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {maintenanceRecords.filter(m => m.status === 'in_progress').slice(0, 5).map((record) => (
-                      <tr key={record.id}>
-                        <td className="font-mono font-medium">{record.workOrderNumber}</td>
-                        <td className="text-sm">{record.aircraftRegistration}</td>
-                        <td className="capitalize text-sm">{record.category.replace('_', '-')}</td>
-                        <td className="text-sm">{record.station}</td>
-                        <td>
-                          <Badge variant={record.priority === 'critical' ? 'destructive' : record.priority === 'high' ? 'secondary' : 'outline'} className="capitalize">
-                            {record.priority}
-                          </Badge>
-                        </td>
-                        <td className="text-sm">{new Date(record.scheduledStart).toLocaleTimeString()}</td>
-                        <td className="text-sm">{new Date(record.scheduledEnd).toLocaleTimeString()}</td>
-                        <td>
-                          <Badge variant="secondary" className="animate-pulse">In Progress</Badge>
-                        </td>
+              <ScrollArea className="h-64 overflow-x-auto">
+                <table className="enterprise-table min-w-[1000px]">
+                    <thead>
+                      <tr>
+                        <th>WO #</th>
+                        <th>Aircraft</th>
+                        <th>Type</th>
+                        <th>Station</th>
+                        <th>Priority</th>
+                        <th>Started</th>
+                        <th>Est. Completion</th>
+                        <th>Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {maintenanceRecords.filter(m => m.status === 'in_progress').slice(0, 5).map((record) => (
+                        <tr key={record.id}>
+                          <td className="font-mono font-medium">{record.workOrderNumber}</td>
+                          <td className="text-sm">{record.aircraftRegistration}</td>
+                          <td className="capitalize text-sm">{record.category.replace('_', '-')}</td>
+                          <td className="text-sm">{record.station}</td>
+                          <td>
+                            <Badge variant={record.priority === 'critical' ? 'destructive' : record.priority === 'high' ? 'secondary' : 'outline'} className="capitalize">
+                              {record.priority}
+                            </Badge>
+                          </td>
+                          <td className="text-sm">{new Date(record.scheduledStart).toLocaleTimeString()}</td>
+                          <td className="text-sm">{new Date(record.scheduledEnd).toLocaleTimeString()}</td>
+                          <td>
+                            <Badge variant="secondary" className="animate-pulse">In Progress</Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
               </ScrollArea>
             </CardContent>
           </Card>
@@ -634,8 +770,8 @@ export default function DashboardModule() {
                     { route: 'JFK-PAR', revenue: 3120000, growth: 8.3, lf: 86.2 },
                     { route: 'SIN-SYD', revenue: 2980000, growth: 5.7, lf: 84.5 }
                   ].map((item, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-secondary/30 rounded-sm">
-                      <div className="flex items-center gap-3">
+                    <div key={i} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-secondary/30 rounded-sm gap-2">
+                      <div className="flex items-center flex-wrap gap-3">
                         <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
                           <span className="text-sm font-bold">{i + 1}</span>
                         </div>
@@ -644,7 +780,7 @@ export default function DashboardModule() {
                           <div className="text-xs text-muted-foreground">LF: {item.lf}%</div>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right sm:text-left">
                         <div className="font-medium">${(item.revenue / 1000000).toFixed(2)}M</div>
                         <div className={`text-xs ${item.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {item.growth >= 0 ? '+' : ''}{item.growth}%
@@ -676,7 +812,7 @@ export default function DashboardModule() {
                         <span className="font-medium">{item.category}</span>
                         <span className="text-muted-foreground">${(item.amount / 1000000).toFixed(2)}M ({item.percent}%)</span>
                       </div>
-                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                      <div className="h-2 min-w-[100px] bg-secondary rounded-full overflow-hidden">
                         <div 
                           className={`h-full transition-all ${item.trend === 'up' ? 'bg-red-500' : item.trend === 'down' ? 'bg-green-500' : 'bg-blue-500'}`}
                           style={{ width: `${item.percent}%` }}
@@ -746,37 +882,37 @@ export default function DashboardModule() {
                 <CardDescription>Latest reservations across all channels</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-72">
-                  <table className="enterprise-table">
-                    <thead>
-                      <tr>
-                        <th>PNR</th>
-                        <th>Passenger</th>
-                        <th>Route</th>
-                        <th>Amount</th>
-                        <th>Channel</th>
-                        <th>Time</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pnrs.slice(-5).reverse().map((pnr) => (
-                        <tr key={pnr.pnrNumber}>
-                          <td className="font-mono font-medium">{pnr.pnrNumber}</td>
-                          <td className="text-sm">{pnr.passengers[0]?.firstName} {pnr.passengers[0]?.lastName}</td>
-                          <td className="text-sm">{pnr.segments[0]?.origin} → {pnr.segments[0]?.destination}</td>
-                          <td className="text-sm">${pnr.fareQuote.total}</td>
-                          <td><Badge variant="outline" className="text-xs">Web</Badge></td>
-                          <td className="text-sm">{new Date(pnr.createdAt).toLocaleTimeString()}</td>
-                          <td>
-                            <Badge variant={pnr.status === 'confirmed' ? 'default' : 'secondary'} className="capitalize">
-                              {pnr.status}
-                            </Badge>
-                          </td>
+                <ScrollArea className="h-72 overflow-x-auto">
+                  <table className="enterprise-table min-w-[900px]">
+                      <thead>
+                        <tr>
+                          <th>PNR</th>
+                          <th>Passenger</th>
+                          <th>Route</th>
+                          <th>Amount</th>
+                          <th>Channel</th>
+                          <th>Time</th>
+                          <th>Status</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {pnrs.slice(-5).reverse().map((pnr) => (
+                          <tr key={pnr.pnrNumber}>
+                            <td className="font-mono font-medium">{pnr.pnrNumber}</td>
+                            <td className="text-sm">{pnr.passengers[0]?.firstName} {pnr.passengers[0]?.lastName}</td>
+                            <td className="text-sm">{pnr.segments[0]?.origin} → {pnr.segments[0]?.destination}</td>
+                            <td className="text-sm">${pnr.fareQuote.total}</td>
+                            <td><Badge variant="outline" className="text-xs">Web</Badge></td>
+                            <td className="text-sm">{new Date(pnr.createdAt).toLocaleTimeString()}</td>
+                            <td>
+                              <Badge variant={pnr.status === 'confirmed' ? 'default' : 'secondary'} className="capitalize">
+                                {pnr.status}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                 </ScrollArea>
               </CardContent>
             </Card>
@@ -872,9 +1008,13 @@ export default function DashboardModule() {
 
           <Card className="enterprise-card">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <CardTitle>Alerts Center</CardTitle>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center flex-wrap gap-2 flex-wrap">
+                  <Button variant="outline" size="sm" onClick={() => setShowCreateAlertDialog(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Alert
+                  </Button>
                   <Button variant="outline" size="sm" onClick={handleAcknowledgeAll}>Acknowledge All</Button>
                   <Button variant="outline" size="sm" onClick={handleClearResolved}>Clear Resolved</Button>
                 </div>
@@ -884,7 +1024,20 @@ export default function DashboardModule() {
             <CardContent>
               <ScrollArea className="h-96">
                 <div className="space-y-3">
-                  {alerts.map((alert) => (
+                  {alerts
+                    .filter(alert => {
+                      // Apply alert type filter
+                      if (filters.alertType !== 'all' && alert.type !== filters.alertType) return false
+                      
+                      // Apply status filter
+                      if (filters.alertStatus !== 'all' && alert.status !== filters.alertStatus) return false
+                      
+                      // Apply acknowledged filter
+                      if (!filters.showAcknowledged && alert.acknowledged) return false
+                      
+                      return true
+                    })
+                    .map((alert) => (
                     <div 
                       key={alert.id}
                       className={`p-4 rounded-sm border ${
@@ -897,13 +1050,13 @@ export default function DashboardModule() {
                           : 'bg-blue-50 border-blue-200'
                       }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3 flex-1">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-start gap-3">
                           {alert.type === 'critical' && <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />}
                           {alert.type === 'warning' && <Bell className="h-5 w-5 text-yellow-600 mt-0.5" />}
                           {alert.type === 'info' && <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5" />}
                           <div className="flex-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2 flex-wrap">
                               <span className="font-medium">{alert.title}</span>
                               {!alert.acknowledged && <Badge variant="destructive" className="text-xs">New</Badge>}
                               {alert.acknowledged && <Badge variant="outline" className="text-xs">Acknowledged</Badge>}
@@ -912,10 +1065,15 @@ export default function DashboardModule() {
                             <div className="text-xs text-muted-foreground mt-2">{alert.time}</div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center flex-wrap gap-2 flex-wrap">
                           {!alert.acknowledged && (
                             <Button size="sm" variant="outline" onClick={() => handleAcknowledgeSingleAlert(alert)}>
                               Acknowledge
+                            </Button>
+                          )}
+                          {alert.status === 'open' && (
+                            <Button size="sm" variant="outline" onClick={() => handleDismissAlert(alert)}>
+                              Dismiss
                             </Button>
                           )}
                           <Dialog>
@@ -930,6 +1088,12 @@ export default function DashboardModule() {
                               </DialogHeader>
                               <div className="space-y-4 py-4">
                                 <div>
+                                  <div className="text-sm text-muted-foreground">Type</div>
+                                  <Badge variant={alert.type === 'critical' ? 'destructive' : alert.type === 'warning' ? 'secondary' : 'default'} className="mt-1 capitalize">
+                                    {alert.type}
+                                  </Badge>
+                                </div>
+                                <div>
                                   <div className="text-sm text-muted-foreground">Message</div>
                                   <div className="mt-1">{alert.message}</div>
                                 </div>
@@ -938,8 +1102,14 @@ export default function DashboardModule() {
                                   <div className="mt-1">{alert.time}</div>
                                 </div>
                                 <div>
-                                  <div className="text-sm text-muted-foreground">Type</div>
-                                  <div className="mt-1 capitalize">{alert.type}</div>
+                                  <div className="text-sm text-muted-foreground">Status</div>
+                                  <Badge variant="outline" className="mt-1 capitalize">
+                                    {alert.status.replace('_', ' ')}
+                                  </Badge>
+                                </div>
+                                <div>
+                                  <div className="text-sm text-muted-foreground">Acknowledged</div>
+                                  <div className="mt-1">{alert.acknowledged ? 'Yes' : 'No'}</div>
                                 </div>
                               </div>
                             </DialogContent>
@@ -954,6 +1124,156 @@ export default function DashboardModule() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Filters Dialog */}
+      <Dialog open={showFiltersDialog} onOpenChange={setShowFiltersDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Dashboard Filters</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Date Range</Label>
+              <Select value={filters.dateRange} onValueChange={(value: any) => setFilters({ ...filters, dateRange: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {filters.dateRange === 'custom' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <Input 
+                    type="date" 
+                    value={filters.startDate || ''}
+                    onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>End Date</Label>
+                  <Input 
+                    type="date" 
+                    value={filters.endDate || ''}
+                    onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Alert Type</Label>
+              <Select value={filters.alertType} onValueChange={(value: any) => setFilters({ ...filters, alertType: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="critical">Critical Only</SelectItem>
+                  <SelectItem value="warning">Warnings Only</SelectItem>
+                  <SelectItem value="info">Info Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Alert Status</Label>
+              <Select value={filters.alertStatus} onValueChange={(value: any) => setFilters({ ...filters, alertStatus: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="resolved">Resolved</SelectItem>
+                  <SelectItem value="dismissed">Dismissed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center flex-wrap space-x-2">
+              <Checkbox 
+                id="showAcknowledged" 
+                checked={filters.showAcknowledged}
+                onCheckedChange={(checked) => setFilters({ ...filters, showAcknowledged: checked as boolean })}
+              />
+              <Label htmlFor="showAcknowledged">Show acknowledged alerts</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClearFilters}>
+              Clear Filters
+            </Button>
+            <Button onClick={handleApplyFilters}>
+              Apply Filters
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Alert Dialog */}
+      <Dialog open={showCreateAlertDialog} onOpenChange={setShowCreateAlertDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Alert</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="alertType">Alert Type *</Label>
+              <Select value={newAlert.type} onValueChange={(value: any) => setNewAlert({ ...newAlert, type: value })}>
+                <SelectTrigger id="alertType">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="critical">Critical</SelectItem>
+                  <SelectItem value="warning">Warning</SelectItem>
+                  <SelectItem value="info">Info</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="alertTitle">Title *</Label>
+              <Input 
+                id="alertTitle"
+                placeholder="Enter alert title"
+                value={newAlert.title}
+                onChange={(e) => setNewAlert({ ...newAlert, title: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="alertMessage">Message *</Label>
+              <Textarea 
+                id="alertMessage"
+                placeholder="Enter alert message"
+                value={newAlert.message}
+                onChange={(e) => setNewAlert({ ...newAlert, message: e.target.value })}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowCreateAlertDialog(false)
+              setNewAlert({ type: 'warning', title: '', message: '' })
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateAlert}>
+              Create Alert
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

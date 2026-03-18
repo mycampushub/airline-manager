@@ -423,7 +423,7 @@ export default function MROModule() {
                       <DialogTitle>Create Maintenance Work Order</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Aircraft Registration</Label>
                           <Input value={newMaintenance.aircraftRegistration} onChange={(e) => setNewMaintenance({...newMaintenance, aircraftRegistration: e.target.value})} placeholder="N12345" />
@@ -490,8 +490,8 @@ export default function MROModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80">
-                <table className="enterprise-table">
+              <ScrollArea className="h-80 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>WO #</th>
@@ -553,18 +553,18 @@ export default function MROModule() {
               <div className="flex items-center justify-between">
                 <CardTitle>Engineering Logbook</CardTitle>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => toast({ title: 'Search', description: 'Search functionality opened' })}>
                     <Search className="h-4 w-4 mr-2" />
                     Search
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => toast({ title: 'Filter', description: 'Filter options opened' })}>
                     <Filter className="h-4 w-4 mr-2" />
                     Filter
                   </Button>
 
                   {/* Parts Search Dialog */}
                   <Dialog open={showPartsSearchDialog} onOpenChange={setShowPartsSearchDialog}>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-w-[95vw] sm:max-w-2xl">
                       <DialogHeader>
                         <DialogTitle>Parts Search Results</DialogTitle>
                       </DialogHeader>
@@ -584,7 +584,8 @@ export default function MROModule() {
                               {partsSearchTerm ? 'No parts found matching your search' : 'Enter a search term to find parts'}
                             </div>
                           ) : (
-                            <table className="enterprise-table">
+                            <div className="overflow-x-auto">
+                              <table className="enterprise-table min-w-[800px]">
                               <thead>
                                 <tr>
                                   <th>Part Number</th>
@@ -610,6 +611,7 @@ export default function MROModule() {
                                 ))}
                               </tbody>
                             </table>
+                            </div>
                           )}
                         </ScrollArea>
                       </div>
@@ -628,7 +630,7 @@ export default function MROModule() {
                         <DialogTitle>Add Engineering Log Entry</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 py-4 max-h-96 overflow-y-auto">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <Label>Aircraft Registration</Label>
                             <Input value={newLog.aircraftRegistration} onChange={(e) => setNewLog({...newLog, aircraftRegistration: e.target.value})} placeholder="N12345" />
@@ -681,8 +683,8 @@ export default function MROModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1200px]">
                   <thead>
                     <tr>
                       <th>Date</th>
@@ -760,7 +762,7 @@ export default function MROModule() {
                       <DialogTitle>Defer MEL Item</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4 max-h-96 overflow-y-auto">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>MEL Item Number</Label>
                           <Input value={newMEL.itemNumber} onChange={(e) => setNewMEL({...newMEL, itemNumber: e.target.value})} placeholder="MEL-24-30-1" />
@@ -794,7 +796,7 @@ export default function MROModule() {
                         <Label>Repair Interval</Label>
                         <Input value={newMEL.repairInterval} onChange={(e) => setNewMEL({...newMEL, repairInterval: e.target.value})} placeholder="10 calendar days" />
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Operational Procedure</Label>
                           <Textarea value={newMEL.operationalProcedure} onChange={(e) => setNewMEL({...newMEL, operationalProcedure: e.target.value})} placeholder="Crew procedures" rows={2} />
@@ -821,8 +823,8 @@ export default function MROModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>MEL #</th>
@@ -886,11 +888,11 @@ export default function MROModule() {
               <div className="flex items-center justify-between">
                 <CardTitle>Configuration Deviation List (CDL)</CardTitle>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleExportCDL}>
                     <Download className="h-4 w-4 mr-2" />
                     Export
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleImportCDL}>
                     <Upload className="h-4 w-4 mr-2" />
                     Import
                   </Button>
@@ -901,8 +903,8 @@ export default function MROModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>CDL #</th>
@@ -958,11 +960,11 @@ export default function MROModule() {
               <div className="flex items-center justify-between">
                 <CardTitle>Parts Inventory</CardTitle>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleSearchParts}>
                     <Search className="h-4 w-4 mr-2" />
                     Search
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => toast({ title: 'Filter', description: 'Filter options opened' })}>
                     <Filter className="h-4 w-4 mr-2" />
                     Filter
                   </Button>
@@ -978,7 +980,7 @@ export default function MROModule() {
                         <DialogTitle>Add Part to Inventory</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <Label>Part Number</Label>
                             <Input value={newPart.partNumber} onChange={(e) => setNewPart({...newPart, partNumber: e.target.value})} />
@@ -1036,8 +1038,8 @@ export default function MROModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>Part Number</th>

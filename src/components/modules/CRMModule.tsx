@@ -822,7 +822,7 @@ export default function CRMModule() {
               <DialogTitle>Add New Customer</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label>First Name</Label>
                   <Input value={newCustomer.firstName} onChange={(e) => setNewCustomer({...newCustomer, firstName: e.target.value})} />
@@ -926,8 +926,8 @@ export default function CRMModule() {
               <CardDescription>Manage customer information and preferences</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80">
-                <table className="enterprise-table">
+              <ScrollArea className="h-80 overflow-x-auto">
+                <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
                       <th>Customer</th>
@@ -944,7 +944,7 @@ export default function CRMModule() {
                       <tr key={customer.id}>
                         <td className="font-medium">{customer.firstName} {customer.lastName}</td>
                         <td className="text-sm">
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center flex-wrap gap-1">
                             <Mail className="h-3 w-3" />
                             {customer.contact.email}
                           </div>
@@ -976,7 +976,7 @@ export default function CRMModule() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="enterprise-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center flex-wrap gap-2">
                   <Layers className="h-5 w-5" />
                   Customer Segments
                 </CardTitle>
@@ -991,13 +991,13 @@ export default function CRMModule() {
                       onClick={() => setSelectedSegment(segment)}
                     >
                       <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center flex-wrap gap-3">
                           <div className={`w-3 h-3 rounded-full ${segment.color}`} />
                           <h3 className="font-semibold text-lg">{segment.name}</h3>
                         </div>
                         <Badge variant="outline">{segment.percentage}%</Badge>
                       </div>
-                      <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                         <div>
                           <div className="text-muted-foreground">Count</div>
                           <div className="font-semibold">{segment.count.toLocaleString()}</div>
@@ -1030,7 +1030,7 @@ export default function CRMModule() {
               <CardContent>
                 {selectedSegment ? (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="p-4 bg-secondary/30 rounded-lg">
                         <div className="text-sm text-muted-foreground">Total Customers</div>
                         <div className="text-2xl font-bold">{selectedSegment.count.toLocaleString()}</div>
@@ -1059,7 +1059,7 @@ export default function CRMModule() {
                       <h4 className="font-semibold mb-3">Segmentation Criteria</h4>
                       <div className="space-y-2">
                         {selectedSegment.criteria.map((criterion, idx) => (
-                          <div key={idx} className="flex items-center gap-2 text-sm">
+                          <div key={idx} className="flex items-center flex-wrap gap-2 text-sm">
                             <CheckCircle className="h-4 w-4 text-green-600" />
                             {criterion}
                           </div>
@@ -1142,7 +1142,7 @@ export default function CRMModule() {
                 <CardContent>
                   <div className="space-y-3">
                     {npsTrendData.map((data, idx) => (
-                      <div key={idx} className="flex items-center gap-4">
+                      <div key={idx} className="flex items-center flex-wrap gap-4">
                         <div className="w-16 text-sm text-muted-foreground">{data.month}</div>
                         <div className="flex-1">
                           <div className="h-8 bg-secondary/30 rounded relative overflow-hidden">
@@ -1174,7 +1174,7 @@ export default function CRMModule() {
                       <div key={idx} className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-medium">{data.segment}</span>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <span className="font-semibold">{data.score}</span>
                             <Badge variant="outline">{data.responses} responses</Badge>
                           </div>
@@ -1215,7 +1215,7 @@ export default function CRMModule() {
                       <div className="space-y-4 py-4">
                         <div>
                           <Label>How likely are you to recommend us? (0-10)</Label>
-                          <div className="flex items-center gap-2 mt-2">
+                          <div className="flex items-center flex-wrap gap-2 mt-2">
                             <Slider
                               value={[newNPSRating]}
                               onValueChange={(v) => setNewNPSRating(v[0])}
@@ -1259,9 +1259,9 @@ export default function CRMModule() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="p-4 bg-secondary/30 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center flex-wrap gap-2 mb-2">
                       <div className="w-3 h-3 bg-green-500 rounded-full" />
                       <span className="font-medium">Promoters (9-10)</span>
                     </div>
@@ -1269,7 +1269,7 @@ export default function CRMModule() {
                     <div className="text-sm text-muted-foreground">Loyal enthusiasts</div>
                   </div>
                   <div className="p-4 bg-secondary/30 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center flex-wrap gap-2 mb-2">
                       <div className="w-3 h-3 bg-yellow-500 rounded-full" />
                       <span className="font-medium">Passives (7-8)</span>
                     </div>
@@ -1277,7 +1277,7 @@ export default function CRMModule() {
                     <div className="text-sm text-muted-foreground">Satisfied but unenthusiastic</div>
                   </div>
                   <div className="p-4 bg-secondary/30 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center flex-wrap gap-2 mb-2">
                       <div className="w-3 h-3 bg-red-500 rounded-full" />
                       <span className="font-medium">Detractors (0-6)</span>
                     </div>
@@ -1325,7 +1325,7 @@ export default function CRMModule() {
               <CardTitle>Loyalty Program Benefits</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-secondary/30 rounded-sm">
                   <h3 className="font-medium mb-2">Silver</h3>
                   <ul className="text-sm space-y-1 text-muted-foreground">
@@ -1370,8 +1370,8 @@ export default function CRMModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80">
-                <table className="enterprise-table">
+              <ScrollArea className="h-80 overflow-x-auto">
+                <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
                       <th>Campaign</th>
@@ -1429,7 +1429,7 @@ export default function CRMModule() {
                     Create New Campaign
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Create Campaign</DialogTitle>
                   </DialogHeader>
@@ -1437,7 +1437,7 @@ export default function CRMModule() {
                     {/* Campaign Templates */}
                     <div>
                       <Label className="text-base font-semibold">Select Template</Label>
-                      <div className="grid grid-cols-2 gap-3 mt-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                         {campaignTemplates.map((template) => (
                           <div
                             key={template.id}
@@ -1448,7 +1448,7 @@ export default function CRMModule() {
                             }`}
                             onClick={() => handleSelectTemplate(template)}
                           >
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center flex-wrap gap-2 mb-2">
                               {template.type === 'email' && <Mail className="h-4 w-4" />}
                               {template.type === 'sms' && <Phone className="h-4 w-4" />}
                               <span className="font-medium">{template.name}</span>
@@ -1462,7 +1462,7 @@ export default function CRMModule() {
                     </div>
 
                     {/* Campaign Details */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label>Campaign Name</Label>
                         <Input
@@ -1572,7 +1572,7 @@ export default function CRMModule() {
                     {/* Scheduling */}
                     <div>
                       <Label className="text-base font-semibold mb-3 block">Schedule & Automation</Label>
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         <div>
                           <Label>Start Date</Label>
                           <Input
@@ -1608,14 +1608,14 @@ export default function CRMModule() {
                         </div>
                       </div>
                       <div className="flex gap-6 mt-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center flex-wrap gap-2">
                           <Switch
                             checked={campaignSchedule.automateEmail}
                             onCheckedChange={(v) => setCampaignSchedule({...campaignSchedule, automateEmail: v})}
                           />
                           <Label className="cursor-pointer">Auto-send Email</Label>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center flex-wrap gap-2">
                           <Switch
                             checked={campaignSchedule.automateSMS}
                             onCheckedChange={(v) => setCampaignSchedule({...campaignSchedule, automateSMS: v})}
@@ -1636,7 +1636,7 @@ export default function CRMModule() {
                       </div>
                       {enableABTesting && (
                         <div className="space-y-4 p-4 bg-secondary/20 rounded-lg">
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <Label>Group A Name</Label>
                               <Input placeholder="Control Group" />
@@ -1680,8 +1680,8 @@ export default function CRMModule() {
                 <CardDescription>Performance metrics for all campaigns</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-80">
-                  <table className="enterprise-table">
+                <ScrollArea className="h-80 overflow-x-auto">
+                  <table className="enterprise-table min-w-[1000px]">
                     <thead>
                       <tr>
                         <th>Campaign</th>
@@ -1740,8 +1740,8 @@ export default function CRMModule() {
               <CardDescription>Track and resolve customer feedback</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80">
-                <table className="enterprise-table">
+              <ScrollArea className="h-80 overflow-x-auto">
+                <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
                       <th>ID</th>
@@ -1797,8 +1797,8 @@ export default function CRMModule() {
                 <CardDescription>SLA tracking, resolution workflow, and escalation</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-96">
-                  <table className="enterprise-table">
+                <ScrollArea className="h-96 overflow-x-auto">
+                  <table className="enterprise-table min-w-[1100px]">
                     <thead>
                       <tr>
                         <th>Complaint ID</th>
@@ -1842,7 +1842,7 @@ export default function CRMModule() {
                             {wf.escalated && <Flag className="h-3 w-3 inline ml-1 text-red-600" />}
                           </td>
                           <td className="text-sm">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center flex-wrap gap-1">
                               <Timer className="h-3 w-3" />
                               {wf.slaHours}h
                             </div>
@@ -1903,7 +1903,7 @@ export default function CRMModule() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="enterprise-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center flex-wrap gap-2">
                   <Settings className="h-5 w-5" />
                   Travel Preferences
                 </CardTitle>
@@ -1926,20 +1926,20 @@ export default function CRMModule() {
                           <h3 className="font-semibold">{pref.customerName}</h3>
                           <Badge variant="outline">{pref.cabinPreference}</Badge>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div className="flex items-center gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                          <div className="flex items-center flex-wrap gap-2">
                             <Armchair className="h-4 w-4 text-muted-foreground" />
                             {pref.seatType.join(', ')}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <Utensils className="h-4 w-4 text-muted-foreground" />
                             {pref.mealPreference}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                             {pref.bookingPattern.replace('_', ' ')}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <TrendingUp className="h-4 w-4 text-muted-foreground" />
                             {pref.ancillaryPurchaseRate * 100}% ancillary rate
                           </div>
@@ -1961,30 +1961,30 @@ export default function CRMModule() {
               <CardContent>
                 {selectedPreference ? (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="p-4 bg-secondary/30 rounded-lg">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <div className="flex items-center flex-wrap gap-2 text-sm text-muted-foreground mb-2">
                           <Armchair className="h-4 w-4" />
                           Seat Preference
                         </div>
                         <div className="font-semibold">{selectedPreference.seatType.join(', ')}</div>
                       </div>
                       <div className="p-4 bg-secondary/30 rounded-lg">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <div className="flex items-center flex-wrap gap-2 text-sm text-muted-foreground mb-2">
                           <Utensils className="h-4 w-4" />
                           Meal Preference
                         </div>
                         <div className="font-semibold capitalize">{selectedPreference.mealPreference.replace('_', ' ')}</div>
                       </div>
                       <div className="p-4 bg-secondary/30 rounded-lg">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <div className="flex items-center flex-wrap gap-2 text-sm text-muted-foreground mb-2">
                           <Plane className="h-4 w-4" />
                           Cabin Preference
                         </div>
                         <div className="font-semibold capitalize">{selectedPreference.cabinPreference}</div>
                       </div>
                       <div className="p-4 bg-secondary/30 rounded-lg">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <div className="flex items-center flex-wrap gap-2 text-sm text-muted-foreground mb-2">
                           <Calendar className="h-4 w-4" />
                           Booking Pattern
                         </div>
@@ -1993,11 +1993,11 @@ export default function CRMModule() {
                     </div>
 
                     <div className="p-4 bg-secondary/30 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                      <div className="flex items-center flex-wrap gap-2 text-sm text-muted-foreground mb-2">
                         <Brain className="h-4 w-4" />
                         Behavior Analytics
                       </div>
-                      <div className="grid grid-cols-2 gap-4 mt-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
                         <div>
                           <div className="text-xs text-muted-foreground">Avg Days Before Travel</div>
                           <div className="text-lg font-bold">{selectedPreference.avgDaysBeforeTravel} days</div>
@@ -2010,7 +2010,7 @@ export default function CRMModule() {
                     </div>
 
                     <div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                      <div className="flex items-center flex-wrap gap-2 text-sm text-muted-foreground mb-3">
                         <MapPin className="h-4 w-4" />
                         Favorite Routes
                       </div>
@@ -2042,7 +2042,7 @@ export default function CRMModule() {
             {/* Partner Points */}
             <Card className="enterprise-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center flex-wrap gap-2">
                   <Award className="h-5 w-5" />
                   Partner Points
                 </CardTitle>
@@ -2053,7 +2053,7 @@ export default function CRMModule() {
                   {partnerPoints.map((partner) => (
                     <div key={partner.id} className="p-4 border rounded-lg">
                       <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center flex-wrap gap-3">
                           <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
                             <Gift className="h-5 w-5 text-primary" />
                           </div>
@@ -2067,7 +2067,7 @@ export default function CRMModule() {
                           <div className="text-xs text-muted-foreground">points earned</div>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div>
                           <div className="text-muted-foreground">Points Redeemed</div>
                           <div className="font-semibold">{partner.pointsRedeemed.toLocaleString()}</div>
@@ -2083,11 +2083,11 @@ export default function CRMModule() {
                           <div className="space-y-2">
                             {partner.recentActivity.slice(0, 3).map((activity, idx) => (
                               <div key={idx} className="flex items-center justify-between text-xs p-2 bg-secondary/20 rounded">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center flex-wrap gap-2">
                                   {activity.type === 'earn' ? <ArrowUp className="h-3 w-3 text-green-600" /> : <ArrowDown className="h-3 w-3 text-red-600" />}
                                   <span>{activity.description}</span>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center flex-wrap gap-2">
                                   <span className="text-muted-foreground">{new Date(activity.date).toLocaleDateString()}</span>
                                   <span className={`font-semibold ${activity.type === 'earn' ? 'text-green-600' : 'text-red-600'}`}>
                                     {activity.type === 'earn' ? '+' : '-'}{activity.points.toLocaleString()}
@@ -2109,7 +2109,7 @@ export default function CRMModule() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center flex-wrap gap-2">
                       <Gift className="h-5 w-5" />
                       Reward Redemptions
                     </CardTitle>
@@ -2197,7 +2197,7 @@ export default function CRMModule() {
                     {rewardRedemptions.map((redemption) => (
                       <div key={redemption.id} className="p-4 border rounded-lg">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center flex-wrap gap-3">
                             <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
                               <Gift className="h-5 w-5 text-primary" />
                             </div>
@@ -2259,13 +2259,13 @@ export default function CRMModule() {
 
       {/* Complaint Workflow Detail Dialog */}
       <Dialog open={showWorkflowDialog} onOpenChange={setShowWorkflowDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Complaint Details - {selectedComplaint?.complaintId}</DialogTitle>
           </DialogHeader>
           {selectedComplaint && (
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label>Customer</Label>
                   <div className="font-medium">{selectedComplaint.customerName}</div>
@@ -2292,7 +2292,7 @@ export default function CRMModule() {
                 </div>
                 <div>
                   <Label>SLA</Label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center flex-wrap gap-2">
                     <Timer className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">{selectedComplaint.slaHours} hours</span>
                   </div>
@@ -2358,7 +2358,7 @@ export default function CRMModule() {
 
               {selectedComplaint.resolutionTimeHours && (
                 <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm text-green-700">
+                  <div className="flex items-center flex-wrap gap-2 text-sm text-green-700">
                     <CheckCircle className="h-4 w-4" />
                     <span>Resolved in {selectedComplaint.resolutionTimeHours} hours</span>
                   </div>

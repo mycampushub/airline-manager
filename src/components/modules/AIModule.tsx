@@ -573,7 +573,7 @@ export default function AIModule() {
             Model Training, Predictive Analytics, and Automation Rules
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => {
             initializeModels()
             initializePredictions()
@@ -694,7 +694,7 @@ export default function AIModule() {
                               <Progress value={model.trainingProgress} className="h-2" />
                             </div>
                           )}
-                          <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                             <div>
                               <div className="text-muted-foreground">Accuracy</div>
                               <div className="font-medium text-green-600">{model.accuracy}%</div>
@@ -857,7 +857,7 @@ export default function AIModule() {
                               <CardTitle className="text-base">{rule.name}</CardTitle>
                               <CardDescription className="text-xs">{rule.description}</CardDescription>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-wrap gap-2">
                               {getPriorityBadge(rule.priority)}
                               <Switch checked={rule.enabled} onCheckedChange={() => {
                                 setRules(prev => prev.map(r => r.id === rule.id ? { ...r, enabled: !r.enabled } : r))
@@ -871,7 +871,7 @@ export default function AIModule() {
                               <div className="text-muted-foreground">Trigger</div>
                               <div className="font-medium capitalize">{rule.trigger.type}: {rule.trigger.source}</div>
                             </div>
-                            <div className="grid grid-cols-3 gap-2 text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-sm">
                               <div>
                                 <div className="text-muted-foreground">Conditions</div>
                                 <div className="font-medium">{rule.conditions.length}</div>
@@ -916,7 +916,7 @@ export default function AIModule() {
             <CardContent>
               <div className="space-y-6">
                 {/* Rule Definition */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Rule Name</Label>
                     <Input value={newRule.name} onChange={(e) => setNewRule({...newRule, name: e.target.value})} placeholder="Enter rule name" />
@@ -943,11 +943,11 @@ export default function AIModule() {
 
                 {/* Trigger Configuration */}
                 <div className="border-t pt-4">
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <h4 className="font-medium mb-3 flex items-center flex-wrap gap-2">
                     <Bolt className="h-4 w-4" />
                     Trigger Configuration
                   </h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label>Trigger Type</Label>
                       <Select value={newRule.triggerType} onValueChange={(v: any) => setNewRule({...newRule, triggerType: v})}>
@@ -971,7 +971,7 @@ export default function AIModule() {
                 {/* Conditions */}
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium flex items-center gap-2">
+                    <h4 className="font-medium flex items-center flex-wrap gap-2">
                       <Filter className="h-4 w-4" />
                       Conditions
                     </h4>
@@ -982,7 +982,7 @@ export default function AIModule() {
                   </div>
                   <div className="space-y-2">
                     {conditions.map((condition, index) => (
-                      <div key={condition.id} className="flex items-center gap-2 p-3 bg-secondary/20 rounded-sm">
+                      <div key={condition.id} className="flex items-center flex-wrap gap-2 p-3 bg-secondary/20 rounded-sm">
                         <Input
                           placeholder="Field"
                           value={condition.field}
@@ -1038,7 +1038,7 @@ export default function AIModule() {
                 {/* Actions */}
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium flex items-center gap-2">
+                    <h4 className="font-medium flex items-center flex-wrap gap-2">
                       <Lightbulb className="h-4 w-4" />
                       Actions
                     </h4>
@@ -1049,7 +1049,7 @@ export default function AIModule() {
                   </div>
                   <div className="space-y-2">
                     {actions.map((action, index) => (
-                      <div key={action.id} className="flex items-center gap-2 p-3 bg-secondary/20 rounded-sm">
+                      <div key={action.id} className="flex items-center flex-wrap gap-2 p-3 bg-secondary/20 rounded-sm">
                         <Select value={action.type} onValueChange={(v: any) => {
                           const newActions = [...actions]
                           newActions[index].type = v
@@ -1124,7 +1124,7 @@ export default function AIModule() {
                 <div className="space-y-4">
                   <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-sm">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <Shield className="h-5 w-5 text-green-600" />
                         <span className="font-medium">System Status</span>
                       </div>
@@ -1169,7 +1169,7 @@ export default function AIModule() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-sm text-center">
                       <div className="text-2xl font-bold">3</div>
                       <div className="text-xs text-muted-foreground mt-1">Anomalies Detected</div>
@@ -1215,7 +1215,7 @@ export default function AIModule() {
           {selectedModel && (
             <ScrollArea className="max-h-[70vh]">
               <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Name</Label>
                     <div className="text-sm font-medium mt-1">{selectedModel.name}</div>
@@ -1236,7 +1236,7 @@ export default function AIModule() {
 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Performance Metrics</h4>
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-sm">
                       <div className="text-xs text-muted-foreground">Accuracy</div>
                       <div className="text-lg font-bold text-green-700 dark:text-green-400">{selectedModel.accuracy}%</div>
@@ -1258,7 +1258,7 @@ export default function AIModule() {
 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Hyperparameters</h4>
-                  <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-sm">
                     {Object.entries(selectedModel.hyperparameters).map(([key, value]) => (
                       <div key={key}>
                         <div className="text-muted-foreground capitalize">{key.replace('_', ' ')}</div>
@@ -1279,7 +1279,7 @@ export default function AIModule() {
 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Deployment</h4>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                     <div>
                       <div className="text-muted-foreground">Endpoint</div>
                       <div className="font-mono text-xs mt-1">{selectedModel.deployment.endpoint}</div>
@@ -1295,7 +1295,7 @@ export default function AIModule() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <div className="text-muted-foreground">Last Trained</div>
                     <div className="font-medium">{selectedModel.lastTrained}</div>
@@ -1320,13 +1320,13 @@ export default function AIModule() {
 
       {/* Prediction Details Dialog */}
       <Dialog open={showPredictionDialog} onOpenChange={setShowPredictionDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Prediction Details</DialogTitle>
           </DialogHeader>
           {selectedPrediction && (
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label>Model</Label>
                   <div className="text-sm font-medium mt-1">{selectedPrediction.modelName}</div>
@@ -1361,7 +1361,7 @@ export default function AIModule() {
 
               {selectedPrediction.recommendedActions && selectedPrediction.recommendedActions.length > 0 && (
                 <div className="border-t pt-4">
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <h4 className="font-medium mb-3 flex items-center flex-wrap gap-2">
                     <Lightbulb className="h-4 w-4" />
                     Recommended Actions
                   </h4>
@@ -1378,7 +1378,7 @@ export default function AIModule() {
 
               {selectedPrediction.actionTaken && (
                 <div className="border-t pt-4">
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <h4 className="font-medium mb-3 flex items-center flex-wrap gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     Action Taken
                   </h4>
