@@ -2,8 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "rewrites": [
-    { "source": "/airline-management/:path*", "destination": "/airline-management/index.html" },
-    { "source": "/airline-management", "destination": "/airline-management/index.html" }
+  "routes": [
+    { "src": "/airline-management(/.*)?", "dest": "/airline-management/index.html", "headers": { "Cache-Control": "public, max-age=0, must-revalidate" } }
   ]
 }
