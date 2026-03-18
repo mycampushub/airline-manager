@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-// import { ScrollArea } from '@/components/ui/scroll-area'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -144,21 +144,10 @@ interface SyncLog {
 }
 
 export default function IntegrationModule() {
-  const { integrations } = useAirlineStore()
+  const { integrations, addIntegration } = useAirlineStore()
   const { toast } = useToast()
-
-  // Utility function to format time consistently across server and client
-  const formatTime = (dateString: string): string => {
-    const date = new Date(dateString)
-    const hours = date.getHours().toString().padStart(2, '0')
-    const minutes = date.getMinutes().toString().padStart(2, '0')
-    return `${hours}:${minutes}`
-  }
-
-  // API Logs state
-  const [apiLogs, setApiLogs] = useState<any[]>([])
-
-  // Connections state (kept for compatibility - will be mapped to integrations)
+  
+  // Connections state
   const [connections, setConnections] = useState<ConnectionConfig[]>([])
   const [showConnectionDialog, setShowConnectionDialog] = useState(false)
   const [selectedConnection, setSelectedConnection] = useState<ConnectionConfig | null>(null)
@@ -220,194 +209,363 @@ export default function IntegrationModule() {
 
   // Initialize mock data functions
   const initializeConnections = () => {
-    const providers = ['amadeus', 'sabre', 'travelport', 'stripe', 'paypal', 'braintree', 'sita', 'aena', 'adp', 'navitaire', 'salesforce', 'hubspot', 'zendesk', 'twilio', 'aws', 'azure', 'google_cloud', 'microsoft', 'oracle', 'sap', 'workday', 'servicenow', 'jira', 'confluence', 'slack', 'teams', 'zoom', 'webex', 'github', 'gitlab']
-    const types = ['gds', 'gds', 'gds', 'payment', 'payment', 'payment', 'airport', 'airport', 'airport', 'accounting', 'crm', 'crm', 'support', 'communication', 'cloud', 'cloud', 'cloud', 'cloud', 'database', 'erp', 'hr', 'itsm', 'project', 'project', 'messaging', 'messaging', 'messaging', 'messaging', 'messaging', 'messaging']
-    const connData: ConnectionConfig[] = Array.from({ length: 30 }, (_, i) => {
-      const status = ['connected', 'connected', 'connected', 'connected', 'error', 'disconnected'][i % 6] as any
-      return {
-        id: `conn-${String(i + 1).padStart(3, '0')}`,
-        name: `${providers[i].charAt(0).toUpperCase() + providers[i].slice(1)} ${['Production', 'Staging', 'Development'][i % 3]}`,
-        type: types[i] as any,
-        provider: providers[i] as any,
-        status,
-        endpoint: `https://api.${providers[i].replace('_', '-')}.com/v${1 + (i % 3)}`,
-        apiKey: `${providers[i].substring(0, 3)}_prod_***`,
+    const connData: ConnectionConfig[] = [
+      {
+        id: 'conn-001',
+        name: 'Amadeus Production',
+        type: 'gds',
+        provider: 'amadeus',
+        status: 'connected',
+        endpoint: 'https://api.amadeus.com/v1',
+        apiKey: 'amadeus_prod_***',
         apiSecret: '************',
-        authType: ['api_key', 'oauth2', 'basic_auth', 'bearer_token'][i % 4] as any,
-        lastSync: new Date(Date.now() - i * 3600000).toISOString(),
-        lastSuccess: status === 'error' ? new Date(Date.now() - (i + 1) * 7200000).toISOString() : new Date(Date.now() - i * 3600000).toISOString(),
-        lastError: status === 'error' ? 'Connection timeout after 30 seconds' : undefined,
+        authType: 'oauth2',
+        lastSync: '2024-01-18T15:30:00Z',
+        lastSuccess: '2024-01-18T15:30:00Z',
         metrics: {
-          requestsToday: 5000 + (i * 2000) % 50000,
-          requestsTotal: 1000000 + (i * 50000) % 10000000,
-          errorsToday: status === 'error' ? 50 + i : i % 20,
-          errorsTotal: 100 + (i * 50),
-          avgResponseTime: 100 + (i * 20) % 300,
-          uptime: 99 - (status === 'error' ? 2 : i * 0.1)
+          requestsToday: 45230,
+          requestsTotal: 1542390,
+          errorsToday: 12,
+          errorsTotal: 234,
+          avgResponseTime: 180,
+          uptime: 99.95
         },
         config: {
-          timeout: [10000, 15000, 30000][i % 3],
-          retryAttempts: 2 + (i % 3),
-          rateLimitPerMinute: 100 + (i * 50) % 1000,
-          enabled: status !== 'disconnected'
+          timeout: 30000,
+          retryAttempts: 3,
+          rateLimitPerMinute: 1000,
+          enabled: true
+        }
+      },
+      {
+        id: 'conn-002',
+        name: 'Sabre GDS',
+        type: 'gds',
+        provider: 'sabre',
+        status: 'connected',
+        endpoint: 'https://api.sabre.com/v2',
+        apiKey: 'sabre_prod_***',
+        apiSecret: '************',
+        authType: 'bearer_token',
+        lastSync: '2024-01-18T15:25:00Z',
+        lastSuccess: '2024-01-18T15:25:00Z',
+        metrics: {
+          requestsToday: 38920,
+          requestsTotal: 1298450,
+          errorsToday: 8,
+          errorsTotal: 189,
+          avgResponseTime: 210,
+          uptime: 99.92
+        },
+        config: {
+          timeout: 30000,
+          retryAttempts: 3,
+          rateLimitPerMinute: 800,
+          enabled: true
+        }
+      },
+      {
+        id: 'conn-003',
+        name: 'Stripe Payment',
+        type: 'payment',
+        provider: 'stripe',
+        status: 'connected',
+        endpoint: 'https://api.stripe.com/v1',
+        apiKey: 'sk_live_***',
+        apiSecret: '************',
+        authType: 'api_key',
+        lastSync: '2024-01-18T15:35:00Z',
+        lastSuccess: '2024-01-18T15:35:00Z',
+        metrics: {
+          requestsToday: 15420,
+          requestsTotal: 523450,
+          errorsToday: 3,
+          errorsTotal: 45,
+          avgResponseTime: 120,
+          uptime: 99.98
+        },
+        config: {
+          timeout: 15000,
+          retryAttempts: 2,
+          rateLimitPerMinute: 500,
+          enabled: true
+        }
+      },
+      {
+        id: 'conn-004',
+        name: 'JFK AODB',
+        type: 'airport',
+        provider: 'sita',
+        status: 'connected',
+        endpoint: 'https://aodb.jfk.aero/api',
+        apiKey: 'jfk_aodb_***',
+        apiSecret: '************',
+        authType: 'api_key',
+        lastSync: '2024-01-18T15:28:00Z',
+        lastSuccess: '2024-01-18T15:28:00Z',
+        metrics: {
+          requestsToday: 2340,
+          requestsTotal: 156780,
+          errorsToday: 0,
+          errorsTotal: 12,
+          avgResponseTime: 95,
+          uptime: 99.99
+        },
+        config: {
+          timeout: 10000,
+          retryAttempts: 2,
+          rateLimitPerMinute: 200,
+          enabled: true
+        }
+      },
+      {
+        id: 'conn-005',
+        name: 'LHR BHS',
+        type: 'airport',
+        provider: 'sita',
+        status: 'error',
+        endpoint: 'https://bhs.lhr.aero/api',
+        apiKey: 'lhr_bhs_***',
+        apiSecret: '************',
+        authType: 'api_key',
+        lastSync: '2024-01-18T14:15:00Z',
+        lastSuccess: '2024-01-18T12:30:00Z',
+        lastError: 'Connection timeout after 10 seconds',
+        metrics: {
+          requestsToday: 1890,
+          requestsTotal: 98760,
+          errorsToday: 25,
+          errorsTotal: 156,
+          avgResponseTime: 450,
+          uptime: 97.45
+        },
+        config: {
+          timeout: 10000,
+          retryAttempts: 2,
+          rateLimitPerMinute: 150,
+          enabled: true
         }
       }
-    })
+    ]
     setConnections(connData)
   }
 
   const initializeWebhooks = () => {
-    const webhookNames = [
-      'Booking Notifications', 'Flight Status Updates', 'Payment Events', 'Crew Alerts',
-      'Passenger Check-ins', 'Baggage Tracking', 'Flight Delays', 'Gate Changes',
-      'Revenue Updates', 'Inventory Changes', 'Fare Changes', 'Schedule Changes',
-      'Weather Alerts', 'Security Alerts', 'Maintenance Alerts', 'Crew Scheduling',
-      'Aircraft Position', 'Fuel Updates', 'Load Sheet Updates', 'Manifest Updates',
-      'Ticket Issuance', 'Refund Processing', 'Exchange Processing', 'Upgrade Requests',
-      'Lounge Access', 'Meal Selection', 'Seat Assignment', 'Special Services',
-      'Boarding Passes', 'Customer Feedback'
-    ]
-    const targetUrls = [
-      'https://partner.example.com/webhooks/bookings',
-      'https://app.example.com/flight-updates',
-      'https://billing.example.com/payments',
-      'https://crew.example.com/alerts',
-      'https://checkin.example.com/passengers',
-      'https://baggage.example.com/tracking',
-      'https://delays.example.com/notifications',
-      'https://gates.example.com/changes',
-      'https://revenue.example.com/updates',
-      'https://inventory.example.com/changes',
-      'https://fares.example.com/updates',
-      'https://schedules.example.com/changes',
-      'https://weather.example.com/alerts',
-      'https://security.example.com/alerts',
-      'https://maintenance.example.com/alerts',
-      'https://scheduling.example.com/crew',
-      'https://tracking.example.com/aircraft',
-      'https://fuel.example.com/updates',
-      'https://load.example.com/sheets',
-      'https://manifest.example.com/updates',
-      'https://tickets.example.com/issuance',
-      'https://refunds.example.com/processing',
-      'https://exchanges.example.com/processing',
-      'https://upgrades.example.com/requests',
-      'https://lounges.example.com/access',
-      'https://meals.example.com/selection',
-      'https://seats.example.com/assignment',
-      'https://services.example.com/special',
-      'https://boarding.example.com/passes',
-      'https://feedback.example.com/customers'
-    ]
-    const webhookData: WebhookConfig[] = Array.from({ length: 30 }, (_, i) => ({
-      id: `web-${String(i + 1).padStart(3, '0')}`,
-      name: webhookNames[i],
-      targetUrl: targetUrls[i],
-      events: [availableEvents[i % availableEvents.length]],
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Webhook-Secret': 'secret_key',
-        'Authorization': 'Bearer token'
+    const webhookData: WebhookConfig[] = [
+      {
+        id: 'web-001',
+        name: 'Booking Notifications',
+        targetUrl: 'https://partner.example.com/webhooks/bookings',
+        events: ['booking.created', 'booking.updated', 'booking.cancelled'],
+        headers: {
+          'X-Webhook-Secret': 'secret_key',
+          'Content-Type': 'application/json'
+        },
+        secret: 'whsec_***',
+        status: 'active',
+        retryPolicy: {
+          maxAttempts: 3,
+          backoffSeconds: 60
+        },
+        created: '2024-01-01',
+        lastTriggered: '2024-01-18T15:30:00Z',
+        successRate: 99.5,
+        deliveryCount: 12450,
+        failureCount: 62
       },
-      secret: 'whsec_***',
-      status: ['active', 'active', 'active', 'active', 'paused', 'error'][i % 6] as any,
-      retryPolicy: {
-        maxAttempts: 3 + (i % 5),
-        backoffSeconds: 30 + (i * 10) % 120
+      {
+        id: 'web-002',
+        name: 'Flight Status Updates',
+        targetUrl: 'https://app.example.com/flight-updates',
+        events: ['flight.scheduled', 'flight.departed', 'flight.arrived', 'flight.delayed'],
+        headers: {
+          'Authorization': 'Bearer token',
+          'Content-Type': 'application/json'
+        },
+        secret: 'whsec_***',
+        status: 'active',
+        retryPolicy: {
+          maxAttempts: 5,
+          backoffSeconds: 30
+        },
+        created: '2024-01-05',
+        lastTriggered: '2024-01-18T15:25:00Z',
+        successRate: 98.2,
+        deliveryCount: 8760,
+        failureCount: 160
       },
-      created: new Date(Date.now() - (i * 30) * 86400000).toISOString().split('T')[0],
-      lastTriggered: new Date(Date.now() - i * 3600000).toISOString(),
-      successRate: 95 + (i % 5),
-      deliveryCount: 1000 + (i * 500) % 50000,
-      failureCount: i * 5 % 100
-    }))
+      {
+        id: 'web-003',
+        name: 'Payment Events',
+        targetUrl: 'https://billing.example.com/payments',
+        events: ['payment.succeeded', 'payment.failed', 'payment.refunded'],
+        headers: {
+          'X-Partner-Id': 'partner_123',
+          'Content-Type': 'application/json'
+        },
+        secret: 'whsec_***',
+        status: 'active',
+        retryPolicy: {
+          maxAttempts: 3,
+          backoffSeconds: 120
+        },
+        created: '2024-01-10',
+        lastTriggered: '2024-01-18T15:35:00Z',
+        successRate: 99.9,
+        deliveryCount: 45230,
+        failureCount: 45
+      }
+    ]
     setWebhooks(webhookData)
   }
 
   const initializeWebhookDeliveries = () => {
-    const deliveryData: WebhookDelivery[] = Array.from({ length: 30 }, (_, i) => {
-      const status = ['success', 'success', 'success', 'success', 'failed', 'retrying'][i % 6] as any
-      return {
-        id: `del-${String(i + 1).padStart(3, '0')}`,
-        webhookId: `web-${String((i % 10) + 1).padStart(3, '0')}`,
-        webhookName: ['Booking Notifications', 'Flight Status Updates', 'Payment Events', 'Crew Alerts', 'Passenger Check-ins', 'Baggage Tracking', 'Flight Delays', 'Gate Changes', 'Revenue Updates', 'Inventory Changes'][i % 10],
-        eventType: availableEvents[i % availableEvents.length],
-        payload: {
-          id: `evt-${1000 + i}`,
-          timestamp: new Date().toISOString(),
-          data: { test: 'data', index: i }
-        },
-        targetUrl: `https://example.com/webhook/${i}`,
-        status,
-        statusCode: status === 'success' ? 200 : status === 'failed' ? 500 : undefined,
-        attempt: 1 + (i % 5),
+    const deliveryData: WebhookDelivery[] = [
+      {
+        id: 'del-001',
+        webhookId: 'web-001',
+        webhookName: 'Booking Notifications',
+        eventType: 'booking.created',
+        payload: { bookingId: 'BK-001', pnr: 'ABC123', passengerCount: 2, totalAmount: 450.00 },
+        targetUrl: 'https://partner.example.com/webhooks/bookings',
+        status: 'success',
+        statusCode: 200,
+        attempt: 1,
+        maxAttempts: 3,
+        duration: 245,
+        timestamp: '2024-01-18T15:30:00Z'
+      },
+      {
+        id: 'del-002',
+        webhookId: 'web-002',
+        webhookName: 'Flight Status Updates',
+        eventType: 'flight.delayed',
+        payload: { flightId: 'FL-001', flightNumber: 'AA123', delayMinutes: 45, reason: 'weather' },
+        targetUrl: 'https://app.example.com/flight-updates',
+        status: 'failed',
+        attempt: 3,
         maxAttempts: 5,
-        duration: status === 'success' ? 100 + (i * 50) % 500 : 0,
-        timestamp: new Date(Date.now() - i * 60000).toISOString(),
-        errorMessage: status === 'failed' ? ['Connection timeout', '503 Service Unavailable', '500 Internal Server Error', '429 Rate Limited'][i % 4] : undefined
+        duration: 0,
+        timestamp: '2024-01-18T15:20:00Z',
+        errorMessage: 'Connection timeout after 30 seconds'
+      },
+      {
+        id: 'del-003',
+        webhookId: 'web-003',
+        webhookName: 'Payment Events',
+        eventType: 'payment.succeeded',
+        payload: { paymentId: 'PAY-001', amount: 299.99, currency: 'USD', bookingId: 'BK-002' },
+        targetUrl: 'https://billing.example.com/payments',
+        status: 'success',
+        statusCode: 200,
+        attempt: 1,
+        maxAttempts: 3,
+        duration: 180,
+        timestamp: '2024-01-18T15:35:00Z'
+      },
+      {
+        id: 'del-004',
+        webhookId: 'web-001',
+        webhookName: 'Booking Notifications',
+        eventType: 'booking.updated',
+        payload: { bookingId: 'BK-003', pnr: 'XYZ789', changes: ['seat_assignment', 'special_meal'] },
+        targetUrl: 'https://partner.example.com/webhooks/bookings',
+        status: 'retrying',
+        attempt: 2,
+        maxAttempts: 3,
+        duration: 0,
+        timestamp: '2024-01-18T15:25:00Z',
+        errorMessage: '503 Service Unavailable - retrying in 60s'
       }
-    })
+    ]
     setWebhookDeliveries(deliveryData)
   }
 
   const initializeSyncJobs = () => {
-    const jobNames = [
-      'GDS Flight Schedule Sync', 'Crew Data Sync', 'Passenger Data Sync', 'Real-time Baggage Tracking',
-      'Inventory Sync', 'Fare Sync', 'Schedule Sync', 'Route Sync',
-      'Airport Data Sync', 'Aircraft Data Sync', 'Maintenance Sync', 'Revenue Sync',
-      'Booking Sync', 'Ticket Sync', 'Payment Sync', 'Refund Sync',
-      'Check-in Sync', 'Boarding Sync', 'Manifest Sync', 'Load Sheet Sync',
-      'Fuel Data Sync', 'Crew Schedule Sync', 'Flight Plan Sync', 'Weather Data Sync',
-      'Customer Data Sync', 'Loyalty Sync', 'Promotion Sync', 'Agency Sync',
-      'Cargo Data Sync', 'ULD Sync'
-    ]
-    const sources = [
-      'Amadeus GDS', 'Crew Management System', 'PNR Database', 'BHS Systems',
-      'Inventory System', 'Pricing Engine', 'Schedule System', 'Route Database',
-      'Airport Systems', 'Fleet Management', 'MRO System', 'Revenue System',
-      'Booking Engine', 'Ticketing System', 'Payment Gateway', 'Refund System',
-      'Check-in System', 'Boarding System', 'DCS System', 'Load Control',
-      'Fuel Management', 'Crew Rostering', 'Flight Planning', 'Weather Service',
-      'CRM System', 'Loyalty Platform', 'Marketing Platform', 'GDS',
-      'Cargo System', 'ULD Tracking'
-    ]
-    const targets = [
-      'Internal Database', 'Flight Ops', 'Analytics Warehouse', 'DCS',
-      'Inventory System', 'Fare System', 'Schedule System', 'Route Database',
-      'Airport Database', 'Fleet Database', 'Maintenance Database', 'Revenue Database',
-      'Booking Database', 'Ticketing Database', 'Payment Database', 'Refund Database',
-      'Manifest Database', 'Boarding Database', 'Manifest System', 'Load Sheet System',
-      'Fuel Database', 'Flight Ops System', 'Flight Database', 'Weather Database',
-      'Customer Database', 'Loyalty Database', 'Promotion Database', 'Agency Database',
-      'Cargo Database', 'ULD Database'
-    ]
-    const types: ('full' | 'incremental' | 'realtime')[] = ['full', 'incremental', 'incremental', 'realtime', 'incremental', 'realtime', 'full', 'incremental', 'realtime', 'full', 'incremental', 'full', 'realtime', 'incremental', 'realtime', 'full', 'incremental', 'realtime', 'full', 'realtime', 'incremental', 'full', 'incremental', 'realtime', 'full', 'incremental', 'full', 'incremental', 'full', 'incremental']
-    const frequencies: ('realtime' | 'hourly' | 'daily' | 'weekly' | 'manual')[] = ['hourly', 'daily', 'weekly', 'realtime', 'hourly', 'realtime', 'daily', 'hourly', 'realtime', 'weekly', 'daily', 'weekly', 'realtime', 'hourly', 'realtime', 'daily', 'hourly', 'realtime', 'daily', 'realtime', 'hourly', 'weekly', 'daily', 'realtime', 'weekly', 'hourly', 'daily', 'hourly', 'weekly', 'daily']
-    const statuses: ('running' | 'completed' | 'failed' | 'paused' | 'scheduled')[] = ['running', 'completed', 'failed', 'running', 'completed', 'running', 'completed', 'failed', 'running', 'completed', 'failed', 'completed', 'running', 'completed', 'running', 'failed', 'completed', 'running', 'completed', 'running', 'failed', 'completed', 'failed', 'running', 'completed', 'running', 'failed', 'completed', 'running', 'paused']
-
-    const syncData: SyncJob[] = Array.from({ length: 30 }, (_, i) => {
-      const progress = statuses[i] === 'running' ? 50 + (i * 10) % 50 : statuses[i] === 'completed' ? 100 : 0
-      return {
-        id: `sync-${String(i + 1).padStart(3, '0')}`,
-        name: jobNames[i],
-        source: sources[i],
-        target: targets[i],
-        type: types[i],
-        status: statuses[i],
-        frequency: frequencies[i],
-        lastRun: new Date(Date.now() - (i % 5) * 3600000).toISOString(),
-        nextRun: statuses[i] === 'running' ? 'Continuous' : new Date(Date.now() + ((i % 5) + 1) * 3600000).toISOString(),
-        duration: 60 + (i * 30) % 300,
-        recordsProcessed: 1000 + (i * 500) % 10000,
-        recordsFailed: statuses[i] === 'failed' ? 50 + i : i % 10,
-        progress,
+    const syncData: SyncJob[] = [
+      {
+        id: 'sync-001',
+        name: 'GDS Flight Schedule Sync',
+        source: 'Amadeus GDS',
+        target: 'Internal Database',
+        type: 'incremental',
+        status: 'running',
+        frequency: 'hourly',
+        lastRun: '2024-01-18T14:00:00Z',
+        nextRun: '2024-01-18T16:00:00Z',
+        duration: 180,
+        recordsProcessed: 2450,
+        recordsFailed: 0,
+        progress: 75,
         logs: [
-          { id: `log-${i * 10 + 1}`, timestamp: new Date(Date.now() - i * 3600000).toISOString(), level: 'info', message: `${jobNames[i]} started` },
-          { id: `log-${i * 10 + 2}`, timestamp: new Date(Date.now() - i * 3600000 + 60000).toISOString(), level: 'info', message: `Processing data from ${sources[i]}` },
-          { id: `log-${i * 10 + 3}`, timestamp: new Date(Date.now() - i * 3600000 + 120000).toISOString(), level: statuses[i] === 'failed' ? 'error' : 'info', message: statuses[i] === 'failed' ? 'Sync job failed' : `${progress}% complete` }
+          { id: 'log-001', timestamp: '2024-01-18T15:00:00Z', level: 'info', message: 'Sync job started' },
+          { id: 'log-002', timestamp: '2024-01-18T15:01:00Z', level: 'info', message: 'Fetching flight schedules from Amadeus' },
+          { id: 'log-003', timestamp: '2024-01-18T15:02:00Z', level: 'info', message: 'Processing 2450 flight records' },
+          { id: 'log-004', timestamp: '2024-01-18T15:03:00Z', level: 'info', message: '75% complete - 1837 records processed' }
+        ]
+      },
+      {
+        id: 'sync-002',
+        name: 'Crew Data Sync',
+        source: 'Crew Management System',
+        target: 'Flight Ops',
+        type: 'incremental',
+        status: 'completed',
+        frequency: 'daily',
+        lastRun: '2024-01-18T02:00:00Z',
+        nextRun: '2024-01-19T02:00:00Z',
+        duration: 95,
+        recordsProcessed: 450,
+        recordsFailed: 0,
+        progress: 100,
+        logs: [
+          { id: 'log-005', timestamp: '2024-01-18T02:00:00Z', level: 'info', message: 'Daily crew sync started' },
+          { id: 'log-006', timestamp: '2024-01-18T02:01:00Z', level: 'info', message: '450 crew records synced successfully' },
+          { id: 'log-007', timestamp: '2024-01-18T02:01:35Z', level: 'info', message: 'Sync job completed successfully' }
+        ]
+      },
+      {
+        id: 'sync-003',
+        name: 'Passenger Data Sync',
+        source: 'PNR Database',
+        target: 'Analytics Warehouse',
+        type: 'full',
+        status: 'failed',
+        frequency: 'weekly',
+        lastRun: '2024-01-17T03:00:00Z',
+        nextRun: '2024-01-24T03:00:00Z',
+        duration: 0,
+        recordsProcessed: 12450,
+        recordsFailed: 320,
+        progress: 45,
+        logs: [
+          { id: 'log-008', timestamp: '2024-01-17T03:00:00Z', level: 'info', message: 'Weekly full sync started' },
+          { id: 'log-009', timestamp: '2024-01-17T03:15:00Z', level: 'warning', message: 'Slow response from database' },
+          { id: 'log-010', timestamp: '2024-01-17T03:20:00Z', level: 'error', message: 'Connection timeout - 320 records failed' },
+          { id: 'log-011', timestamp: '2024-01-17T03:20:00Z', level: 'error', message: 'Sync job failed' }
+        ]
+      },
+      {
+        id: 'sync-004',
+        name: 'Real-time Baggage Tracking',
+        source: 'BHS Systems',
+        target: 'DCS',
+        type: 'realtime',
+        status: 'running',
+        frequency: 'realtime',
+        lastRun: '2024-01-18T15:35:00Z',
+        nextRun: 'Continuous',
+        duration: 3600,
+        recordsProcessed: 8920,
+        recordsFailed: 5,
+        progress: 100,
+        logs: [
+          { id: 'log-012', timestamp: '2024-01-18T12:00:00Z', level: 'info', message: 'Real-time baggage tracking started' },
+          { id: 'log-013', timestamp: '2024-01-18T15:30:00Z', level: 'warning', message: '5 baggage records failed to sync from LHR BHS' },
+          { id: 'log-014', timestamp: '2024-01-18T15:35:00Z', level: 'info', message: '8920 baggage records processed' }
         ]
       }
-    })
+    ]
     setSyncJobs(syncData)
   }
 
@@ -782,7 +940,7 @@ export default function IntegrationModule() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="overflow-x-auto h-96">
+              <ScrollArea className="h-96 overflow-x-auto">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -844,7 +1002,7 @@ export default function IntegrationModule() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -865,7 +1023,7 @@ export default function IntegrationModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-y-auto h-96">
+              <ScrollArea className="h-96">
                 <div className="space-y-4">
                   {webhooks.length === 0 ? (
                     <div className="text-center py-12">
@@ -927,7 +1085,7 @@ export default function IntegrationModule() {
                     ))
                   )}
                 </div>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1062,7 +1220,7 @@ export default function IntegrationModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-y-auto h-96">
+              <ScrollArea className="h-96">
                 <table className="enterprise-table">
                   <thead>
                     <tr>
@@ -1111,7 +1269,7 @@ export default function IntegrationModule() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1205,7 +1363,7 @@ export default function IntegrationModule() {
             <DialogTitle>Connection Details</DialogTitle>
           </DialogHeader>
           {selectedConnection && (
-            <div className="overflow-y-auto max-h-96">
+            <ScrollArea className="max-h-96">
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -1297,7 +1455,7 @@ export default function IntegrationModule() {
                   </Alert>
                 )}
               </div>
-            </div>
+            </ScrollArea>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConnectionDetails(false)}>Close</Button>
@@ -1361,7 +1519,7 @@ export default function IntegrationModule() {
             <DialogTitle>Webhook Details</DialogTitle>
           </DialogHeader>
           {selectedWebhook && (
-            <div className="overflow-y-auto max-h-96">
+            <ScrollArea className="max-h-96">
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -1439,7 +1597,7 @@ export default function IntegrationModule() {
                   </div>
                 </div>
               </div>
-            </div>
+            </ScrollArea>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowWebhookDetails(false)}>Close</Button>
@@ -1512,7 +1670,7 @@ export default function IntegrationModule() {
             <DialogTitle>Sync Job Details</DialogTitle>
           </DialogHeader>
           {selectedSync && (
-            <div className="overflow-y-auto max-h-96">
+            <ScrollArea className="max-h-96">
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -1590,13 +1748,13 @@ export default function IntegrationModule() {
 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Execution Logs</h4>
-                  <div className="overflow-y-auto h-48">
+                  <ScrollArea className="h-48 border rounded-sm p-2">
                     <div className="space-y-2">
                       {selectedSync.logs.map((log) => (
                         <div key={log.id} className="text-sm">
                           <div className="flex items-start gap-2">
                             <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {formatTime(log.timestamp)}
+                              {new Date(log.timestamp).toLocaleTimeString()}
                             </span>
                             {getLogLevelBadge(log.level)}
                             <span>{log.message}</span>
@@ -1607,10 +1765,10 @@ export default function IntegrationModule() {
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </ScrollArea>
                 </div>
               </div>
-            </div>
+            </ScrollArea>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowSyncDetails(false)}>Close</Button>
@@ -1631,7 +1789,7 @@ export default function IntegrationModule() {
             <DialogTitle>Webhook Delivery Details</DialogTitle>
           </DialogHeader>
           {selectedDelivery && (
-            <div className="overflow-y-auto max-h-96">
+            <ScrollArea className="max-h-96">
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -1695,7 +1853,7 @@ export default function IntegrationModule() {
                   </Alert>
                 )}
               </div>
-            </div>
+            </ScrollArea>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeliveryDialog(false)}>Close</Button>

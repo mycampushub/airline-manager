@@ -1,5 +1,3 @@
-'use client'
-
 import { useState, useEffect, useRef } from 'react'
 import {
   LayoutDashboard,
@@ -35,33 +33,33 @@ import {
   Printer,
   FileText
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { ScrollBar } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { useToast } from '@/hooks/use-toast'
-import { useAirlineStore } from '@/lib/store'
-import { initializeAllMockData } from '@/lib/initialize-mock-data'
-import DashboardModule from '@/components/modules/DashboardModule'
-import PSSModule from '@/components/modules/PSSModule'
-import DCSModule from '@/components/modules/DCSModule'
-import FlightOpsModule from '@/components/modules/FlightOpsModule'
-import CrewModule from '@/components/modules/CrewModule'
-import MROModule from '@/components/modules/MROModule'
-import RevenueModule from '@/components/modules/RevenueModule'
-import AncillaryModule from '@/components/modules/AncillaryModule'
-import RevenueAccountingModule from '@/components/modules/RevenueAccountingModule'
-import AgencyModule from '@/components/modules/AgencyModule'
-import CRMModule from '@/components/modules/CRMModule'
-import AnalyticsModule from '@/components/modules/AnalyticsModule'
-import SecurityModule from '@/components/modules/SecurityModule'
-import IntegrationModule from '@/components/modules/IntegrationModule'
-import CargoModule from '@/components/modules/CargoModule'
-import SustainabilityModule from '@/components/modules/SustainabilityModule'
-import AIModule from '@/components/modules/AIModule'
+import { Button } from './components/ui/button'
+import { ScrollArea } from './components/ui/scroll-area'
+import { ScrollBar } from './components/ui/scroll-area'
+import { Separator } from './components/ui/separator'
+import { Badge } from './components/ui/badge'
+import { Input } from './components/ui/input'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './components/ui/dialog'
+import { useToast } from './hooks/use-toast'
+import { useAirlineStore } from './lib/store'
+import { initializeSingaporeAirlinesData } from './lib/singapore-airlines-data'
+import DashboardModule from './components/modules/DashboardModule'
+import PSSModule from './components/modules/PSSModule'
+import DCSModule from './components/modules/DCSModule'
+import FlightOpsModule from './components/modules/FlightOpsModule'
+import CrewModule from './components/modules/CrewModule'
+import MROModule from './components/modules/MROModule'
+import RevenueModule from './components/modules/RevenueModule'
+import AncillaryModule from './components/modules/AncillaryModule'
+import RevenueAccountingModule from './components/modules/RevenueAccountingModule'
+import AgencyModule from './components/modules/AgencyModule'
+import CRMModule from './components/modules/CRMModule'
+import AnalyticsModule from './components/modules/AnalyticsModule'
+import SecurityModule from './components/modules/SecurityModule'
+import IntegrationModule from './components/modules/IntegrationModule'
+import CargoModule from './components/modules/CargoModule'
+import SustainabilityModule from './components/modules/SustainabilityModule'
+import AIModule from './components/modules/AIModule'
 
 interface MenuItem {
   id: string
@@ -171,14 +169,16 @@ const menuItems: MenuItem[] = [
   }
 ]
 
-export default function Home() {
-  const { currentModule, currentView, setCurrentModule, setCurrentView, sidebarCollapsed, toggleSidebar, updateKPIDashboard, pnrs, tickets, flightInstances } = useAirlineStore()
+function App() {
+  const { currentModule, currentView, setCurrentModule, setCurrentView, sidebarCollapsed, toggleSidebar, updateKPIDashboard, pnrs, tickets, flightInstances, setPendingAction } = useAirlineStore()
   const { toast } = useToast()
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [showNotifications, setShowNotifications] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<{type: string, id: string} | null>(null)
   const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: '1',
@@ -208,8 +208,7 @@ export default function Home() {
   ])
 
   useEffect(() => {
-    // Initialize mock data on first load
-    initializeAllMockData()
+    initializeSingaporeAirlinesData()
     updateKPIDashboard('today')
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
@@ -220,86 +219,155 @@ export default function Home() {
     setCurrentView('overview')
   }
 
-  // Ribbon button handlers
   const handleNew = () => {
-    const moduleActions: Record<string, string> = {
-      'pss': 'Creating new PNR (Passenger Name Record)...',
-      'dcs': 'Opening new check-in session...',
-      'flightops': 'Creating new flight schedule...',
-      'crew': 'Adding new crew member...',
-      'mro': 'Creating new maintenance work order...',
-      'revenue': 'Setting up new fare basis...',
-      'ancillary': 'Adding new ancillary product...',
-      'agency': 'Registering new agency...',
-      'crm': 'Adding new customer profile...',
-      'analytics': 'Creating new dashboard...',
-      'security': 'Adding new user...',
-      'integration': 'Configuring new integration...',
-      'cargo': 'Creating new cargo booking...',
-      'sustainability': 'Adding new sustainability initiative...',
-      'ai': 'Creating new automation rule...',
-      'dashboard': 'Creating new widget...'
-    }
-    toast({
-      title: 'New Item',
-      description: moduleActions[currentModule] || 'Creating new item...'
-    })
+    setPendingAction({ action: 'new' })
   }
 
   const handleEdit = () => {
-    toast({
-      title: 'Edit Mode',
-      description: `Edit mode activated for ${getModuleTitle()}`
-    })
+    if (searchResults.length > 0) {
+      setSelectedItem({ type: searchResults[0].type, id: searchResults[0].id })
+      setPendingAction({ action: 'edit', data: searchResults[0] })
+    } else {
+      setPendingAction({ action: 'edit' })
+    }
   }
 
   const handleDelete = () => {
-    toast({
-      title: 'Delete Item',
-      description: 'Select an item to delete',
-      variant: 'destructive'
-    })
+    if (searchResults.length > 0) {
+      setSelectedItem({ type: searchResults[0].type, id: searchResults[0].id })
+      setShowDeleteConfirm(true)
+    } else {
+      toast({
+        title: 'Delete Item',
+        description: 'Select an item to delete',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const confirmDelete = () => {
+    if (selectedItem) {
+      switch (selectedItem.type) {
+        case 'PNR':
+          toast({ title: 'Deleted', description: `PNR ${selectedItem.id} cancelled` })
+          break
+        case 'Ticket':
+          toast({ title: 'Deleted', description: `Ticket ${selectedItem.id} voided` })
+          break
+        default:
+          toast({ title: 'Deleted', description: `${selectedItem.type} ${selectedItem.id} deleted`, variant: 'destructive' })
+      }
+      setShowDeleteConfirm(false)
+      setSelectedItem(null)
+      setSearchResults([])
+    }
   }
 
   const handlePrint = () => {
-    const moduleReports: Record<string, string> = {
-      'pss': 'Printing PNR report...',
-      'dcs': 'Printing boarding passes...',
-      'flightops': 'Printing flight schedule...',
-      'crew': 'Printing crew roster...',
-      'mro': 'Printing work order...',
-      'revenue': 'Printing revenue report...',
-      'ancillary': 'Printing product catalog...',
-      'agency': 'Printing agency statement...',
-      'crm': 'Printing customer report...',
-      'analytics': 'Printing analytics dashboard...',
-      'security': 'Printing audit log...',
-      'integration': 'Printing integration status...',
-      'cargo': 'Printing air waybill...',
-      'sustainability': 'Printing sustainability report...'
-    }
-    toast({
-      title: 'Print',
-      description: moduleReports[currentModule] || 'Preparing print view...'
-    })
+    setPendingAction({ action: 'print' })
     setTimeout(() => window.print(), 500)
   }
 
   const handleExport = () => {
+    let csvContent = ''
+    let filename = `${currentModule}-export`
+
+    switch (currentModule) {
+      case 'pss':
+        csvContent = generatePNRCSV()
+        filename = 'pnrs-export'
+        break
+      case 'dcs':
+        csvContent = generateCheckInCSV()
+        filename = 'checkin-export'
+        break
+      case 'flightops':
+        csvContent = generateFlightsCSV()
+        filename = 'flights-export'
+        break
+      case 'crew':
+        csvContent = generateCrewCSV()
+        filename = 'crew-export'
+        break
+      case 'revenue':
+        csvContent = generateRevenueCSV()
+        filename = 'revenue-export'
+        break
+      default:
+        csvContent = `${currentModule},data\n${new Date().toISOString()},exported`
+        filename = `${currentModule}-export`
+    }
+
+    downloadCSV(csvContent, filename)
     toast({
-      title: 'Export Data',
-      description: `Exporting ${getModuleTitle()} data to CSV...`
+      title: 'Export Complete',
+      description: `${getModuleTitle()} data has been exported to CSV`
     })
-    // Simulate export delay
-    setTimeout(() => {
-      toast({
-        title: 'Export Complete',
-        description: 'Data has been exported successfully'
-      })
-    }, 1500)
   }
 
-  // Search handler
+  const generatePNRCSV = () => {
+    const headers = ['PNR Number', 'Status', 'Passengers', 'Origin', 'Destination', 'Total Amount', 'Created At']
+    const rows = pnrs.map(pnr => [
+      pnr.pnrNumber,
+      pnr.status,
+      pnr.passengers.map(p => `${p.firstName} ${p.lastName}`).join('; '),
+      pnr.segments[0]?.origin || '',
+      pnr.segments[0]?.destination || '',
+      pnr.fareQuote.total,
+      pnr.createdAt
+    ])
+    return [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+  }
+
+  const generateCheckInCSV = () => {
+    const headers = ['PNR', 'Passenger', 'Seat', 'Flight', 'Status']
+    const rows = pnrs.slice(0, 10).map(pnr => [
+      pnr.pnrNumber,
+      pnr.passengers[0] ? `${pnr.passengers[0].firstName} ${pnr.passengers[0].lastName}` : '',
+      'N/A',
+      pnr.segments[0]?.flightNumber || '',
+      pnr.status
+    ])
+    return [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+  }
+
+  const generateFlightsCSV = () => {
+    const headers = ['Flight Number', 'Origin', 'Destination', 'Date', 'Status', 'Aircraft']
+    const rows = flightInstances.map(f => [
+      f.flightNumber,
+      f.origin,
+      f.destination,
+      f.date,
+      f.status,
+      f.aircraftType
+    ])
+    return [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+  }
+
+  const generateCrewCSV = () => {
+    return 'Crew ID,Name,Role,Base,Status\n'
+  }
+
+  const generateRevenueCSV = () => {
+    const headers = ['Ticket Number', 'Passenger', 'Route', 'Amount', 'Status']
+    const rows = tickets.map(t => [
+      t.ticketNumber,
+      t.passengerName,
+      t.segments.map(s => `${s.origin}-${s.destination}`).join('; '),
+      t.fare.total,
+      t.status
+    ])
+    return [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+  }
+
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `${filename}.csv`
+    link.click()
+  }
+
   const handleSearch = (query: string) => {
     setSearchQuery(query)
     if (query.length < 2) {
@@ -307,10 +375,8 @@ export default function Home() {
       return
     }
 
-    // Search across PNRs, tickets, and flights
     const results: any[] = []
 
-    // Search PNRs
     pnrs.forEach(pnr => {
       const matchesPNR = pnr.pnrNumber.toLowerCase().includes(query.toLowerCase())
       const matchesPassenger = pnr.passengers.some(p =>
@@ -328,7 +394,6 @@ export default function Home() {
       }
     })
 
-    // Search Tickets
     tickets.forEach(ticket => {
       const matchesTicket = ticket.ticketNumber.toLowerCase().includes(query.toLowerCase())
       const matchesPassenger = ticket.passengerName.toLowerCase().includes(query.toLowerCase())
@@ -343,7 +408,6 @@ export default function Home() {
       }
     })
 
-    // Search Flights
     flightInstances.forEach(flight => {
       const matchesFlight = flight.flightNumber.toLowerCase().includes(query.toLowerCase())
       const matchesRoute = `${flight.origin} ${flight.destination}`.toLowerCase().includes(query.toLowerCase())
@@ -359,7 +423,7 @@ export default function Home() {
       }
     })
 
-    setSearchResults(results.slice(0, 10)) // Limit to 10 results
+    setSearchResults(results.slice(0, 10))
   }
 
   const handleSearchResultClick = (result: any) => {
@@ -370,7 +434,6 @@ export default function Home() {
     setSearchQuery('')
     setSearchResults([])
 
-    // Navigate to appropriate module
     if (result.type === 'PNR' || result.type === 'Ticket') {
       setCurrentModule('pss')
     } else if (result.type === 'Flight') {
@@ -378,7 +441,6 @@ export default function Home() {
     }
   }
 
-  // Notification handlers
   const unreadCount = notifications.filter(n => !n.read).length
 
   const handleNotificationClick = (notification: Notification) => {
@@ -390,7 +452,6 @@ export default function Home() {
       description: notification.message
     })
 
-    // Navigate if action URL is provided
     if (notification.actionUrl) {
       const targetModule = notification.actionUrl.replace('#', '')
       if (targetModule) {
@@ -407,7 +468,6 @@ export default function Home() {
     })
   }
 
-  // Settings handler
   const handleSettings = () => {
     setShowSettings(true)
   }
@@ -420,13 +480,11 @@ export default function Home() {
     })
   }
 
-  // Logout handler
   const handleLogout = () => {
     toast({
       title: 'Logging Out',
       description: 'You are being logged out...'
     })
-    // Simulate logout - in a real app, this would clear auth tokens and redirect
     setTimeout(() => {
       window.location.reload()
     }, 1500)
@@ -507,10 +565,8 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      {/* Sidebar */}
-      <aside className={`${sidebarCollapsed ? 'w-12' : 'w-64'} flex-shrink-0 bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300`}>
-        {/* Logo Area */}
-        <div className="h-14 flex items-center justify-between px-4 border-b border-sidebar-border">
+      <aside className={`${sidebarCollapsed ? 'w-12' : 'w-64'} flex-shrink-0 bg-sidebar border-r border-sidebar-border flex flex-col h-full transition-all duration-300`}>
+        <div className="h-14 flex items-center justify-between px-4 border-b border-sidebar-border flex-shrink-0">
           {!sidebarCollapsed && (
             <div className="flex items-center gap-2">
               <Plane className="h-6 w-6 text-primary" />
@@ -529,15 +585,13 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Navigation */}
-        <ScrollArea className="flex-1 py-2">
+        <ScrollArea className="h-[calc(100vh-8rem)] py-2">
           <div className="space-y-0.5 px-2">
             {menuItems.map((item) => renderMenuItem(item))}
           </div>
         </ScrollArea>
 
-        {/* User Info */}
-        <div className="p-3 border-t border-sidebar-border">
+        <div className="p-3 border-t border-sidebar-border flex-shrink-0">
           {!sidebarCollapsed && (
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
@@ -557,47 +611,44 @@ export default function Home() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Ribbon Header */}
-        <header className="enterprise-ribbon h-12 flex items-center justify-between px-4 flex-shrink-0 relative">
-          <div className="flex items-center gap-4">
+        <header className="enterprise-ribbon h-auto min-h-12 flex items-center justify-between px-4 py-2 flex-shrink-0 relative flex-wrap gap-2">
+          <div className="flex items-center gap-4 flex-wrap">
             <h1 className="text-base font-semibold text-primary-foreground">
               {getModuleTitle()}
             </h1>
-            <Separator orientation="vertical" className="h-6 bg-primary-foreground/30" />
-            <div className="flex items-center gap-2">
+            <Separator orientation="vertical" className="h-6 bg-primary-foreground/30 hidden sm:block" />
+            <div className="flex items-center gap-1 flex-wrap">
               <Button variant="ghost" size="sm" onClick={handleNew} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
                 <FileText className="h-3.5 w-3.5 mr-1" />
-                New
+                <span className="hidden md:inline">New</span>
               </Button>
               <Button variant="ghost" size="sm" onClick={handleEdit} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
-                Edit
+                <span className="hidden md:inline">Edit</span>
               </Button>
               <Button variant="ghost" size="sm" onClick={handleDelete} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
-                Delete
+                <span className="hidden md:inline">Delete</span>
               </Button>
               <Button variant="ghost" size="sm" onClick={handlePrint} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
                 <Printer className="h-3.5 w-3.5 mr-1" />
-                Print
+                <span className="hidden lg:inline">Print</span>
               </Button>
               <Button variant="ghost" size="sm" onClick={handleExport} className="text-primary-foreground hover:bg-primary-foreground/10 h-8 text-xs">
                 <Download className="h-3.5 w-3.5 mr-1" />
-                Export
+                <span className="hidden lg:inline">Export</span>
               </Button>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search PNR, Ticket, Passenger..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="w-64 h-8 pl-8 bg-background/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 text-sm"
+                className="w-48 sm:w-64 h-8 pl-8 bg-background/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 text-sm"
               />
-              {/* Search Results Dropdown */}
               {searchResults.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
                   {searchResults.map((result, index) => (
@@ -620,7 +671,7 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <Separator orientation="vertical" className="h-6 bg-primary-foreground/30" />
+            <Separator orientation="vertical" className="h-6 bg-primary-foreground/30 hidden sm:block" />
             <div className="relative">
               <Button
                 variant="ghost"
@@ -635,7 +686,6 @@ export default function Home() {
                   </Badge>
                 )}
               </Button>
-              {/* Notifications Dropdown */}
               {showNotifications && (
                 <div className="absolute top-full right-0 mt-1 w-80 bg-background border border-border rounded-md shadow-lg z-50">
                   <div className="p-3 border-b border-border flex items-center justify-between">
@@ -695,7 +745,6 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Breadcrumb Bar */}
         <div className="h-8 bg-secondary/50 border-b border-border flex items-center px-4 flex-shrink-0">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="font-medium">AeroEnterprise</span>
@@ -710,12 +759,10 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Module Content */}
         <main className="flex-1 overflow-auto bg-background">
           {renderModule()}
         </main>
 
-        {/* Status Bar */}
         <footer className="h-6 bg-sidebar border-t border-sidebar-border flex items-center justify-between px-4 flex-shrink-0">
           <div className="flex items-center gap-4 text-xs text-sidebar-foreground">
             <span>Ready</span>
@@ -732,7 +779,6 @@ export default function Home() {
         </footer>
       </div>
 
-      {/* Settings Dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -786,6 +832,29 @@ export default function Home() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete {selectedItem?.type} "{selectedItem?.id}"? This action cannot be undone.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
+
+export default App

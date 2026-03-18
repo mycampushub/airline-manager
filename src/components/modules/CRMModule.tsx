@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-// import { ScrollArea } from '@/components/ui/scroll-area'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -63,7 +63,6 @@ import {
   Layers
 } from 'lucide-react'
 import { useAirlineStore } from '@/lib/store'
-import { DEMO_PASSENGERS } from '@/lib/demoData'
 
 // Extended interfaces for new features
 interface CustomerSegmentData {
@@ -331,36 +330,12 @@ export default function CRMModule() {
 
   const initializeNPSTrendData = () => {
     const trend: NPSTrendData[] = [
-      { month: 'Jan-22', score: 32, promoters: 320, passives: 330, detractors: 350 },
-      { month: 'Feb-22', score: 34, promoters: 340, passives: 320, detractors: 340 },
-      { month: 'Mar-22', score: 35, promoters: 350, passives: 325, detractors: 325 },
-      { month: 'Apr-22', score: 33, promoters: 330, passives: 340, detractors: 330 },
-      { month: 'May-22', score: 36, promoters: 360, passives: 320, detractors: 320 },
-      { month: 'Jun-22', score: 38, promoters: 380, passives: 310, detractors: 310 },
-      { month: 'Jul-22', score: 37, promoters: 370, passives: 315, detractors: 315 },
-      { month: 'Aug-22', score: 39, promoters: 390, passives: 305, detractors: 305 },
-      { month: 'Sep-22', score: 38, promoters: 380, passives: 310, detractors: 310 },
-      { month: 'Oct-22', score: 40, promoters: 400, passives: 300, detractors: 300 },
-      { month: 'Nov-22', score: 41, promoters: 410, passives: 295, detractors: 295 },
-      { month: 'Dec-22', score: 39, promoters: 390, passives: 305, detractors: 305 },
-      { month: 'Jan-23', score: 38, promoters: 380, passives: 320, detractors: 300 },
-      { month: 'Feb-23', score: 40, promoters: 400, passives: 310, detractors: 290 },
-      { month: 'Mar-23', score: 42, promoters: 420, passives: 300, detractors: 280 },
-      { month: 'Apr-23', score: 39, promoters: 390, passives: 320, detractors: 290 },
-      { month: 'May-23', score: 43, promoters: 430, passives: 300, detractors: 270 },
-      { month: 'Jun-23', score: 45, promoters: 450, passives: 300, detractors: 250 },
-      { month: 'Jul-23', score: 44, promoters: 440, passives: 305, detractors: 255 },
-      { month: 'Aug-23', score: 46, promoters: 460, passives: 295, detractors: 245 },
-      { month: 'Sep-23', score: 44, promoters: 440, passives: 300, detractors: 260 },
-      { month: 'Oct-23', score: 47, promoters: 470, passives: 290, detractors: 240 },
-      { month: 'Nov-23', score: 46, promoters: 460, passives: 295, detractors: 245 },
-      { month: 'Dec-23', score: 44, promoters: 440, passives: 305, detractors: 255 },
-      { month: 'Jan-24', score: 43, promoters: 430, passives: 310, detractors: 260 },
-      { month: 'Feb-24', score: 45, promoters: 450, passives: 305, detractors: 245 },
-      { month: 'Mar-24', score: 46, promoters: 460, passives: 300, detractors: 240 },
-      { month: 'Apr-24', score: 44, promoters: 440, passives: 310, detractors: 250 },
-      { month: 'May-24', score: 47, promoters: 470, passives: 295, detractors: 235 },
-      { month: 'Jun-24', score: 48, promoters: 480, passives: 290, detractors: 230 }
+      { month: 'Jan', score: 38, promoters: 380, passives: 320, detractors: 300 },
+      { month: 'Feb', score: 40, promoters: 400, passives: 310, detractors: 290 },
+      { month: 'Mar', score: 42, promoters: 420, passives: 300, detractors: 280 },
+      { month: 'Apr', score: 39, promoters: 390, passives: 320, detractors: 290 },
+      { month: 'May', score: 43, promoters: 430, passives: 300, detractors: 270 },
+      { month: 'Jun', score: 45, promoters: 450, passives: 300, detractors: 250 }
     ]
     setNpsTrendData(trend)
   }
@@ -469,149 +444,178 @@ export default function CRMModule() {
   }
 
   const initializeComplaintWorkflows = () => {
-    const categories = ['flight_delay', 'baggage', 'service', 'cancellation', 'refund', 'seat', 'meal', 'lounge', 'upgrade', 'check_in']
-    const priorities: Array<'low' | 'medium' | 'high' | 'critical'> = ['low', 'medium', 'high', 'critical']
-    const statuses: Array<'open' | 'in_progress' | 'resolved' | 'closed' | 'escalated'> = ['open', 'in_progress', 'resolved', 'closed', 'escalated']
-    const agents = ['Sarah Johnson', 'Mike Wilson', 'Lisa Anderson', 'John Smith', 'Emily Brown', 'David Lee', 'Maria Garcia', 'Tom Wilson', 'Amy Chen', 'Bob Jones']
-    const customers = ['James Smith', 'Mary Johnson', 'John Williams', 'Patricia Brown', 'Robert Jones', 'Jennifer Garcia', 'Michael Miller', 'Linda Davis', 'William Rodriguez', 'Elizabeth Martinez', 'David Hernandez', 'Barbara Lopez', 'Richard Gonzalez', 'Susan Wilson', 'Joseph Anderson', 'Jessica Thomas', 'Christopher Taylor', 'Nancy Moore', 'Daniel Jackson', 'Lisa Martin', 'Matthew Lee', 'Betty Perez', 'Anthony Thompson', 'Margaret White', 'Mark Harris', 'Sandra Clark', 'Donald Lewis', 'Ashley Robinson', 'Paul Walker', 'Emily Hall']
-    const subjects = [
-      'Missed connecting flight due to delay', 'Lost baggage on flight', 'Rude behavior from flight attendant', 'Flight cancelled without notice',
-      'Refund not processed after 30 days', 'Seat assignment changed without notification', 'Special meal not provided', 'Lounge access denied',
-      'Upgrade not applied despite payment', 'Long wait at check-in counter', 'Overbooking resulted in being bumped', 'Poor in-flight entertainment',
-      'Wifi not working on flight', 'Gate change not communicated', 'Late baggage delivery', 'Damaged luggage received',
-      'Incorrect fare charged', 'Priority boarding not honored', 'Child seat not available', 'Medical assistance delayed',
-      'Special assistance not provided', 'Flight diverted without explanation', 'Crew shortage caused delay', 'Air conditioning not working',
-      'Toilet facilities unclean', 'Pilot announcement unclear', 'Turbulence caused injury', 'Lost item on aircraft', 'Priority baggage not received'
+    const workflows: ComplaintWorkflow[] = [
+      {
+        id: 'wf-001',
+        complaintId: 'CMP-001',
+        customerName: 'John Smith',
+        category: 'flight_delay',
+        subject: 'Missed connecting flight due to delay',
+        priority: 'high',
+        status: 'in_progress',
+        assignedTo: 'Sarah Johnson',
+        slaHours: 24,
+        createdAt: '2024-01-15T10:30:00Z',
+        dueDate: '2024-01-16T10:30:00Z',
+        escalated: false,
+        notes: ['Customer provided booking reference', 'Checking alternative flights', 'Offered hotel voucher']
+      },
+      {
+        id: 'wf-002',
+        complaintId: 'CMP-002',
+        customerName: 'Emily Chen',
+        category: 'baggage',
+        subject: 'Lost baggage on flight AA1234',
+        priority: 'critical',
+        status: 'open',
+        assignedTo: 'Mike Wilson',
+        slaHours: 12,
+        createdAt: '2024-01-15T14:00:00Z',
+        dueDate: '2024-01-16T02:00:00Z',
+        escalated: false,
+        notes: ['Baggage tag number: AA123456789', 'Traced to LHR', 'Arranging delivery']
+      },
+      {
+        id: 'wf-003',
+        complaintId: 'CMP-003',
+        customerName: 'Robert Davis',
+        category: 'service',
+        subject: 'Rude behavior from flight attendant',
+        priority: 'medium',
+        status: 'resolved',
+        assignedTo: 'Lisa Anderson',
+        slaHours: 48,
+        createdAt: '2024-01-10T09:00:00Z',
+        dueDate: '2024-01-12T09:00:00Z',
+        resolvedAt: '2024-01-11T16:30:00Z',
+        resolutionTimeHours: 31.5,
+        escalated: false,
+        notes: ['Incident report filed', 'Crew member interviewed', 'Apology letter sent', '2000 points compensation awarded']
+      }
     ]
-
-    const workflows: ComplaintWorkflow[] = Array.from({ length: 30 }, (_, i) => ({
-      id: `wf-${String(i + 1).padStart(3, '0')}`,
-      complaintId: `CMP-${String(i + 1).padStart(6, '0')}`,
-      customerName: customers[i],
-      category: categories[i % categories.length],
-      subject: subjects[i],
-      priority: priorities[i % priorities.length],
-      status: statuses[i % statuses.length],
-      assignedTo: agents[i % agents.length],
-      slaHours: [12, 24, 48, 72][i % 4],
-      createdAt: `2024-01-${String((i % 30) + 1).padStart(2, '0')}T${String(8 + (i * 2) % 12).padStart(2, '0')}:00:00Z`,
-      dueDate: `2024-01-${String(((i % 30) + 2) % 30 + 1).padStart(2, '0')}T${String(8 + (i * 2) % 12).padStart(2, '0')}:00:00Z`,
-      resolvedAt: statuses[i % statuses.length] === 'resolved' || statuses[i % statuses.length] === 'closed' ? `2024-01-${String(((i % 30) + 3) % 30 + 1).padStart(2, '0')}T${String(10 + (i * 2) % 12).padStart(2, '0')}:00:00Z` : undefined,
-      resolutionTimeHours: statuses[i % statuses.length] === 'resolved' || statuses[i % statuses.length] === 'closed' ? 24 + i : undefined,
-      escalated: i % 10 === 0,
-      escalationReason: i % 10 === 0 ? 'Customer requested escalation' : undefined,
-      notes: ['Initial complaint received', 'Customer contacted', 'Investigation in progress', 'Solution proposed'].slice(0, (i % 4) + 1)
-    }))
-
     setComplaintWorkflows(workflows)
   }
 
   const initializeTravelPreferences = () => {
-    const seatTypes = [['window'], ['aisle'], ['window', 'aisle'], ['middle'], ['window', 'middle']]
-    const mealPrefs = ['vegetarian', 'no_preference', 'halal', 'kosher', 'vegan', 'gluten_free', 'diabetic', 'child_meal']
-    const cabinPrefs = ['economy', 'business', 'first', 'premium_economy']
-    const bookingPatterns = ['advance', 'last_minute', 'flexible']
-    const routeSets = [
-      ['JFK-LHR', 'JFK-CDG', 'LHR-JFK'],
-      ['SFO-HND', 'LAX-NRT', 'SIN-HKG'],
-      ['DXB-LHR', 'AUH-JFK', 'DOH-LAX'],
-      ['FRA-JFK', 'AMS-LAX', 'CDG-SIN'],
-      ['HKG-SYD', 'BKK-LHR', 'SIN-NRT'],
-      ['JFK-MIA', 'ORD-LAX', 'DFW-ATL'],
-      ['LAX-HNL', 'SFO-LAS', 'MIA-GRU'],
-      ['LHR-DXB', 'CDG-FRA', 'AMS-IST'],
-      ['JFK-SFO', 'BOS-LAX', 'PHL-ORD'],
-      ['ATL-LHR', 'MIA-MAD', 'JFK-BCN']
+    const prefs: TravelPreference[] = [
+      {
+        customerId: 'cust-001',
+        customerName: 'John Smith',
+        seatType: ['window', 'aisle'],
+        mealPreference: 'vegetarian',
+        cabinPreference: 'business',
+        bookingPattern: 'advance',
+        avgDaysBeforeTravel: 21,
+        ancillaryPurchaseRate: 0.65,
+        favoriteRoutes: ['JFK-LHR', 'JFK-CDG', 'LHR-JFK'],
+        lastUpdated: '2024-01-15'
+      },
+      {
+        customerId: 'cust-002',
+        customerName: 'Emily Chen',
+        seatType: ['window'],
+        mealPreference: 'no_preference',
+        cabinPreference: 'economy',
+        bookingPattern: 'last_minute',
+        avgDaysBeforeTravel: 3,
+        ancillaryPurchaseRate: 0.32,
+        favoriteRoutes: ['SFO-HND', 'LAX-NRT', 'SIN-HKG'],
+        lastUpdated: '2024-01-14'
+      },
+      {
+        customerId: 'cust-003',
+        customerName: 'Robert Davis',
+        seatType: ['aisle'],
+        mealPreference: 'halal',
+        cabinPreference: 'business',
+        bookingPattern: 'advance',
+        avgDaysBeforeTravel: 14,
+        ancillaryPurchaseRate: 0.78,
+        favoriteRoutes: ['DXB-LHR', 'AUH-JFK', 'DOH-LAX'],
+        lastUpdated: '2024-01-13'
+      }
     ]
-    const customers = ['James Smith', 'Mary Johnson', 'John Williams', 'Patricia Brown', 'Robert Jones', 'Jennifer Garcia', 'Michael Miller', 'Linda Davis', 'William Rodriguez', 'Elizabeth Martinez', 'David Hernandez', 'Barbara Lopez', 'Richard Gonzalez', 'Susan Wilson', 'Joseph Anderson', 'Jessica Thomas', 'Christopher Taylor', 'Nancy Moore', 'Daniel Jackson', 'Lisa Martin', 'Matthew Lee', 'Betty Perez', 'Anthony Thompson', 'Margaret White', 'Mark Harris', 'Sandra Clark', 'Donald Lewis', 'Ashley Robinson', 'Paul Walker', 'Emily Hall']
-
-    const prefs: TravelPreference[] = Array.from({ length: 30 }, (_, i) => ({
-      customerId: `cust-${String(i + 1).padStart(3, '0')}`,
-      customerName: customers[i],
-      seatType: seatTypes[i % seatTypes.length],
-      mealPreference: mealPrefs[i % mealPrefs.length],
-      cabinPreference: cabinPrefs[i % cabinPrefs.length],
-      bookingPattern: bookingPatterns[i % bookingPatterns.length],
-      avgDaysBeforeTravel: 3 + (i * 5) % 28,
-      ancillaryPurchaseRate: 0.2 + (i * 2.5) % 80 / 100,
-      favoriteRoutes: routeSets[i % routeSets.length],
-      lastUpdated: `2024-01-${String((i % 30) + 1).padStart(2, '0')}`
-    }))
-
     setTravelPreferences(prefs)
   }
 
   const initializePartnerPoints = () => {
-    const partnerTypes: Array<'hotel' | 'car_rental' | 'credit_card' | 'shopping' | 'dining'> = ['hotel', 'car_rental', 'credit_card', 'shopping', 'dining']
-    const partnerNames = [
-      'Hilton Hotels', 'Hertz Car Rental', 'Chase Sapphire', 'Marriott Bonvoy', 'Avis Rent a Car',
-      'American Express', 'IHG Rewards', 'Budget Car Rental', 'Citi AAdvantage', 'Enterprise Rent-A-Car',
-      'Hyatt Hotels', 'National Car Rental', 'Capital One', 'Wyndham Rewards', 'Alamo Rent a Car',
-      'Best Western', 'Dollar Car Thrifty', 'Discover Card', 'Choice Hotels', 'Sixt Rent a Car',
-      'Accor Hotels', 'Europcar', 'Bank of America', 'Radisson Rewards', 'Hertz Gold Plus Rewards'
-    ]
-    const activities = [
-      { type: 'earn' as const, desc: 'Stay at property' },
-      { type: 'redeem' as const, desc: 'Free night redemption' },
-      { type: 'earn' as const, desc: 'Daily spend bonus' },
-      { type: 'redeem' as const, desc: 'Points transfer' },
-      { type: 'earn' as const, desc: 'Bonus points promotion' },
-      { type: 'redeem' as const, desc: 'Upgrade redemption' }
-    ]
-
-    const partners: PartnerPoints[] = Array.from({ length: 30 }, (_, i) => {
-      const earned = 50000 + (i * 15000)
-      const redeemed = Math.floor(earned * (0.4 + (i % 6) * 0.1))
-      return {
-        id: `partner-${String(i + 1).padStart(3, '0')}`,
-        partnerName: partnerNames[i % partnerNames.length],
-        partnerType: partnerTypes[i % partnerTypes.length],
-        pointsEarned: earned,
-        pointsRedeemed: redeemed,
-        conversionRate: 1.0 + (i % 5) * 0.3,
-        recentActivity: Array.from({ length: 3 }, (_, j) => ({
-          date: `2024-01-${String((j + 1) % 30 + 1).padStart(2, '0')}`,
-          type: activities[(i + j) % activities.length].type,
-          points: 1000 + ((i + j) * 500) % 10000,
-          description: `${activities[(i + j) % activities.length].desc} - ${partnerNames[i % partnerNames.length]}`
-        }))
+    const partners: PartnerPoints[] = [
+      {
+        id: 'partner-001',
+        partnerName: 'Hilton Hotels',
+        partnerType: 'hotel',
+        pointsEarned: 150000,
+        pointsRedeemed: 85000,
+        conversionRate: 1.5,
+        recentActivity: [
+          { date: '2024-01-15', type: 'earn', points: 5000, description: 'Stay at Hilton London' },
+          { date: '2024-01-10', type: 'redeem', points: 25000, description: 'Free night at Hilton Tokyo' },
+          { date: '2024-01-05', type: 'earn', points: 3000, description: 'Stay at Hilton Paris' }
+        ]
+      },
+      {
+        id: 'partner-002',
+        partnerName: 'Hertz Car Rental',
+        partnerType: 'car_rental',
+        pointsEarned: 45000,
+        pointsRedeemed: 20000,
+        conversionRate: 2.0,
+        recentActivity: [
+          { date: '2024-01-14', type: 'earn', points: 1500, description: '3-day rental at LAX' },
+          { date: '2024-01-08', type: 'redeem', points: 10000, description: 'Free weekend rental' }
+        ]
+      },
+      {
+        id: 'partner-003',
+        partnerName: 'Chase Sapphire',
+        partnerType: 'credit_card',
+        pointsEarned: 500000,
+        pointsRedeemed: 320000,
+        conversionRate: 1.0,
+        recentActivity: [
+          { date: '2024-01-15', type: 'earn', points: 50000, description: 'Monthly spend bonus' },
+          { date: '2024-01-01', type: 'redeem', points: 60000, description: 'Miles transfer to account' }
+        ]
       }
-    })
-
+    ]
     setPartnerPoints(partners)
   }
 
   const initializeRewardRedemptions = () => {
-    const rewardTypes: Array<'flight_upgrade' | 'lounge_access' | 'extra_baggage' | 'partner_hotel' | 'partner_car' | 'miles_transfer'> = ['flight_upgrade', 'lounge_access', 'extra_baggage', 'partner_hotel', 'partner_car', 'miles_transfer']
-    const statuses: Array<'pending' | 'approved' | 'completed' | 'rejected'> = ['pending', 'approved', 'completed', 'rejected']
-    const customers = ['James Smith', 'Mary Johnson', 'John Williams', 'Patricia Brown', 'Robert Jones', 'Jennifer Garcia', 'Michael Miller', 'Linda Davis', 'William Rodriguez', 'Elizabeth Martinez', 'David Hernandez', 'Barbara Lopez', 'Richard Gonzalez', 'Susan Wilson', 'Joseph Anderson', 'Jessica Thomas', 'Christopher Taylor', 'Nancy Moore', 'Daniel Jackson', 'Lisa Martin', 'Matthew Lee', 'Betty Perez', 'Anthony Thompson', 'Margaret White', 'Mark Harris', 'Sandra Clark', 'Donald Lewis', 'Ashley Robinson', 'Paul Walker', 'Emily Hall']
-    const details = [
-      'Upgrade from Economy to Business on flight', 'Lounge access at JFK Terminal 7', 'Free night at Hilton London Heathrow',
-      'Extra baggage allowance for international flight', 'Free weekend car rental with Hertz', 'Points transfer to family member account',
-      'Business class upgrade on transatlantic flight', 'Priority boarding and fast track security', 'Complimentary hotel stay during layover',
-      'Premium economy seat selection', 'Free car rental upgrade', 'Miles transfer to airline partner',
-      'First class upgrade award redemption', 'Lounge access at international hub', 'Free night at partner resort',
-      'Additional checked baggage allowance', 'Luxury car rental for weekend', 'Points transfer to spouse account',
-      'Suite upgrade at partner hotel', 'Airport transfer service', 'Miles donation to charity program',
-      'Flight upgrade for companion travel', 'Annual lounge membership', 'Free hotel night with breakfast',
-      'Excess baggage waiver', 'Premium car rental category upgrade', 'Points transfer to corporate account'
-    ]
-
-    const redemptions: RewardRedemption[] = Array.from({ length: 30 }, (_, i) => {
-      const status = statuses[i % statuses.length]
-      return {
-        id: `red-${String(i + 1).padStart(3, '0')}`,
-        customerId: `cust-${String(i + 1).padStart(3, '0')}`,
-        customerName: customers[i],
-        rewardType: rewardTypes[i % rewardTypes.length],
-        pointsCost: 5000 + (i * 3000) % 50000,
-        status: status,
-        requestedAt: `2024-01-${String((i % 30) + 1).padStart(2, '0')}T${String(8 + (i * 2) % 12).padStart(2, '0')}:00:00Z`,
-        processedAt: status !== 'pending' ? `2024-01-${String(((i % 30) + 2) % 30 + 1).padStart(2, '0')}T${String(10 + (i * 2) % 12).padStart(2, '0')}:00:00Z` : undefined,
-        details: `${details[i % details.length]} - ${['JFK-LHR', 'LAX-NRT', 'SFO-HKG', 'ORD-MIA', 'DFW-ATL'][i % 5]}`
+    const redemptions: RewardRedemption[] = [
+      {
+        id: 'red-001',
+        customerId: 'cust-001',
+        customerName: 'John Smith',
+        rewardType: 'flight_upgrade',
+        pointsCost: 25000,
+        status: 'completed',
+        requestedAt: '2024-01-10T10:00:00Z',
+        processedAt: '2024-01-10T10:30:00Z',
+        details: 'Upgrade from Economy to Business on flight AA1234'
+      },
+      {
+        id: 'red-002',
+        customerId: 'cust-002',
+        customerName: 'Emily Chen',
+        rewardType: 'lounge_access',
+        pointsCost: 5000,
+        status: 'approved',
+        requestedAt: '2024-01-14T08:00:00Z',
+        processedAt: '2024-01-14T09:00:00Z',
+        details: 'Lounge access at JFK Terminal 7'
+      },
+      {
+        id: 'red-003',
+        customerId: 'cust-003',
+        customerName: 'Robert Davis',
+        rewardType: 'partner_hotel',
+        pointsCost: 40000,
+        status: 'pending',
+        requestedAt: '2024-01-15T14:00:00Z',
+        details: 'Free night at Hilton London Heathrow'
       }
-    })
-
+    ]
     setRewardRedemptions(redemptions)
   }
 
@@ -922,7 +926,7 @@ export default function CRMModule() {
               <CardDescription>Manage customer information and preferences</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto h-80">
+              <ScrollArea className="h-80 overflow-x-auto">
                 <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
@@ -936,7 +940,7 @@ export default function CRMModule() {
                     </tr>
                   </thead>
                   <tbody>
-                    {customerProfiles.slice(0, 30).map((customer) => (
+                    {customerProfiles.slice(0, 10).map((customer) => (
                       <tr key={customer.id}>
                         <td className="font-medium">{customer.firstName} {customer.lastName}</td>
                         <td className="text-sm">
@@ -962,7 +966,7 @@ export default function CRMModule() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1366,7 +1370,7 @@ export default function CRMModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto h-80">
+              <ScrollArea className="h-80 overflow-x-auto">
                 <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
@@ -1405,7 +1409,7 @@ export default function CRMModule() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1676,7 +1680,7 @@ export default function CRMModule() {
                 <CardDescription>Performance metrics for all campaigns</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto h-80">
+                <ScrollArea className="h-80 overflow-x-auto">
                   <table className="enterprise-table min-w-[1000px]">
                     <thead>
                       <tr>
@@ -1722,7 +1726,7 @@ export default function CRMModule() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </ScrollArea>
               </CardContent>
             </Card>
           </div>
@@ -1736,7 +1740,7 @@ export default function CRMModule() {
               <CardDescription>Track and resolve customer feedback</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto h-80">
+              <ScrollArea className="h-80 overflow-x-auto">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -1779,7 +1783,7 @@ export default function CRMModule() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1793,7 +1797,7 @@ export default function CRMModule() {
                 <CardDescription>SLA tracking, resolution workflow, and escalation</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto h-96">
+                <ScrollArea className="h-96 overflow-x-auto">
                   <table className="enterprise-table min-w-[1100px]">
                     <thead>
                       <tr>
@@ -1860,7 +1864,7 @@ export default function CRMModule() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </ScrollArea>
               </CardContent>
             </Card>
 
@@ -1906,7 +1910,7 @@ export default function CRMModule() {
                 <CardDescription>Customer preference tracking</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-y-auto h-96">
+                <ScrollArea className="h-96">
                   <div className="space-y-3">
                     {travelPreferences.map((pref) => (
                       <div
@@ -1943,7 +1947,7 @@ export default function CRMModule() {
                       </div>
                     ))}
                   </div>
-                </div>
+                </ScrollArea>
               </CardContent>
             </Card>
 
@@ -2075,7 +2079,7 @@ export default function CRMModule() {
                       </div>
                       <div className="mt-3">
                         <div className="text-xs text-muted-foreground mb-2">Recent Activity</div>
-                        <div className="overflow-y-auto h-24">
+                        <ScrollArea className="h-24">
                           <div className="space-y-2">
                             {partner.recentActivity.slice(0, 3).map((activity, idx) => (
                               <div key={idx} className="flex items-center justify-between text-xs p-2 bg-secondary/20 rounded">
@@ -2092,7 +2096,7 @@ export default function CRMModule() {
                               </div>
                             ))}
                           </div>
-                        </div>
+                        </ScrollArea>
                       </div>
                     </div>
                   ))}
@@ -2188,7 +2192,7 @@ export default function CRMModule() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-y-auto h-96">
+                <ScrollArea className="h-96">
                   <div className="space-y-3">
                     {rewardRedemptions.map((redemption) => (
                       <div key={redemption.id} className="p-4 border rounded-lg">
@@ -2246,7 +2250,7 @@ export default function CRMModule() {
                       </div>
                     ))}
                   </div>
-                </div>
+                </ScrollArea>
               </CardContent>
             </Card>
           </div>
@@ -2333,7 +2337,7 @@ export default function CRMModule() {
 
               <div>
                 <Label>Notes</Label>
-                <div className="overflow-y-auto h-32">
+                <ScrollArea className="h-32 mt-2 border rounded-lg p-3">
                   <div className="space-y-2">
                     {selectedComplaint.notes.map((note, idx) => (
                       <div key={idx} className="text-sm p-2 bg-secondary/20 rounded">
@@ -2341,7 +2345,7 @@ export default function CRMModule() {
                       </div>
                     ))}
                   </div>
-                </div>
+                </ScrollArea>
                 <div className="flex gap-2 mt-2">
                   <Input
                     value={newNote}

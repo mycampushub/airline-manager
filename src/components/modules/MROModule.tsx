@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-// import { ScrollArea } from '@/components/ui/scroll-area'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -37,7 +37,6 @@ import {
   XCircle
 } from 'lucide-react'
 import { useAirlineStore } from '@/lib/store'
-import { DEMO_AIRCRAFT } from '@/lib/demoData'
 
 interface MELItem {
   id: string
@@ -85,113 +84,6 @@ interface EngineeringLogEntry {
 export default function MROModule() {
   const { maintenanceRecords, parts, components, createMaintenanceRecord, updatePart, trackComponent, pendingAction, setPendingAction } = useAirlineStore()
   
-  // Initialize enhanced state with generated data from store
-  const [melItems, setMELItems] = useState<MELItem[]>(() => {
-    const items: MELItem[] = []
-    const categories: Array<'A' | 'B' | 'C' | 'D'> = ['A', 'B', 'C', 'D']
-    const mdescriptions = ['AC Generator #1', 'Weather Radar', 'Landing Light', 'Cabin Pressurization', 'APU Start', 'Navigation Display', 'Communication Radio', 'Fuel Gauge', 'Hydraulic Pump', 'Brake System', 'Engine EGT Indicator', 'Stall Warning', 'Pitot Tube', 'Static Port', 'Windshield Wiper', 'Emergency Light', 'Oxygen System', 'Seat Belt Sign', 'No Smoking Sign', 'Fasten Seatbelt', 'Overhead Light', 'Reading Light', 'Call Button', 'Attendant Phone', 'Cabin Intercom', 'PA System', 'Galley Power', 'Lavatory Flush', 'Water System', 'Waste Tank']
-    
-    for (let i = 0; i < 30; i++) {
-      const aircraft = DEMO_AIRCRAFT[i].registration
-      items.push({
-        id: `MEL${i + 1}`,
-        itemNumber: `MEL-${String(24 + (i % 6))}-${String(30 + (i % 20)).padStart(2, '0')}-${i + 1}`,
-        description: mdescriptions[i % mdescriptions.length],
-        aircraftRegistration: aircraft,
-        category: categories[i % 4],
-        dispatchCondition: categories[i % 4] === 'A' ? 'No operational procedures required' : 'Operational with restrictions',
-        repairInterval: categories[i % 4] === 'A' ? 'Not applicable' : categories[i % 4] === 'C' ? '3 calendar days' : categories[i % 4] === 'D' ? '120 calendar days' : '10 calendar days',
-        operationalProcedure: categories[i % 4] === 'A' ? 'N/A' : 'Monitor system performance',
-        maintenanceProcedure: 'Replace or repair component',
-        status: ['active', 'active', 'active', 'deferred', 'resolved'][i % 5] as any,
-        deferredDate: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
-        deferredBy: ['John Smith', 'Sarah Jones', 'Mike Johnson', 'David Wilson', 'Emily Brown'][i % 5],
-        notes: i % 3 === 0 ? 'Part on order' : i % 4 === 0 ? 'Awaiting manufacturer' : 'Scheduled for repair'
-      })
-    }
-    return items
-  })
-
-  const [cdlItems, setCDLItems] = useState<CDLItem[]>(() => {
-    const items: CDLItem[] = []
-    const aircraftTypes = ['B737-800', 'B777-300ER', 'B787-9', 'A320neo', 'A350-900', 'A380-800', 'B737-800', 'A330-300']
-    const descriptions = ['Wing Leading Edge Panel #4', 'Landing Light Left', 'Cabin Window Panel #12', 'Cargo Door Seal', 'Engine Cowling Panel', 'Stabilizer Tip Fairing', 'Fuselage Panel Section 5', 'Nose Cone Panel', 'Tail Cone Panel', 'Wing Flap Panel #2', 'Aileron Panel', 'Elevator Panel', 'Rudder Panel', 'Slats Panel #3', 'Spoilers Panel', 'Gear Door Panel', 'Wheel Well Panel', 'Pylon Fairing', 'Thrust Reverser Panel', 'Fan Cowl Panel']
-    
-    for (let i = 0; i < 30; i++) {
-      const aircraftType = DEMO_AIRCRAFT[i].type
-      items.push({
-        id: `CDL${i + 1}`,
-        itemNumber: `CDL-${String(27 + (i % 8))}-${String(21 + (i % 10)).padStart(2, '0')}-${i + 1}`,
-        description: descriptions[i % descriptions.length],
-        aircraftType: aircraftType,
-        category: ['performance', 'instrument', 'equipment'][i % 3] as any,
-        impactAssessment: i % 3 === 0 ? 'Minor drag increase' : i % 3 === 1 ? 'Instrument indication affected' : 'Operational restriction',
-        fuelAdjustment: i % 2 === 0 ? 0.5 : 0,
-        payloadAdjustment: i % 4 === 0 ? 100 : 0,
-        status: ['active', 'active', 'inactive'][i % 3] as any,
-        validFrom: new Date(Date.now() - (i + 1) * 86400000).toISOString().split('T')[0],
-        validUntil: new Date(Date.now() + (30 - i) * 86400000).toISOString().split('T')[0]
-      })
-    }
-    return items
-  })
-
-  const [engineeringLog, setEngineeringLog] = useState<EngineeringLogEntry[]>(() => {
-    const entries: EngineeringLogEntry[] = []
-    const technicians = ['Mike Johnson', 'Sarah Jones', 'David Wilson', 'Emily Brown', 'Robert Taylor', 'Lisa Chen', 'James White', 'Maria Garcia', 'Thomas Anderson', 'Jennifer Lee']
-    const types: Array<'maintenance' | 'inspection' | 'modification' | 'repair' | 'incident'> = ['maintenance', 'inspection', 'modification', 'repair', 'incident']
-    const partLists = [
-      ['Oil Filter #1234', 'Engine Oil 15W-40'],
-      ['Brake Pads #5678', 'Brake Assembly #9012'],
-      ['Strut Assembly #9012', 'Hydraulic Fluid #7890'],
-      ['Navigation Unit #3456', 'Antenna Cable #7890'],
-      ['Fuel Pump #2345', 'Fuel Line #6789'],
-      ['Landing Light #4567', 'Bulb #8901'],
-      ['Cabin Light #5678', 'Wiring Harness #1234'],
-      ['Seat Belt #6789', 'Buckle #9012'],
-      ['Oxygen Mask #7890', 'Oxygen Bottle #2345'],
-      ['Fire Extinguisher #8901', 'Mounting Bracket #3456']
-    ]
-    
-    for (let i = 0; i < 30; i++) {
-      const aircraft = DEMO_AIRCRAFT[i]
-      entries.push({
-        id: `EL${i + 1}`,
-        date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
-        aircraftRegistration: aircraft.registration,
-        type: types[i % 5],
-        description: [
-          'Engine oil change and filter replacement',
-          'A-Check inspection completed',
-          'Landing gear strut replacement',
-          'Navigation system upgrade',
-          'Avionics troubleshooting',
-          'Cabin interior refurbishment',
-          'Hydraulic system overhaul',
-          'Fuel system inspection',
-          'Electrical system maintenance',
-          'Emergency equipment check',
-          'APU maintenance',
-          'Engine performance test',
-          'Radar system calibration',
-          'Communication radio replacement',
-          'Transponder update',
-          'Flight computer upgrade',
-          'Autopilot system check',
-          'Pressurization system service',
-          'Air conditioning maintenance',
-          'Lighting system repair'
-        ][i % 20],
-        technician: technicians[i % technicians.length],
-        hours: [2.5, 4.5, 6, 8, 3, 5, 7.5, 4, 6.5, 5.5][i % 10],
-        partsUsed: partLists[i % partLists.length],
-        nextDue: new Date(Date.now() + (30 + i * 10) * 86400000).toISOString().split('T')[0],
-        status: ['completed', 'completed', 'in_progress', 'completed', 'deferred'][i % 5] as any
-      })
-    }
-    return entries
-  })
-  
   // Handle pending actions from App header
   useEffect(() => {
     if (pendingAction) {
@@ -234,6 +126,23 @@ export default function MROModule() {
   // Search state
   const [partsSearchTerm, setPartsSearchTerm] = useState('')
   const [partsSearchResults, setPartsSearchResults] = useState<any[]>([])
+
+  // Enhanced state
+  const [melItems, setMELItems] = useState<MELItem[]>([
+    { id: 'MEL1', itemNumber: 'MEL-24-30-1', description: 'AC Generator #1', aircraftRegistration: 'N12345', category: 'B', dispatchCondition: 'Operational with one AC generator', repairInterval: '10 calendar days', operationalProcedure: 'Monitor electrical load', maintenanceProcedure: 'Replace generator', status: 'active', deferredDate: '2024-12-10', deferredBy: 'John Smith', notes: 'Part on order' },
+    { id: 'MEL2', itemNumber: 'MEL-25-11-1', description: 'Weather Radar', aircraftRegistration: 'N67890', category: 'C', dispatchCondition: 'Day VFR only', repairInterval: '3 calendar days', operationalProcedure: 'Visual flight rules only', maintenanceProcedure: 'Repair radar antenna', status: 'deferred', deferredDate: '2024-12-08', deferredBy: 'Sarah Jones', notes: 'Awaiting parts from manufacturer' }
+  ])
+
+  const [cdlItems, setCDLItems] = useState<CDLItem[]>([
+    { id: 'CDL1', itemNumber: 'CDL-27-21-1', description: 'Wing Leading Edge Panel #4', aircraftType: 'B737-800', category: 'performance', impactAssessment: 'Minor drag increase', fuelAdjustment: 0.5, payloadAdjustment: 0, status: 'active', validFrom: '2024-12-01', validUntil: '2024-12-31' },
+    { id: 'CDL2', itemNumber: 'CDL-33-21-2', description: 'Landing Light Left', aircraftType: 'A320-200', category: 'equipment', impactAssessment: 'Night operations restricted', fuelAdjustment: 0, payloadAdjustment: 0, status: 'active', validFrom: '2024-12-05', validUntil: '2024-12-25' }
+  ])
+
+  const [engineeringLog, setEngineeringLog] = useState<EngineeringLogEntry[]>([
+    { id: 'EL1', date: '2024-12-09', aircraftRegistration: 'N12345', type: 'maintenance', description: 'Engine oil change and filter replacement', technician: 'Mike Johnson', hours: 4.5, partsUsed: ['Oil Filter #1234', 'Engine Oil 15W-40'], nextDue: '2025-01-09', status: 'completed' },
+    { id: 'EL2', date: '2024-12-08', aircraftRegistration: 'N67890', type: 'inspection', description: 'A-Check inspection completed', technician: 'Sarah Jones', hours: 8, partsUsed: ['Brake Pads #5678'], nextDue: '2025-03-08', status: 'completed' },
+    { id: 'EL3', date: '2024-12-10', aircraftRegistration: 'N24680', type: 'repair', description: 'Landing gear strut replacement', technician: 'David Wilson', hours: 6, partsUsed: ['Strut Assembly #9012'], nextDue: '2025-06-10', status: 'in_progress' }
+  ])
 
   const [newMEL, setNewMEL] = useState({
     itemNumber: '',
@@ -494,7 +403,6 @@ export default function MROModule() {
           <TabsTrigger value="mel">MEL</TabsTrigger>
           <TabsTrigger value="cdl">CDL</TabsTrigger>
           <TabsTrigger value="parts">Parts Inventory</TabsTrigger>
-          <TabsTrigger value="components">Components</TabsTrigger>
         </TabsList>
 
         {/* Maintenance Tab */}
@@ -582,7 +490,7 @@ export default function MROModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto h-80">
+              <ScrollArea className="h-80 overflow-x-auto">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -633,7 +541,7 @@ export default function MROModule() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -670,7 +578,7 @@ export default function MROModule() {
                           />
                           <Button onClick={handleSearchParts}>Search</Button>
                         </div>
-                        <div className="overflow-y-auto h-64">
+                        <ScrollArea className="h-64">
                           {partsSearchResults.length === 0 ? (
                             <div className="text-center text-muted-foreground py-8">
                               {partsSearchTerm ? 'No parts found matching your search' : 'Enter a search term to find parts'}
@@ -705,7 +613,7 @@ export default function MROModule() {
                             </table>
                             </div>
                           )}
-                        </div>
+                        </ScrollArea>
                       </div>
                     </DialogContent>
                   </Dialog>
@@ -775,7 +683,7 @@ export default function MROModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto h-96">
+              <ScrollArea className="h-96 overflow-x-auto">
                 <table className="enterprise-table min-w-[1200px]">
                   <thead>
                     <tr>
@@ -831,7 +739,7 @@ export default function MROModule() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -915,7 +823,7 @@ export default function MROModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto h-96">
+              <ScrollArea className="h-96 overflow-x-auto">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -968,7 +876,7 @@ export default function MROModule() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -995,7 +903,7 @@ export default function MROModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto h-96">
+              <ScrollArea className="h-96 overflow-x-auto">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -1040,7 +948,7 @@ export default function MROModule() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1130,7 +1038,7 @@ export default function MROModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto h-96">
+              <ScrollArea className="h-96 overflow-x-auto">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -1175,83 +1083,7 @@ export default function MROModule() {
                     )}
                   </tbody>
                 </table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Components Tab */}
-        <TabsContent value="components" className="space-y-4">
-          <Card className="enterprise-card">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Aircraft Components</CardTitle>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => toast({ title: 'Filter', description: 'Filter options opened' })}>
-                    <Filter className="h-4 w-4 mr-2" />
-                    Filter
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => toast({ title: 'Export', description: 'Components exported successfully' })}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
-                </div>
-              </div>
-              <CardDescription>
-                Installed aircraft components tracking and maintenance
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto h-96">
-                <table className="enterprise-table min-w-[1200px]">
-                  <thead>
-                    <tr>
-                      <th>Serial Number</th>
-                      <th>Part Number</th>
-                      <th>Aircraft</th>
-                      <th>Position</th>
-                      <th>Cycles</th>
-                      <th>Hours</th>
-                      <th>Condition</th>
-                      <th>Last Inspection</th>
-                      <th>Next Inspection</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {components.length === 0 ? (
-                      <tr>
-                        <td colSpan={10} className="text-center text-muted-foreground py-8">
-                          No components found
-                        </td>
-                      </tr>
-                    ) : (
-                      components.map((comp) => (
-                        <tr key={comp.id}>
-                          <td className="font-mono text-sm">{comp.serialNumber}</td>
-                          <td className="text-sm">{comp.partNumber}</td>
-                          <td className="text-sm">{comp.aircraftRegistration}</td>
-                          <td className="text-sm">{comp.position}</td>
-                          <td className="text-sm">{comp.cycleCount.toLocaleString()}</td>
-                          <td className="text-sm">{comp.hoursSinceNew.toLocaleString()}h</td>
-                          <td>
-                            <Badge variant={comp.condition === 'serviceable' ? 'default' : comp.condition === 'unserviceable' ? 'destructive' : 'secondary'} className="capitalize">
-                              {comp.condition}
-                            </Badge>
-                          </td>
-                          <td className="text-sm">{comp.lastInspection}</td>
-                          <td className="text-sm">{comp.nextInspection}</td>
-                          <td>
-                            <Button variant="ghost" size="sm" onClick={() => toast({ title: 'Component Details', description: `${comp.serialNumber} - ${comp.partNumber}` })}>
-                              <FileText className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>

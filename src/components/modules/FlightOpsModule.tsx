@@ -117,36 +117,13 @@ export default function FlightOpsModule() {
 
   // New state for enhanced features
   const [routes, setRoutes] = useState<Route[]>([
-    { id: 'R001', origin: 'JFK', destination: 'LHR', distance: 3450, flightTime: 425, slots: [], aircraftTypes: ['B737-800', 'A320-200', 'B777-300ER'], priority: 'high', demand: 'high', competition: 8 },
-    { id: 'R002', origin: 'JFK', destination: 'CDG', distance: 3635, flightTime: 445, slots: [], aircraftTypes: ['B737-800', 'A320-200', 'B777-300ER'], priority: 'high', demand: 'high', competition: 6 },
-    { id: 'R003', origin: 'LAX', destination: 'NRT', distance: 5479, flightTime: 690, slots: [], aircraftTypes: ['B777-300ER', 'A350-900'], priority: 'high', demand: 'high', competition: 5 },
-    { id: 'R004', origin: 'SFO', destination: 'HKG', distance: 6907, flightTime: 885, slots: [], aircraftTypes: ['B777-300ER', 'A350-900'], priority: 'medium', demand: 'medium', competition: 4 },
-    { id: 'R005', origin: 'DXB', destination: 'LHR', distance: 3474, flightTime: 455, slots: [], aircraftTypes: ['B777-300ER', 'A380', 'A350-900'], priority: 'high', demand: 'high', competition: 7 },
-    { id: 'R006', origin: 'SIN', destination: 'SYD', distance: 3900, flightTime: 480, slots: [], aircraftTypes: ['B737-800', 'A320-200', 'A330-300'], priority: 'medium', demand: 'medium', competition: 3 },
-    { id: 'R007', origin: 'JFK', destination: 'MIA', distance: 1092, flightTime: 190, slots: [], aircraftTypes: ['B737-800', 'A320-200'], priority: 'medium', demand: 'high', competition: 5 },
-    { id: 'R008', origin: 'ORD', destination: 'LAX', distance: 1745, flightTime: 260, slots: [], aircraftTypes: ['B737-800', 'A320-200', 'B777-300ER'], priority: 'high', demand: 'high', competition: 7 },
-    { id: 'R009', origin: 'ATL', destination: 'LHR', distance: 4215, flightTime: 510, slots: [], aircraftTypes: ['B777-300ER', 'A350-900', 'A330-900neo'], priority: 'high', demand: 'high', competition: 8 },
-    { id: 'R010', origin: 'DFW', destination: 'NRT', distance: 6470, flightTime: 810, slots: [], aircraftTypes: ['B777-300ER', 'A350-900'], priority: 'medium', demand: 'medium', competition: 4 },
-    { id: 'R011', origin: 'LHR', destination: 'DXB', distance: 3474, flightTime: 435, slots: [], aircraftTypes: ['B777-300ER', 'A380', 'A350-900'], priority: 'high', demand: 'high', competition: 6 },
-    { id: 'R012', origin: 'CDG', destination: 'SIN', distance: 6738, flightTime: 810, slots: [], aircraftTypes: ['B777-300ER', 'A350-900', 'A380-800'], priority: 'medium', demand: 'medium', competition: 5 },
-    { id: 'R013', origin: 'JFK', destination: 'SFO', distance: 2572, flightTime: 360, slots: [], aircraftTypes: ['B737-800', 'A320-200', 'B787-9'], priority: 'high', demand: 'high', competition: 7 },
-    { id: 'R014', origin: 'LAX', destination: 'HNL', distance: 2551, flightTime: 330, slots: [], aircraftTypes: ['B777-300ER', 'A330-300'], priority: 'medium', demand: 'medium', competition: 4 },
-    { id: 'R015', origin: 'MIA', destination: 'GRU', distance: 4083, flightTime: 510, slots: [], aircraftTypes: ['B777-300ER', 'A350-900', 'B787-9'], priority: 'medium', demand: 'high', competition: 3 },
-    { id: 'R016', origin: 'FRA', destination: 'JFK', distance: 3852, flightTime: 510, slots: [], aircraftTypes: ['B737-800', 'A320-200', 'B777-300ER'], priority: 'medium', demand: 'medium', competition: 5 },
-    { id: 'R017', origin: 'AMS', destination: 'LAX', distance: 5570, flightTime: 680, slots: [], aircraftTypes: ['B777-300ER', 'A350-900', 'B787-9'], priority: 'high', demand: 'high', competition: 6 },
-    { id: 'R018', origin: 'HKG', destination: 'SYD', distance: 4581, flightTime: 540, slots: [], aircraftTypes: ['B777-300ER', 'A350-900', 'A330-300'], priority: 'high', demand: 'high', competition: 5 },
-    { id: 'R019', origin: 'BKK', destination: 'LHR', distance: 5927, flightTime: 750, slots: [], aircraftTypes: ['B777-300ER', 'A350-900', 'A380-800'], priority: 'high', demand: 'high', competition: 5 },
-    { id: 'R020', origin: 'JFK', destination: 'LAS', distance: 2234, flightTime: 330, slots: [], aircraftTypes: ['B737-800', 'A320-200', 'A321neo'], priority: 'medium', demand: 'medium', competition: 6 },
-    { id: 'R021', origin: 'ORD', destination: 'MIA', distance: 1197, flightTime: 180, slots: [], aircraftTypes: ['B737-800', 'A320-200'], priority: 'high', demand: 'high', competition: 7 },
-    { id: 'R022', origin: 'LAX', destination: 'MEX', distance: 1549, flightTime: 210, slots: [], aircraftTypes: ['B737-800', 'A320-200', 'A321neo'], priority: 'medium', demand: 'high', competition: 4 },
-    { id: 'R023', origin: 'SFO', destination: 'ICN', distance: 5658, flightTime: 720, slots: [], aircraftTypes: ['B777-300ER', 'A350-900'], priority: 'high', demand: 'high', competition: 5 },
-    { id: 'R024', origin: 'DXB', destination: 'SYD', distance: 7525, flightTime: 840, slots: [], aircraftTypes: ['A380-800', 'A350-900', 'B777-300ER'], priority: 'medium', demand: 'medium', competition: 3 },
-    { id: 'R025', origin: 'LHR', destination: 'JFK', distance: 3450, flightTime: 435, slots: [], aircraftTypes: ['B737-800', 'A320-200', 'B777-300ER'], priority: 'high', demand: 'high', competition: 7 },
-    { id: 'R026', origin: 'CDG', destination: 'FRA', distance: 447, flightTime: 75, slots: [], aircraftTypes: ['A320-200', 'A321neo'], priority: 'medium', demand: 'medium', competition: 5 },
-    { id: 'R027', origin: 'SIN', destination: 'NRT', distance: 3329, flightTime: 410, slots: [], aircraftTypes: ['B777-300ER', 'A350-900', 'A330-300'], priority: 'high', demand: 'high', competition: 6 },
-    { id: 'R028', origin: 'HKG', destination: 'LAX', distance: 6907, flightTime: 855, slots: [], aircraftTypes: ['B777-300ER', 'A350-900', 'A380-800'], priority: 'medium', demand: 'medium', competition: 4 },
-    { id: 'R029', origin: 'MIA', destination: 'MAD', distance: 4414, flightTime: 525, slots: [], aircraftTypes: ['B777-300ER', 'A350-900', 'A330-900neo'], priority: 'high', demand: 'high', competition: 6 },
-    { id: 'R030', origin: 'JFK', destination: 'BCN', distance: 3900, flightTime: 470, slots: [], aircraftTypes: ['B737-800', 'A320-200', 'B777-300ER'], priority: 'high', demand: 'high', competition: 7 }
+    { id: 'R1', origin: 'JFK', destination: 'LHR', distance: 5567, flightTime: 435, slots: [], aircraftTypes: ['B737-800', 'A320-200', 'B777-300ER'], priority: 'high', demand: 'high', competition: 8 },
+    { id: 'R2', origin: 'JFK', destination: 'PAR', distance: 5837, flightTime: 440, slots: [], aircraftTypes: ['B737-800', 'A320-200', 'B777-300ER'], priority: 'high', demand: 'high', competition: 6 },
+    { id: 'R3', origin: 'LAX', destination: 'TYO', distance: 8781, flightTime: 680, slots: [], aircraftTypes: ['B777-300ER', 'A350-900'], priority: 'high', demand: 'high', competition: 5 },
+    { id: 'R4', origin: 'SFO', destination: 'HKG', distance: 11136, flightTime: 870, slots: [], aircraftTypes: ['B777-300ER', 'A350-900'], priority: 'medium', demand: 'medium', competition: 4 },
+    { id: 'R5', origin: 'SIN', destination: 'SYD', distance: 6309, flightTime: 490, slots: [], aircraftTypes: ['B737-800', 'A320-200', 'A330-300'], priority: 'medium', demand: 'medium', competition: 3 },
+    { id: 'R6', origin: 'DXB', destination: 'LHR', distance: 5479, flightTime: 430, slots: [], aircraftTypes: ['B777-300ER', 'A380', 'A350-900'], priority: 'high', demand: 'high', competition: 7 },
+    { id: 'R7', origin: 'FRA', destination: 'JFK', distance: 6385, flightTime: 500, slots: [], aircraftTypes: ['B737-800', 'A320-200', 'B777-300ER'], priority: 'medium', demand: 'medium', competition: 5 }
   ])
 
   const [seasonalSchedules, setSeasonalSchedules] = useState<SeasonalSchedule[]>([
@@ -154,32 +131,7 @@ export default function FlightOpsModule() {
     { id: 'SS2', season: 'shoulder', startDate: '2024-04-01', endDate: '2024-05-31', frequencyMultiplier: 0.8, pricingMultiplier: 0.85, notes: 'Shoulder season increasing' },
     { id: 'SS3', season: 'peak', startDate: '2024-06-01', endDate: '2024-08-31', frequencyMultiplier: 1.0, pricingMultiplier: 1.2, notes: 'Peak summer season' },
     { id: 'SS4', season: 'peak', startDate: '2024-09-01', endDate: '2024-10-31', frequencyMultiplier: 0.9, pricingMultiplier: 1.1, notes: 'Fall peak season' },
-    { id: 'SS5', season: 'shoulder', startDate: '2024-11-01', endDate: '2024-12-15', frequencyMultiplier: 0.8, pricingMultiplier: 0.85, notes: 'Holiday shoulder season' },
-    { id: 'SS6', season: 'peak', startDate: '2024-12-16', endDate: '2024-12-31', frequencyMultiplier: 1.3, pricingMultiplier: 1.4, notes: 'Christmas peak' },
-    { id: 'SS7', season: 'low', startDate: '2025-01-01', endDate: '2025-03-15', frequencyMultiplier: 0.55, pricingMultiplier: 0.65, notes: 'Winter low season' },
-    { id: 'SS8', season: 'shoulder', startDate: '2025-03-16', endDate: '2025-04-30', frequencyMultiplier: 0.75, pricingMultiplier: 0.8, notes: 'Spring shoulder' },
-    { id: 'SS9', season: 'peak', startDate: '2025-05-01', endDate: '2025-08-31', frequencyMultiplier: 1.1, pricingMultiplier: 1.25, notes: 'Summer peak' },
-    { id: 'SS10', season: 'shoulder', startDate: '2025-09-01', endDate: '2025-10-15', frequencyMultiplier: 0.85, pricingMultiplier: 0.9, notes: 'Fall shoulder' },
-    { id: 'SS11', season: 'low', startDate: '2025-10-16', endDate: '2025-11-20', frequencyMultiplier: 0.6, pricingMultiplier: 0.7, notes: 'Autumn low' },
-    { id: 'SS12', season: 'peak', startDate: '2025-11-21', endDate: '2025-12-31', frequencyMultiplier: 1.25, pricingMultiplier: 1.35, notes: 'Holiday peak' },
-    { id: 'SS13', season: 'low', startDate: '2026-01-01', endDate: '2026-02-28', frequencyMultiplier: 0.5, pricingMultiplier: 0.6, notes: 'Deep winter' },
-    { id: 'SS14', season: 'shoulder', startDate: '2026-03-01', endDate: '2026-04-30', frequencyMultiplier: 0.8, pricingMultiplier: 0.85, notes: 'Spring break' },
-    { id: 'SS15', season: 'peak', startDate: '2026-05-01', endDate: '2026-09-15', frequencyMultiplier: 1.05, pricingMultiplier: 1.2, notes: 'Extended summer' },
-    { id: 'SS16', season: 'shoulder', startDate: '2026-09-16', endDate: '2026-10-31', frequencyMultiplier: 0.9, pricingMultiplier: 0.95, notes: 'Fall shoulder' },
-    { id: 'SS17', season: 'low', startDate: '2026-11-01', endDate: '2026-12-10', frequencyMultiplier: 0.65, pricingMultiplier: 0.75, notes: 'Pre-holiday' },
-    { id: 'SS18', season: 'peak', startDate: '2026-12-11', endDate: '2026-12-31', frequencyMultiplier: 1.3, pricingMultiplier: 1.4, notes: 'Christmas/New Year' },
-    { id: 'SS19', season: 'low', startDate: '2027-01-01', endDate: '2027-03-10', frequencyMultiplier: 0.55, pricingMultiplier: 0.65, notes: 'Post-holiday' },
-    { id: 'SS20', season: 'shoulder', startDate: '2027-03-11', endDate: '2027-05-15', frequencyMultiplier: 0.8, pricingMultiplier: 0.85, notes: 'Spring shoulder extended' },
-    { id: 'SS21', season: 'peak', startDate: '2027-05-16', endDate: '2027-09-30', frequencyMultiplier: 1.0, pricingMultiplier: 1.15, notes: 'Summer peak' },
-    { id: 'SS22', season: 'shoulder', startDate: '2027-10-01', endDate: '2027-11-15', frequencyMultiplier: 0.85, pricingMultiplier: 0.9, notes: 'Autumn shoulder' },
-    { id: 'SS23', season: 'low', startDate: '2027-11-16', endDate: '2027-12-05', frequencyMultiplier: 0.6, pricingMultiplier: 0.7, notes: 'Winter pre-peak' },
-    { id: 'SS24', season: 'peak', startDate: '2027-12-06', endDate: '2027-12-31', frequencyMultiplier: 1.25, pricingMultiplier: 1.35, notes: 'Holiday season' },
-    { id: 'SS25', season: 'low', startDate: '2028-01-01', endDate: '2028-02-20', frequencyMultiplier: 0.5, pricingMultiplier: 0.6, notes: 'Winter low extended' },
-    { id: 'SS26', season: 'shoulder', startDate: '2028-02-21', endDate: '2028-04-15', frequencyMultiplier: 0.75, pricingMultiplier: 0.8, notes: 'Early spring' },
-    { id: 'SS27', season: 'peak', startDate: '2028-04-16', endDate: '2028-08-20', frequencyMultiplier: 1.1, pricingMultiplier: 1.25, notes: 'Summer high' },
-    { id: 'SS28', season: 'shoulder', startDate: '2028-08-21', endDate: '2028-10-20', frequencyMultiplier: 0.85, pricingMultiplier: 0.9, notes: 'Late summer/early fall' },
-    { id: 'SS29', season: 'low', startDate: '2028-10-21', endDate: '2028-11-30', frequencyMultiplier: 0.6, pricingMultiplier: 0.7, notes: 'Fall low' },
-    { id: 'SS30', season: 'peak', startDate: '2028-12-01', endDate: '2028-12-31', frequencyMultiplier: 1.3, pricingMultiplier: 1.4, notes: 'Year-end peak' }
+    { id: 'SS5', season: 'shoulder', startDate: '2024-11-01', endDate: '2024-12-15', frequencyMultiplier: 0.8, pricingMultiplier: 0.85, notes: 'Holiday shoulder season' }
   ])
 
   const [fleetAssignments, setFleetAssignments] = useState<FleetAssignment[]>([
@@ -187,32 +139,7 @@ export default function FlightOpsModule() {
     { id: 'FA2', registration: 'N67890', aircraftType: 'B737-800', base: 'JFK', utilizationRate: 88.3, routes: ['JFK-LAX', 'JFK-MIA', 'JFK-ORD'], maintenanceSchedule: [] },
     { id: 'FA3', registration: 'N24680', aircraftType: 'A320-200', base: 'LAX', utilizationRate: 95.2, routes: ['LAX-TYO', 'LAX-SFO', 'LAX-SYD'], maintenanceSchedule: [] },
     { id: 'FA4', registration: 'N97531', aircraftType: 'B777-300ER', base: 'LAX', utilizationRate: 94.8, routes: ['LAX-TYO', 'SFO-HKG', 'JFK-LHR'], maintenanceSchedule: [] },
-    { id: 'FA5', registration: 'N86420', aircraftType: 'A350-900', base: 'JFK', utilizationRate: 96.5, routes: ['JFK-LHR', 'DXB-LHR', 'JFK-PAR'], maintenanceSchedule: [] },
-    { id: 'FA6', registration: 'N11223', aircraftType: 'B737-800', base: 'JFK', utilizationRate: 89.1, routes: ['JFK-MIA', 'JFK-ORD', 'JFK-BOS'], maintenanceSchedule: [] },
-    { id: 'FA7', registration: 'N44556', aircraftType: 'A320-200', base: 'LAX', utilizationRate: 91.7, routes: ['LAX-SFO', 'LAX-ORD', 'LAX-DEN'], maintenanceSchedule: [] },
-    { id: 'FA8', registration: 'N77889', aircraftType: 'B777-200LR', base: 'SFO', utilizationRate: 93.4, routes: ['SFO-HKG', 'SFO-TYO', 'SFO-LAX'], maintenanceSchedule: [] },
-    { id: 'FA9', registration: 'N99001', aircraftType: 'A380-800', base: 'DXB', utilizationRate: 95.8, routes: ['DXB-LHR', 'DXB-JFK', 'DXB-SYD'], maintenanceSchedule: [] },
-    { id: 'FA10', registration: 'N33445', aircraftType: 'B787-9', base: 'LHR', utilizationRate: 90.2, routes: ['LHR-JFK', 'LHR-DXB', 'LHR-CDG'], maintenanceSchedule: [] },
-    { id: 'FA11', registration: 'N55667', aircraftType: 'A330-300', base: 'SIN', utilizationRate: 87.6, routes: ['SIN-SYD', 'SIN-HKG', 'SIN-TYO'], maintenanceSchedule: [] },
-    { id: 'FA12', registration: 'N77880', aircraftType: 'B777-300ER', base: 'JFK', utilizationRate: 94.1, routes: ['JFK-LHR', 'JFK-CDG', 'JFK-FRA'], maintenanceSchedule: [] },
-    { id: 'FA13', registration: 'N99002', aircraftType: 'A350-900', base: 'LAX', utilizationRate: 92.8, routes: ['LAX-TYO', 'LAX-SIN', 'LAX-SYD'], maintenanceSchedule: [] },
-    { id: 'FA14', registration: 'N22334', aircraftType: 'B737-800', base: 'MIA', utilizationRate: 88.9, routes: ['MIA-JFK', 'MIA-ORD', 'MIA-DFW'], maintenanceSchedule: [] },
-    { id: 'FA15', registration: 'N44557', aircraftType: 'A320neo', base: 'ORD', utilizationRate: 90.5, routes: ['ORD-JFK', 'ORD-LAX', 'ORD-DEN'], maintenanceSchedule: [] },
-    { id: 'FA16', registration: 'N11224', aircraftType: 'B787-9', base: 'SFO', utilizationRate: 93.7, routes: ['SFO-HKG', 'SFO-TYO', 'SFO-LAX'], maintenanceSchedule: [] },
-    { id: 'FA17', registration: 'N44558', aircraftType: 'A380-800', base: 'DXB', utilizationRate: 96.2, routes: ['DXB-LHR', 'DXB-FRA', 'DXB-BOM'], maintenanceSchedule: [] },
-    { id: 'FA18', registration: 'N77890', aircraftType: 'B777-200LR', base: 'LHR', utilizationRate: 91.3, routes: ['LHR-JFK', 'LHR-DXB', 'LHR-CDG'], maintenanceSchedule: [] },
-    { id: 'FA19', registration: 'N99003', aircraftType: 'A350-900', base: 'SIN', utilizationRate: 89.4, routes: ['SIN-SYD', 'SIN-HKG', 'SIN-TYO'], maintenanceSchedule: [] },
-    { id: 'FA20', registration: 'N22335', aircraftType: 'B737-800', base: 'JFK', utilizationRate: 87.8, routes: ['JFK-LAX', 'JFK-MIA', 'JFK-ORD'], maintenanceSchedule: [] },
-    { id: 'FA21', registration: 'N44559', aircraftType: 'A320-200', base: 'LAX', utilizationRate: 92.1, routes: ['LAX-TYO', 'LAX-SFO', 'LAX-SYD'], maintenanceSchedule: [] },
-    { id: 'FA22', registration: 'N77891', aircraftType: 'B777-300ER', base: 'SFO', utilizationRate: 94.5, routes: ['SFO-HKG', 'SFO-TYO', 'SFO-LAX'], maintenanceSchedule: [] },
-    { id: 'FA23', registration: 'N99004', aircraftType: 'A350-900', base: 'DXB', utilizationRate: 95.1, routes: ['DXB-LHR', 'DXB-JFK', 'DXB-SYD'], maintenanceSchedule: [] },
-    { id: 'FA24', registration: 'N22336', aircraftType: 'A330-300', base: 'LHR', utilizationRate: 90.8, routes: ['LHR-JFK', 'LHR-DXB', 'LHR-CDG'], maintenanceSchedule: [] },
-    { id: 'FA25', registration: 'N44560', aircraftType: 'B737-800', base: 'SIN', utilizationRate: 88.2, routes: ['SIN-SYD', 'SIN-HKG', 'SIN-TYO'], maintenanceSchedule: [] },
-    { id: 'FA26', registration: 'N77892', aircraftType: 'A320neo', base: 'MIA', utilizationRate: 91.6, routes: ['MIA-JFK', 'MIA-ORD', 'MIA-DFW'], maintenanceSchedule: [] },
-    { id: 'FA27', registration: 'N99005', aircraftType: 'B787-9', base: 'ORD', utilizationRate: 89.7, routes: ['ORD-JFK', 'ORD-LAX', 'ORD-DEN'], maintenanceSchedule: [] },
-    { id: 'FA28', registration: 'N22337', aircraftType: 'B777-300ER', base: 'FRA', utilizationRate: 93.2, routes: ['FRA-JFK', 'FRA-LHR', 'FRA-DXB'], maintenanceSchedule: [] },
-    { id: 'FA29', registration: 'N44561', aircraftType: 'A380-800', base: 'CDG', utilizationRate: 96.0, routes: ['CDG-JFK', 'CDG-LHR', 'CDG-DXB'], maintenanceSchedule: [] },
-    { id: 'FA30', registration: 'N77893', aircraftType: 'A350-900', base: 'HKG', utilizationRate: 92.4, routes: ['HKG-SFO', 'HKG-TYO', 'HKG-SIN'], maintenanceSchedule: [] }
+    { id: 'FA5', registration: 'N86420', aircraftType: 'A350-900', base: 'JFK', utilizationRate: 96.5, routes: ['JFK-LHR', 'DXB-LHR', 'JFK-PAR'], maintenanceSchedule: [] }
   ])
 
   const [newSchedule, setNewSchedule] = useState({
@@ -295,77 +222,15 @@ export default function FlightOpsModule() {
   const [notams, setNotams] = useState([
     { id: 'A1234/24', airport: 'JFK', message: 'RWY 09L/27R closed for maintenance until 15DEC', type: 'maintenance' as const, validFrom: '2024-12-01', validTo: '2024-12-15' },
     { id: 'B5678/24', airport: 'JFK', message: 'Taxiway B partial closure due to construction', type: 'construction' as const, validFrom: '2024-12-01', validTo: '2024-12-20' },
-    { id: 'C9012/24', airport: 'LHR', message: 'ILS approach out of service - use visual approach', type: 'navigation' as const, validFrom: '2024-12-05', validTo: '2024-12-10' },
-    { id: 'D3456/24', airport: 'LAX', message: 'Crane operations 500ft AGL near terminal 4', type: 'obstacle' as const, validFrom: '2024-12-08', validTo: '2024-12-12' },
-    { id: 'E7890/24', airport: 'SFO', message: 'Ground radar unreliable - use visual confirmation', type: 'navigation' as const, validFrom: '2024-12-10', validTo: '2024-12-14' },
-    { id: 'F1122/24', airport: 'DXB', message: 'Fuel truck operations on apron C', type: 'airspace' as const, validFrom: '2024-12-01', validTo: '2024-12-31' },
-    { id: 'G3344/24', airport: 'TYO', message: 'De-icing equipment in use at stands 1-10', type: 'maintenance' as const, validFrom: '2024-12-12', validTo: '2024-12-31' },
-    { id: 'H5566/24', airport: 'SIN', message: 'Taxiway Alpha closed between intersections B and C', type: 'construction' as const, validFrom: '2024-12-01', validTo: '2024-12-25' },
-    { id: 'I7788/24', airport: 'HKG', message: 'Temporary restricted airspace active for event', type: 'airspace' as const, validFrom: '2024-12-15', validTo: '2024-12-17' },
-    { id: 'J9900/24', airport: 'FRA', message: 'RWY 07L/25R partial closure for lighting repair', type: 'maintenance' as const, validFrom: '2024-12-08', validTo: '2024-12-15' },
-    { id: 'K1111/24', airport: 'CDG', message: 'Taxiway C closed for resurfacing', type: 'construction' as const, validFrom: '2024-12-10', validTo: '2024-12-30' },
-    { id: 'L2222/24', airport: 'ORD', message: 'Gate A1-A5 unavailable due to construction', type: 'maintenance' as const, validFrom: '2024-12-05', validTo: '2024-12-20' },
-    { id: 'M3333/24', airport: 'MIA', message: 'Approach radar reduced coverage sector 2', type: 'navigation' as const, validFrom: '2024-12-12', validTo: '2025-01-15' },
-    { id: 'N4444/24', airport: 'ATL', message: 'Runway 27L closure for resurfacing', type: 'maintenance' as const, validFrom: '2024-12-08', validTo: '2024-12-28' },
-    { id: 'O5555/24', airport: 'DFW', message: 'Cargo area B restricted access', type: 'airspace' as const, validFrom: '2024-12-01', validTo: '2024-12-31' },
-    { id: 'P6666/24', airport: 'NRT', message: 'Typhoon response - limited operations', type: 'airspace' as const, validFrom: '2024-12-15', validTo: '2024-12-18' },
-    { id: 'Q7777/24', airport: 'ICN', message: 'Navigation aids calibration in progress', type: 'navigation' as const, validFrom: '2024-12-10', validTo: '2024-12-25' },
-    { id: 'R8888/24', airport: 'GRU', message: 'Terminal 3 partial closure for renovations', type: 'construction' as const, validFrom: '2024-12-01', validTo: '2025-02-28' },
-    { id: 'S9999/24', airport: 'MAD', message: 'Radar service degraded - expect delays', type: 'navigation' as const, validFrom: '2024-12-12', validTo: '2024-12-22' },
-    { id: 'T0001/24', airport: 'BCN', message: 'Runway 25R/07L lighting maintenance', type: 'maintenance' as const, validFrom: '2024-12-08', validTo: '2024-12-18' },
-    { id: 'U0002/24', airport: 'AMS', message: 'Runway 18R/36L closure for repairs', type: 'maintenance' as const, validFrom: '2024-12-15', validTo: '2024-12-25' },
-    { id: 'V0003/24', airport: 'BKK', message: 'Airside road construction - limited access', type: 'construction' as const, validFrom: '2024-12-05', validTo: '2024-12-20' },
-    { id: 'W0004/24', airport: 'SYD', message: 'Runway 34L reconstruction ongoing', type: 'maintenance' as const, validFrom: '2024-12-01', validTo: '2025-01-31' },
-    { id: 'X0005/24', airport: 'HNL', message: 'Fuel system maintenance at Terminal 2', type: 'maintenance' as const, validFrom: '2024-12-10', validTo: '2024-12-20' },
-    { id: 'Y0006/24', airport: 'MEX', message: 'Radar approach not available - use visual', type: 'navigation' as const, validFrom: '2024-12-12', validTo: '2024-12-17' },
-    { id: 'Z0007/24', airport: 'LAS', message: 'Gate B10-B15 closed for renovation', type: 'construction' as const, validFrom: '2024-12-08', validTo: '2024-12-28' },
-    { id: 'A0008/24', airport: 'DEN', message: 'De-icing fluid shortage - limited capacity', type: 'maintenance' as const, validFrom: '2024-12-15', validTo: '2024-12-25' },
-    { id: 'B0009/24', airport: 'PHX', message: 'Terminal 4 security checkpoint closed', type: 'airspace' as const, validFrom: '2024-12-10', validTo: '2024-12-15' },
-    { id: 'C0010/24', airport: 'CLT', message: 'Taxiway M closed for maintenance', type: 'construction' as const, validFrom: '2024-12-05', validTo: '2024-12-18' },
-    { id: 'D0011/24', airport: 'IAD', message: 'Runway 19R closure for lighting repair', type: 'maintenance' as const, validFrom: '2024-12-12', validTo: '2024-12-22' },
-    { id: 'E0012/24', airport: 'SEA', message: 'Apron D construction - limited parking', type: 'construction' as const, validFrom: '2024-12-08', validTo: '2025-01-15' }
+    { id: 'C9012/24', airport: 'LHR', message: 'ILS approach out of service - use visual approach', type: 'navigation' as const, validFrom: '2024-12-05', validTo: '2024-12-10' }
   ])
   const [atcRestrictions, setAtcRestrictions] = useState([
     { id: '1', region: 'EUR', type: 'Flow control', level: 'Moderate', description: 'Reduced slot availability', slotDelay: 15 },
-    { id: '2', region: 'NAT', type: 'Route restrictions', level: 'Active', description: 'NAT Track A suspended', slotDelay: 30 },
-    { id: '3', region: 'PAC', type: 'Flow control', level: 'Low', description: 'Pacific routes reduced capacity', slotDelay: 10 },
-    { id: '4', region: 'USA', type: 'Ground delay', level: 'High', description: 'Weather delays at JFK', slotDelay: 45 },
-    { id: '5', region: 'ASIA', type: 'Route restrictions', level: 'Moderate', description: 'Chinese airspace restrictions', slotDelay: 20 },
-    { id: '6', region: 'MID', type: 'Flow control', level: 'Low', description: 'Middle East traffic management', slotDelay: 8 },
-    { id: '7', region: 'EUR', type: 'Miles-in-trail', level: 'Moderate', description: '10nm spacing over France', slotDelay: 12 },
-    { id: '8', region: 'NAT', type: 'Route restrictions', level: 'Active', description: 'Track B re-routing required', slotDelay: 25 },
-    { id: '9', region: 'USA', type: 'Ground delay', level: 'Moderate', description: 'ATC staffing LAX', slotDelay: 20 },
-    { id: '10', region: 'EUR', type: 'Flow control', level: 'High', description: 'London terminal capacity', slotDelay: 35 },
-    { id: '11', region: 'ASIA', type: 'Route restrictions', level: 'Low', description: 'India airspace congestion', slotDelay: 15 },
-    { id: '12', region: 'PAC', type: 'Miles-in-trail', level: 'Moderate', description: '20nm spacing over Pacific', slotDelay: 18 },
-    { id: '13', region: 'MID', type: 'Ground delay', level: 'Active', description: 'Dubai weather restrictions', slotDelay: 40 },
-    { id: '14', region: 'EUR', type: 'Flow control', level: 'Low', description: 'German sector capacity', slotDelay: 10 },
-    { id: '15', region: 'NAT', type: 'Route restrictions', level: 'Moderate', description: 'Track C limited availability', slotDelay: 22 },
-    { id: '16', region: 'USA', type: 'Miles-in-trail', level: 'High', description: 'East Coast spacing', slotDelay: 30 },
-    { id: '17', region: 'ASIA', type: 'Flow control', level: 'Moderate', description: 'Tokyo terminal restrictions', slotDelay: 25 },
-    { id: '18', region: 'PAC', type: 'Ground delay', level: 'Low', description: 'Sydney ATC staffing', slotDelay: 12 },
-    { id: '19', region: 'EUR', type: 'Route restrictions', level: 'Active', description: 'French airspace closure', slotDelay: 45 },
-    { id: '20', region: 'MID', type: 'Flow control', level: 'Moderate', description: 'Saudi Arabia routing', slotDelay: 18 },
-    { id: '21', region: 'USA', type: 'Ground delay', level: 'High', description: 'Chicago weather', slotDelay: 50 },
-    { id: '22', region: 'EUR', type: 'Miles-in-trail', level: 'Low', description: 'Spanish sector spacing', slotDelay: 8 },
-    { id: '23', region: 'NAT', type: 'Flow control', level: 'Moderate', description: 'Track D weather deviation', slotDelay: 28 },
-    { id: '24', region: 'ASIA', type: 'Route restrictions', level: 'Active', description: 'Korean airspace limits', slotDelay: 35 },
-    { id: '25', region: 'PAC', type: 'Ground delay', level: 'Moderate', description: 'Honolulu capacity', slotDelay: 20 },
-    { id: '26', region: 'EUR', type: 'Flow control', level: 'Low', description: 'Italian sector restrictions', slotDelay: 14 },
-    { id: '27', region: 'MID', type: 'Route restrictions', level: 'Moderate', description: 'Egypt airspace flow', slotDelay: 16 },
-    { id: '28', region: 'USA', type: 'Miles-in-trail', level: 'High', description: 'Denver spacing requirements', slotDelay: 32 },
-    { id: '29', region: 'ASIA', type: 'Flow control', level: 'Low', description: 'Singapore terminal capacity', slotDelay: 11 },
-    { id: '30', region: 'PAC', type: 'Ground delay', level: 'Moderate', description: 'Auckland weather', slotDelay: 24 }
+    { id: '2', region: 'NAT', type: 'Route restrictions', level: 'Active', description: 'NAT Track A suspended', slotDelay: 30 }
   ])
   const [alternateAirports, setAlternateAirports] = useState([
     { code: 'MAN', name: 'Manchester', type: 'Primary', distance: 200, weather: 'VFR', estimatedDelay: 0 },
-    { code: 'BHX', name: 'Birmingham', type: 'Secondary', distance: 150, weather: 'VFR', estimatedDelay: 5 },
-    { code: 'STN', name: 'Stansted', type: 'Secondary', distance: 180, weather: 'MVFR', estimatedDelay: 10 },
-    { code: 'LGW', name: 'Gatwick', type: 'Primary', distance: 120, weather: 'VFR', estimatedDelay: 15 },
-    { code: 'LUT', name: 'Luton', type: 'Secondary', distance: 160, weather: 'VFR', estimatedDelay: 8 },
-    { code: 'EWR', name: 'Newark', type: 'Primary', distance: 25, weather: 'MVFR', estimatedDelay: 20 },
-    { code: 'JRB', name: 'Teterboro', type: 'Secondary', distance: 20, weather: 'VFR', estimatedDelay: 0 },
-    { code: 'ISP', name: 'Long Island', type: 'Secondary', distance: 50, weather: 'VFR', estimatedDelay: 5 }
+    { code: 'BHX', name: 'Birmingham', type: 'Secondary', distance: 150, weather: 'VFR', estimatedDelay: 5 }
   ])
   const [fuelPlan, setFuelPlan] = useState({
     tripFuel: 18450,
@@ -689,7 +554,7 @@ export default function FlightOpsModule() {
         region: regions[Math.floor(Math.random() * regions.length)],
         type: restrictionTypes[Math.floor(Math.random() * restrictionTypes.length)],
         level: levels[Math.floor(Math.random() * levels.length)],
-        description: `Updated ${(new Date()).getHours()}:${String((new Date()).getMinutes()).padStart(2, '0')}`,
+        description: `Updated at ${new Date().toLocaleTimeString()}`,
         slotDelay: Math.floor(Math.random() * 45)
       }
       setAtcRestrictions([newRestriction, ...updatedRestrictions].slice(0, 8))
@@ -967,11 +832,11 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                       Add Route
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-[600px] max-w-[95vw]">
+                  <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Add New Route</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
+                    <div className="space-y-4 py-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Origin Airport</Label>
@@ -1054,7 +919,7 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto h-80">
+              <ScrollArea className="h-80 overflow-x-auto">
                 <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
@@ -1095,7 +960,7 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
 
@@ -1114,11 +979,11 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                       New Schedule
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-[500px] max-w-[95vw]">
+                  <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Create Flight Schedule</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
+                    <div className="space-y-4 py-4 max-h-96 overflow-y-auto">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Route</Label>
@@ -1209,7 +1074,7 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto h-80">
+              <ScrollArea className="h-80 overflow-x-auto">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -1256,7 +1121,7 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
 
@@ -1276,11 +1141,11 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                         Add Season
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] max-w-[95vw]">
+                    <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Add Seasonal Schedule</DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
+                      <div className="space-y-4 py-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <Label>Season</Label>
@@ -1344,7 +1209,7 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto h-80">
+                <ScrollArea className="h-80 overflow-x-auto">
                   <table className="enterprise-table min-w-[800px]">
                     <thead>
                       <tr>
@@ -1373,7 +1238,7 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </ScrollArea>
               </CardContent>
             </Card>
 
@@ -1392,11 +1257,11 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                         Assign Fleet
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] max-w-[95vw]">
+                    <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Assign Aircraft to Route</DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
+                      <div className="space-y-4 py-4 max-h-96 overflow-y-auto">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <Label>Registration</Label>
@@ -1476,7 +1341,7 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto h-80">
+                <ScrollArea className="h-80 overflow-x-auto">
                   <table className="enterprise-table min-w-[900px]">
                     <thead>
                       <tr>
@@ -1498,13 +1363,13 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                           <td className="text-sm">{assignment.routes.join(', ')}</td>
                           <td>
                             <div className="flex items-center flex-wrap gap-2">
-                              <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden min-w-0">
+                              <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
                                 <div 
                                   className={`h-full transition-all ${assignment.utilizationRate >= 95 ? 'bg-green-500' : assignment.utilizationRate >= 85 ? 'bg-blue-500' : 'bg-yellow-500'}`}
                                   style={{ width: `${assignment.utilizationRate}%` }}
                                 />
                               </div>
-                              <span className="text-sm font-medium whitespace-nowrap">{assignment.utilizationRate}%</span>
+                              <span className="text-sm font-medium">{assignment.utilizationRate}%</span>
                             </div>
                           </td>
                           <td>
@@ -1521,7 +1386,7 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </ScrollArea>
               </CardContent>
             </Card>
           </div>
@@ -1613,74 +1478,74 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                 Auto re-accommodation, passenger re-protection, and disruption handling
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto h-96">
+            <CardContent>
+              <ScrollArea className="h-96 overflow-x-auto">
                 <table className="enterprise-table min-w-[1000px]">
-                    <thead>
+                  <thead>
+                    <tr>
+                      <th>Flight</th>
+                      <th>Type</th>
+                      <th>Reason</th>
+                      <th>Code</th>
+                      <th>Pax Affected</th>
+                      <th>Est. Cost</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {disruptions.length === 0 ? (
                       <tr>
-                        <th>Flight</th>
-                        <th>Type</th>
-                        <th>Reason</th>
-                        <th>Code</th>
-                        <th>Pax Affected</th>
-                        <th>Est. Cost</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <td colSpan={8} className="text-center text-muted-foreground py-8">
+                          No disruption events recorded
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {disruptions.length === 0 ? (
-                        <tr>
-                          <td colSpan={8} className="text-center text-muted-foreground py-8">
-                            No disruption events recorded
+                    ) : (
+                      disruptions.map((disruption) => (
+                        <tr key={disruption.id}>
+                          <td className="font-medium">{disruption.flightNumber}</td>
+                          <td>
+                            <Badge variant="destructive" className="capitalize">{disruption.type}</Badge>
+                          </td>
+                          <td className="text-sm">{disruption.reason}</td>
+                          <td className="text-sm font-mono">{disruption.code}</td>
+                          <td className="text-sm">{disruption.impact.passengers}</td>
+                          <td className="text-sm text-red-600">${disruption.impact.estimatedCost.toLocaleString()}</td>
+                          <td>
+                            <Badge 
+                              variant={disruption.status === 'active' ? 'destructive' : 
+                                      disruption.status === 'resolved' ? 'default' : 'secondary'}
+                              className="capitalize"
+                            >
+                              {disruption.status}
+                            </Badge>
+                          </td>
+                          <td>
+                            <div className="flex items-center flex-wrap gap-1">
+                              {disruption.status === 'active' && (
+                                <>
+                                  <Button variant="ghost" size="sm" onClick={() => handleAutoReaccommodate(disruption.id)} title="Auto-reaccommodate passengers">
+                                    <RefreshCw className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => handleResolveDisruption(disruption.id)} title="Resolve disruption">
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                </>
+                              )}
+                              {disruption.status === 'resolved' && (
+                                <Badge variant="default" className="text-xs">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Resolved
+                                </Badge>
+                              )}
+                            </div>
                           </td>
                         </tr>
-                      ) : (
-                        disruptions.map((disruption) => (
-                          <tr key={disruption.id}>
-                            <td className="font-medium">{disruption.flightNumber}</td>
-                            <td>
-                              <Badge variant="destructive" className="capitalize">{disruption.type}</Badge>
-                            </td>
-                            <td className="text-sm">{disruption.reason}</td>
-                            <td className="text-sm font-mono">{disruption.code}</td>
-                            <td className="text-sm">{disruption.impact.passengers}</td>
-                            <td className="text-sm text-red-600">${disruption.impact.estimatedCost.toLocaleString()}</td>
-                            <td>
-                              <Badge 
-                                variant={disruption.status === 'active' ? 'destructive' : 
-                                        disruption.status === 'resolved' ? 'default' : 'secondary'}
-                                className="capitalize"
-                              >
-                                {disruption.status}
-                              </Badge>
-                            </td>
-                            <td>
-                              <div className="flex items-center flex-wrap gap-1">
-                                {disruption.status === 'active' && (
-                                  <>
-                                    <Button variant="ghost" size="sm" onClick={() => handleAutoReaccommodate(disruption.id)} title="Auto-reaccommodate passengers">
-                                      <RefreshCw className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => handleResolveDisruption(disruption.id)} title="Resolve disruption">
-                                      <CheckCircle className="h-4 w-4 text-green-600" />
-                                    </Button>
-                                  </>
-                                )}
-                                {disruption.status === 'resolved' && (
-                                  <Badge variant="default" className="text-xs">
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Resolved
-                                  </Badge>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                              </div>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1770,20 +1635,20 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                       <RefreshCw className="h-3 w-3" />
                     </Button>
                   </div>
-                  <div className="overflow-x-auto h-40">
-                    <div className="space-y-2 min-w-full">
+                  <ScrollArea className="h-40">
+                    <div className="space-y-2">
                       {notams.map(notam => (
-                        <div key={notam.id} className="p-2 bg-yellow-50 border border-yellow-200 rounded-sm text-sm min-w-[300px]">
-                          <div className="flex items-center justify-between flex-wrap gap-2">
-                            <div className="font-medium truncate">{notam.id} - {notam.airport}</div>
-                            <Badge variant="outline" className="text-xs flex-shrink-0">{notam.type}</Badge>
+                        <div key={notam.id} className="p-2 bg-yellow-50 border border-yellow-200 rounded-sm text-sm">
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium">{notam.id} - {notam.airport}</div>
+                            <Badge variant="outline" className="text-xs">{notam.type}</Badge>
                           </div>
-                          <div className="text-muted-foreground text-xs mt-1 break-words">{notam.message}</div>
+                          <div className="text-muted-foreground text-xs mt-1">{notam.message}</div>
                           <div className="text-xs text-muted-foreground mt-1">Valid: {notam.validFrom} to {notam.validTo}</div>
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </ScrollArea>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1825,42 +1690,38 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
 
                 <div>
                   <h3 className="text-sm font-medium mb-2">ATC Restrictions</h3>
-                  <div className="overflow-x-auto h-48">
-                    <div className="space-y-2 min-w-full">
-                      {atcRestrictions.map(restriction => (
-                        <div key={restriction.id} className="p-2 bg-secondary/30 rounded-sm text-sm flex items-center justify-between min-w-[350px]">
-                          <div className="min-w-0 flex-1">
-                            <div className="font-medium truncate">{restriction.type} - {restriction.region}</div>
-                            <div className="text-xs text-muted-foreground truncate">{restriction.description}</div>
-                            <div className="text-xs text-orange-600">Slot Delay: {restriction.slotDelay}min</div>
-                          </div>
-                          <Badge variant={restriction.level === 'Active' || restriction.level === 'High' ? 'destructive' : 'outline'} className="flex-shrink-0 ml-2">
-                            {restriction.level}
-                          </Badge>
+                  <div className="space-y-2">
+                    {atcRestrictions.map(restriction => (
+                      <div key={restriction.id} className="p-2 bg-secondary/30 rounded-sm text-sm flex items-center justify-between">
+                        <div>
+                          <div className="font-medium">{restriction.type} - {restriction.region}</div>
+                          <div className="text-xs text-muted-foreground">{restriction.description}</div>
+                          <div className="text-xs text-orange-600">Slot Delay: {restriction.slotDelay}min</div>
                         </div>
-                      ))}
-                    </div>
+                        <Badge variant={restriction.level === 'Active' || restriction.level === 'High' ? 'destructive' : 'outline'}>
+                          {restriction.level}
+                        </Badge>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 <div>
                   <h3 className="text-sm font-medium mb-2">Alternate Airports</h3>
-                  <div className="overflow-x-auto h-48">
-                    <div className="space-y-2 min-w-full">
-                      {alternateAirports.map(alt => (
-                        <div key={alt.code} className="flex items-center justify-between text-sm p-2 bg-secondary/30 rounded-sm min-w-[300px]">
-                          <div className="flex items-center flex-wrap gap-2 min-w-0 flex-1">
-                            <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <div className="min-w-0">
-                              <div className="font-medium truncate">{alt.code} ({alt.name})</div>
-                              <div className="text-xs text-muted-foreground">{alt.distance}nm • {alt.weather}</div>
-                              {alt.estimatedDelay > 0 && <div className="text-xs text-orange-600">Est. Delay: {alt.estimatedDelay}min</div>}
-                            </div>
+                  <div className="space-y-2">
+                    {alternateAirports.map(alt => (
+                      <div key={alt.code} className="flex items-center justify-between text-sm p-2 bg-secondary/30 rounded-sm">
+                        <div className="flex items-center flex-wrap gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <div className="font-medium">{alt.code} ({alt.name})</div>
+                            <div className="text-xs text-muted-foreground">{alt.distance}nm • {alt.weather}</div>
+                            {alt.estimatedDelay > 0 && <div className="text-xs text-orange-600">Est. Delay: {alt.estimatedDelay}min</div>}
                           </div>
-                          <Badge variant={alt.type === 'Primary' ? 'default' : 'secondary'} className="flex-shrink-0 ml-2">{alt.type}</Badge>
                         </div>
-                      ))}
-                    </div>
+                        <Badge variant={alt.type === 'Primary' ? 'default' : 'secondary'}>{alt.type}</Badge>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -1918,24 +1779,22 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto pb-2">
-                <div className="flex items-center justify-between min-w-[600px]">
-                  {[
-                    { status: 'scheduled', label: 'Scheduled', time: '08:00' },
-                    { status: 'checkin_open', label: 'Check-in Open', time: '05:00' },
-                    { status: 'boarding', label: 'Boarding', time: '07:30' },
-                    { status: 'departed', label: 'Departed', time: '08:05' },
-                    { status: 'enroute', label: 'En Route', time: '08:10' },
-                    { status: 'arrived', label: 'Arrived', time: '16:25' }
-                  ].map((milestone, i) => (
-                    <div key={milestone.status} className="flex flex-col items-center flex-1 min-w-[100px]">
-                      <div className={`w-4 h-4 rounded-full flex-shrink-0 ${i < 3 ? 'bg-primary' : 'bg-gray-300'}`} />
-                      <div className="text-xs mt-2 font-medium text-center whitespace-nowrap">{milestone.label}</div>
-                      <div className="text-xs text-muted-foreground whitespace-nowrap">{milestone.time}</div>
-                      {i < 5 && <ArrowRight className="h-4 w-4 text-muted-foreground mt-2 flex-shrink-0" />}
-                    </div>
-                  ))}
-                </div>
+              <div className="flex items-center justify-between overflow-x-auto">
+                {[
+                  { status: 'scheduled', label: 'Scheduled', time: '08:00' },
+                  { status: 'checkin_open', label: 'Check-in Open', time: '05:00' },
+                  { status: 'boarding', label: 'Boarding', time: '07:30' },
+                  { status: 'departed', label: 'Departed', time: '08:05' },
+                  { status: 'enroute', label: 'En Route', time: '08:10' },
+                  { status: 'arrived', label: 'Arrived', time: '16:25' }
+                ].map((milestone, i) => (
+                  <div key={milestone.status} className="flex flex-col items-center flex-1 min-w-[80px]">
+                    <div className={`w-4 h-4 rounded-full ${i < 3 ? 'bg-primary' : 'bg-gray-300'}`} />
+                    <div className="text-xs mt-2 font-medium text-center">{milestone.label}</div>
+                    <div className="text-xs text-muted-foreground">{milestone.time}</div>
+                    {i < 5 && <ArrowRight className="h-4 w-4 text-muted-foreground mt-2" />}
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -1944,12 +1803,12 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
 
       {/* Edit Route Dialog */}
       <Dialog open={showEditRouteDialog} onOpenChange={setShowEditRouteDialog}>
-        <DialogContent className="sm:max-w-[600px] max-w-[95vw]">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Route</DialogTitle>
           </DialogHeader>
           {editingRoute && (
-            <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
+            <div className="space-y-4 py-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label>Origin Airport</Label>
@@ -2286,7 +2145,7 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                   <CardTitle className="text-base">Active NOTAMs</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-y-auto h-40">
+                  <ScrollArea className="h-40">
                     <div className="space-y-2">
                       {generatedFlightRelease.notams.map((notam: any) => (
                         <div key={notam.id} className="p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
@@ -2299,7 +2158,7 @@ ${alternateAirports.map(a => `  ${a.code} - ${a.name} (${a.type})
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </ScrollArea>
                 </CardContent>
               </Card>
 

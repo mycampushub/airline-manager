@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-// import { ScrollArea } from '@/components/ui/scroll-area'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -173,23 +173,7 @@ interface PasswordPolicy {
 export default function SecurityModule() {
   const { users, auditLogs, securityEvents, deleteUser, updateUser } = useAirlineStore()
   const { toast } = useToast()
-
-  // Utility function to format time consistently across server and client
-  const formatTime = (dateString: string): string => {
-    const date = new Date(dateString)
-    const hours = date.getHours().toString().padStart(2, '0')
-    const minutes = date.getMinutes().toString().padStart(2, '0')
-    return `${hours}:${minutes}`
-  }
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString)
-    const year = date.getFullYear()
-    const month = (date.getMonth() + 1).toString().padStart(2, '0')
-    const day = date.getDate().toString().padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
-
+  
   // MFA state
   const [mfaMethods, setMfaMethods] = useState<MFAMethod[]>([])
   const [showMFADialog, setShowMFADialog] = useState(false)
@@ -243,72 +227,100 @@ export default function SecurityModule() {
   // Initialize mock data functions
   const initializeMFAMethods = () => {
     const methods: MFAMethod[] = [
-      { id: 'mfa-001', name: 'SMS Authentication', type: 'sms', enabled: true, description: 'Receive one-time codes via SMS', setupDate: '2024-01-10', lastUsed: '2024-01-18T14:30:00Z', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-002', name: 'Email Authentication', type: 'email', enabled: true, description: 'Receive one-time codes via email', setupDate: '2024-01-05', lastUsed: '2024-01-17T09:15:00Z', icon: <Mail className="h-5 w-5" /> },
-      { id: 'mfa-003', name: 'Google Authenticator', type: 'authenticator', enabled: false, description: 'TOTP codes via Google Authenticator', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-004', name: 'Microsoft Authenticator', type: 'authenticator', enabled: false, description: 'TOTP codes via Microsoft Authenticator', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-005', name: 'Authy', type: 'authenticator', enabled: true, description: 'TOTP codes via Authy app', setupDate: '2024-01-08', lastUsed: '2024-01-18T11:20:00Z', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-006', name: 'YubiKey 5 NFC', type: 'hardware_key', enabled: false, description: 'USB/NFC security key', icon: <Key className="h-5 w-5" /> },
-      { id: 'mfa-007', name: 'YubiKey 5C NFC', type: 'hardware_key', enabled: true, description: 'USB-C/NFC security key', setupDate: '2024-01-12', lastUsed: '2024-01-18T13:45:00Z', icon: <Key className="h-5 w-5" /> },
-      { id: 'mfa-008', name: 'Duo Push', type: 'authenticator', enabled: false, description: 'Duo push notifications', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-009', name: 'LastPass Authenticator', type: 'authenticator', enabled: false, description: 'TOTP via LastPass', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-010', name: '1Password', type: 'authenticator', enabled: true, description: 'Built-in 2FA with 1Password', setupDate: '2024-01-15', lastUsed: '2024-01-18T16:00:00Z', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-011', name: 'Okta Verify', type: 'authenticator', enabled: false, description: 'Okta mobile authentication', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-012', name: 'RSA SecurID', type: 'hardware_key', enabled: false, description: 'RSA hardware token', icon: <Key className="h-5 w-5" /> },
-      { id: 'mfa-013', name: 'Symantec VIP', type: 'authenticator', enabled: false, description: 'Symantec validation app', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-014', name: 'Twilio Verify', type: 'sms', enabled: true, description: 'Twilio SMS verification', setupDate: '2024-01-11', lastUsed: '2024-01-18T10:30:00Z', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-015', name: 'AWS MFA', type: 'hardware_key', enabled: false, description: 'AWS virtual MFA device', icon: <Key className="h-5 w-5" /> },
-      { id: 'mfa-016', name: 'Bitwarden', type: 'authenticator', enabled: false, description: 'Bitwarden 2FA authenticator', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-017', name: 'Cisco Duo', type: 'authenticator', enabled: true, description: 'Cisco Duo Security', setupDate: '2024-01-09', lastUsed: '2024-01-18T12:15:00Z', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-018', name: 'PingID', type: 'authenticator', enabled: false, description: 'Ping identity authentication', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-019', name: 'Feitian FIDO2', type: 'hardware_key', enabled: false, description: 'Feitian FIDO2 security key', icon: <Key className="h-5 w-5" /> },
-      { id: 'mfa-020', name: 'Nitrokey', type: 'hardware_key', enabled: false, description: 'Open source security key', icon: <Key className="h-5 w-5" /> },
-      { id: 'mfa-021', name: 'SMS via Twilio', type: 'sms', enabled: true, description: 'Twilio-powered SMS codes', setupDate: '2024-01-13', lastUsed: '2024-01-18T15:00:00Z', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-022', name: 'Email via SendGrid', type: 'email', enabled: true, description: 'SendGrid email codes', setupDate: '2024-01-07', lastUsed: '2024-01-17T14:20:00Z', icon: <Mail className="h-5 w-5" /> },
-      { id: 'mfa-023', name: 'TREZOR', type: 'hardware_key', enabled: false, description: 'TREZOR hardware wallet 2FA', icon: <Key className="h-5 w-5" /> },
-      { id: 'mfa-024', name: 'Ledger Nano', type: 'hardware_key', enabled: false, description: 'Ledger hardware wallet 2FA', icon: <Key className="h-5 w-5" /> },
-      { id: 'mfa-025', name: 'Authenticator Plus', type: 'authenticator', enabled: false, description: 'Enhanced TOTP app', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-026', name: 'AndOTP', type: 'authenticator', enabled: false, description: 'Open source 2FA app', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-027', name: 'Aegis', type: 'authenticator', enabled: false, description: 'Free open-source authenticator', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-028', name: 'TOTP Authenticator', type: 'authenticator', enabled: true, description: 'Simple TOTP authenticator', setupDate: '2024-01-14', lastUsed: '2024-01-18T17:30:00Z', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-029', name: 'SMS via AWS SNS', type: 'sms', enabled: false, description: 'AWS SNS SMS codes', icon: <Smartphone className="h-5 w-5" /> },
-      { id: 'mfa-030', name: 'Backup Codes', type: 'authenticator', enabled: true, description: 'One-time backup recovery codes', setupDate: '2024-01-16', lastUsed: '2024-01-17T11:00:00Z', icon: <Key className="h-5 w-5" /> }
+      {
+        id: 'mfa-001',
+        name: 'SMS Authentication',
+        type: 'sms',
+        enabled: true,
+        description: 'Receive one-time codes via SMS',
+        setupDate: '2024-01-10',
+        lastUsed: '2024-01-18T14:30:00Z',
+        icon: <Smartphone className="h-5 w-5" />
+      },
+      {
+        id: 'mfa-002',
+        name: 'Email Authentication',
+        type: 'email',
+        enabled: true,
+        description: 'Receive one-time codes via email',
+        setupDate: '2024-01-05',
+        lastUsed: '2024-01-17T09:15:00Z',
+        icon: <Mail className="h-5 w-5" />
+      },
+      {
+        id: 'mfa-003',
+        name: 'Authenticator App',
+        type: 'authenticator',
+        enabled: false,
+        description: 'TOTP codes via Google/Microsoft Authenticator',
+        icon: <Smartphone className="h-5 w-5" />
+      },
+      {
+        id: 'mfa-004',
+        name: 'Hardware Security Key',
+        type: 'hardware_key',
+        enabled: false,
+        description: 'YubiKey or similar hardware token',
+        icon: <Key className="h-5 w-5" />
+      }
     ]
     setMfaMethods(methods)
   }
 
   const initializeSessions = () => {
     const sessionData: Session[] = [
-      { id: 'sess-001', userId: 'user-001', userName: 'John Smith', device: 'MacBook Pro', browser: 'Chrome 120', ip: '192.168.1.100', location: 'New York, US', loginTime: '2024-01-18T08:00:00Z', lastActivity: '2024-01-18T15:30:00Z', status: 'active', currentSession: true },
-      { id: 'sess-002', userId: 'user-001', userName: 'John Smith', device: 'iPhone 15', browser: 'Safari Mobile', ip: '192.168.1.105', location: 'New York, US', loginTime: '2024-01-17T14:00:00Z', lastActivity: '2024-01-17T18:30:00Z', status: 'expired', currentSession: false },
-      { id: 'sess-003', userId: 'user-002', userName: 'Sarah Johnson', device: 'Windows 11', browser: 'Edge 120', ip: '192.168.1.110', location: 'London, GB', loginTime: '2024-01-18T09:00:00Z', lastActivity: '2024-01-18T15:45:00Z', status: 'active', currentSession: false },
-      { id: 'sess-004', userId: 'user-003', userName: 'Mike Wilson', device: 'iPhone 14', browser: 'Safari Mobile', ip: '192.168.1.120', location: 'Unknown', loginTime: '2024-01-16T10:30:00Z', lastActivity: '2024-01-16T12:00:00Z', status: 'terminated', currentSession: false },
-      { id: 'sess-005', userId: 'user-004', userName: 'Emily Chen', device: 'MacBook Air', browser: 'Chrome 119', ip: '10.0.0.45', location: 'San Francisco, US', loginTime: '2024-01-18T07:30:00Z', lastActivity: '2024-01-18T16:00:00Z', status: 'active', currentSession: false },
-      { id: 'sess-006', userId: 'user-005', userName: 'David Kim', device: 'iPad Pro', browser: 'Safari', ip: '172.16.0.23', location: 'Seoul, KR', loginTime: '2024-01-18T06:00:00Z', lastActivity: '2024-01-18T14:15:00Z', status: 'active', currentSession: false },
-      { id: 'sess-007', userId: 'user-006', userName: 'Maria Garcia', device: 'Windows 10', browser: 'Firefox 121', ip: '192.168.1.135', location: 'Madrid, ES', loginTime: '2024-01-17T10:00:00Z', lastActivity: '2024-01-17T17:00:00Z', status: 'expired', currentSession: false },
-      { id: 'sess-008', userId: 'user-007', userName: 'James Wilson', device: 'Samsung Galaxy', browser: 'Chrome Mobile', ip: '203.0.113.45', location: 'Sydney, AU', loginTime: '2024-01-18T04:00:00Z', lastActivity: '2024-01-18T12:30:00Z', status: 'active', currentSession: false },
-      { id: 'sess-009', userId: 'user-008', userName: 'Anna Mueller', device: 'ThinkPad X1', browser: 'Chrome 120', ip: '198.51.100.67', location: 'Berlin, DE', loginTime: '2024-01-18T08:30:00Z', lastActivity: '2024-01-18T15:00:00Z', status: 'active', currentSession: false },
-      { id: 'sess-010', userId: 'user-009', userName: 'Pierre Dubois', device: 'MacBook Pro', browser: 'Safari', ip: '203.0.113.89', location: 'Paris, FR', loginTime: '2024-01-16T14:00:00Z', lastActivity: '2024-01-16T18:00:00Z', status: 'expired', currentSession: false },
-      { id: 'sess-011', userId: 'user-010', userName: 'Hiroshi Tanaka', device: 'iPhone 13', browser: 'Safari Mobile', ip: '203.0.113.123', location: 'Tokyo, JP', loginTime: '2024-01-18T03:00:00Z', lastActivity: '2024-01-18T11:45:00Z', status: 'active', currentSession: false },
-      { id: 'sess-012', userId: 'user-011', userName: 'Lucas Silva', device: 'Dell XPS', browser: 'Edge 121', ip: '192.168.1.150', location: 'São Paulo, BR', loginTime: '2024-01-17T12:00:00Z', lastActivity: '2024-01-17T19:00:00Z', status: 'expired', currentSession: false },
-      { id: 'sess-013', userId: 'user-012', userName: 'Olga Petrov', device: 'Surface Pro', browser: 'Chrome 119', ip: '198.51.100.101', location: 'Moscow, RU', loginTime: '2024-01-15T09:30:00Z', lastActivity: '2024-01-15T16:30:00Z', status: 'terminated', currentSession: false },
-      { id: 'sess-014', userId: 'user-013', userName: 'Rahul Sharma', device: 'HP Spectre', browser: 'Chrome 120', ip: '172.16.0.45', location: 'Mumbai, IN', loginTime: '2024-01-18T05:00:00Z', lastActivity: '2024-01-18T13:30:00Z', status: 'active', currentSession: false },
-      { id: 'sess-015', userId: 'user-014', userName: 'Wei Chen', device: 'MacBook Air', browser: 'Safari', ip: '203.0.113.156', location: 'Shanghai, CN', loginTime: '2024-01-18T06:30:00Z', lastActivity: '2024-01-18T14:15:00Z', status: 'active', currentSession: false },
-      { id: 'sess-016', userId: 'user-015', userName: 'Elena Rossi', device: 'Asus ZenBook', browser: 'Firefox 121', ip: '192.168.1.175', location: 'Rome, IT', loginTime: '2024-01-17T11:00:00Z', lastActivity: '2024-01-17T18:00:00Z', status: 'expired', currentSession: false },
-      { id: 'sess-017', userId: 'user-016', userName: 'Ahmed Hassan', device: 'iPhone 12', browser: 'Safari Mobile', ip: '198.51.100.134', location: 'Cairo, EG', loginTime: '2024-01-18T04:30:00Z', lastActivity: '2024-01-18T12:45:00Z', status: 'active', currentSession: false },
-      { id: 'sess-018', userId: 'user-017', userName: 'Yuki Yamamoto', device: 'iPad Air', browser: 'Safari', ip: '203.0.113.178', location: 'Osaka, JP', loginTime: '2024-01-16T15:00:00Z', lastActivity: '2024-01-16T21:00:00Z', status: 'expired', currentSession: false },
-      { id: 'sess-019', userId: 'user-018', userName: 'Carlos Mendoza', device: 'Lenovo ThinkPad', browser: 'Chrome 120', ip: '172.16.0.67', location: 'Mexico City, MX', loginTime: '2024-01-18T07:00:00Z', lastActivity: '2024-01-18T15:30:00Z', status: 'active', currentSession: false },
-      { id: 'sess-020', userId: 'user-019', userName: 'Sophie Martin', device: 'Dell Latitude', browser: 'Edge 121', ip: '192.168.1.190', location: 'Lyon, FR', loginTime: '2024-01-17T13:00:00Z', lastActivity: '2024-01-17T19:30:00Z', status: 'expired', currentSession: false },
-      { id: 'sess-021', userId: 'user-020', userName: 'Jin Park', device: 'Samsung Galaxy S24', browser: 'Chrome Mobile', ip: '203.0.113.189', location: 'Seoul, KR', loginTime: '2024-01-18T03:30:00Z', lastActivity: '2024-01-18T11:15:00Z', status: 'active', currentSession: false },
-      { id: 'sess-022', userId: 'user-021', userName: 'Ivan Popov', device: 'HP EliteBook', browser: 'Chrome 119', ip: '198.51.100.145', location: 'Saint Petersburg, RU', loginTime: '2024-01-15T10:00:00Z', lastActivity: '2024-01-15T17:00:00Z', status: 'terminated', currentSession: false },
-      { id: 'sess-023', userId: 'user-022', userName: 'Fatima Al-Rashid', device: 'MacBook Pro', browser: 'Safari', ip: '172.16.0.89', location: 'Riyadh, SA', loginTime: '2024-01-18T05:30:00Z', lastActivity: '2024-01-18T14:00:00Z', status: 'active', currentSession: false },
-      { id: 'sess-024', userId: 'user-023', userName: 'Nils Andersen', device: 'Surface Laptop', browser: 'Edge 121', ip: '192.168.1.205', location: 'Copenhagen, DK', loginTime: '2024-01-17T14:30:00Z', lastActivity: '2024-01-17T20:00:00Z', status: 'expired', currentSession: false },
-      { id: 'sess-025', userId: 'user-024', userName: 'Aisha Khan', device: 'iPhone 15 Pro', browser: 'Safari Mobile', ip: '203.0.113.201', location: 'Dubai, AE', loginTime: '2024-01-18T04:00:00Z', lastActivity: '2024-01-18T12:30:00Z', status: 'active', currentSession: false },
-      { id: 'sess-026', userId: 'user-025', userName: 'Marcus Weber', device: 'ThinkPad X1 Carbon', browser: 'Firefox 121', ip: '198.51.100.156', location: 'Frankfurt, DE', loginTime: '2024-01-16T16:00:00Z', lastActivity: '2024-01-16T22:00:00Z', status: 'expired', currentSession: false },
-      { id: 'sess-027', userId: 'user-026', userName: 'Priya Patel', device: 'Asus VivoBook', browser: 'Chrome 120', ip: '172.16.0.101', location: 'Bangalore, IN', loginTime: '2024-01-18T06:00:00Z', lastActivity: '2024-01-18T14:30:00Z', status: 'active', currentSession: false },
-      { id: 'sess-028', userId: 'user-027', userName: 'Tom Anderson', device: 'Dell XPS 13', browser: 'Edge 121', ip: '192.168.1.220', location: 'Toronto, CA', loginTime: '2024-01-17T12:30:00Z', lastActivity: '2024-01-17T19:00:00Z', status: 'expired', currentSession: false },
-      { id: 'sess-029', userId: 'user-028', userName: 'Linda Chen', device: 'MacBook Air M2', browser: 'Safari', ip: '203.0.113.212', location: 'Vancouver, CA', loginTime: '2024-01-18T07:30:00Z', lastActivity: '2024-01-18T16:00:00Z', status: 'active', currentSession: false },
-      { id: 'sess-030', userId: 'user-029', userName: 'Robert Taylor', device: 'HP Spectre x360', browser: 'Chrome 119', ip: '198.51.100.167', location: 'Melbourne, AU', loginTime: '2024-01-15T11:00:00Z', lastActivity: '2024-01-15T17:30:00Z', status: 'terminated', currentSession: false }
+      {
+        id: 'sess-001',
+        userId: 'user-001',
+        userName: 'John Smith',
+        device: 'MacBook Pro',
+        browser: 'Chrome 120',
+        ip: '192.168.1.100',
+        location: 'New York, US',
+        loginTime: '2024-01-18T08:00:00Z',
+        lastActivity: '2024-01-18T15:30:00Z',
+        status: 'active',
+        currentSession: true
+      },
+      {
+        id: 'sess-002',
+        userId: 'user-001',
+        userName: 'John Smith',
+        device: 'iPhone 15',
+        browser: 'Safari Mobile',
+        ip: '192.168.1.105',
+        location: 'New York, US',
+        loginTime: '2024-01-17T14:00:00Z',
+        lastActivity: '2024-01-17T18:30:00Z',
+        status: 'expired',
+        currentSession: false
+      },
+      {
+        id: 'sess-003',
+        userId: 'user-002',
+        userName: 'Sarah Johnson',
+        device: 'Windows 11',
+        browser: 'Edge 120',
+        ip: '192.168.1.110',
+        location: 'London, GB',
+        loginTime: '2024-01-18T09:00:00Z',
+        lastActivity: '2024-01-18T15:45:00Z',
+        status: 'active',
+        currentSession: false
+      },
+      {
+        id: 'sess-004',
+        userId: 'user-003',
+        userName: 'Mike Wilson',
+        device: 'iPhone 14',
+        browser: 'Safari Mobile',
+        ip: '192.168.1.120',
+        location: 'Unknown',
+        loginTime: '2024-01-16T10:30:00Z',
+        lastActivity: '2024-01-16T12:00:00Z',
+        status: 'terminated',
+        currentSession: false
+      }
     ]
     setSessions(sessionData)
   }
@@ -915,7 +927,7 @@ export default function SecurityModule() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto h-96">
+                <ScrollArea className="h-96 overflow-x-auto">
                   <table className="enterprise-table min-w-[1000px]">
                     <thead>
                       <tr>
@@ -967,7 +979,7 @@ export default function SecurityModule() {
                       )}
                     </tbody>
                   </table>
-                </div>
+                </ScrollArea>
               </CardContent>
             </Card>
           </div>
@@ -1131,7 +1143,7 @@ export default function SecurityModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto h-96">
+              <ScrollArea className="h-96 overflow-x-auto">
                 <table className="enterprise-table min-w-[1100px]">
                   <thead>
                     <tr>
@@ -1167,9 +1179,9 @@ export default function SecurityModule() {
                         <td className="text-sm">{session.location}</td>
                         <td className="text-sm">
                           <div className="flex flex-col">
-                            <span>{formatDate(session.loginTime)}</span>
+                            <span>{new Date(session.loginTime).toLocaleDateString()}</span>
                             <span className="text-xs text-muted-foreground">
-                              {formatTime(session.lastActivity)}
+                              {new Date(session.lastActivity).toLocaleTimeString()}
                             </span>
                           </div>
                         </td>
@@ -1202,7 +1214,7 @@ export default function SecurityModule() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1310,7 +1322,7 @@ export default function SecurityModule() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-y-auto h-96">
+                <ScrollArea className="h-96">
                   <div className="space-y-3">
                     {securityAlerts
                       .filter(alert => alertFilter === 'all' || alert.status === alertFilter)
@@ -1366,7 +1378,7 @@ export default function SecurityModule() {
                         </div>
                       ))}
                   </div>
-                </div>
+                </ScrollArea>
               </CardContent>
             </Card>
 
@@ -1424,7 +1436,7 @@ export default function SecurityModule() {
 
                     <div>
                       <Label>Notes</Label>
-                      <div className="overflow-y-auto h-32">
+                      <ScrollArea className="h-32 mt-2 border rounded-lg p-3">
                         <div className="space-y-2">
                           {selectedAlert.notes.map((note, idx) => (
                             <div key={idx} className="text-sm p-2 bg-secondary/20 rounded">
@@ -1435,7 +1447,7 @@ export default function SecurityModule() {
                             <div className="text-sm text-muted-foreground text-center py-2">No notes added yet</div>
                           )}
                         </div>
-                      </div>
+                      </ScrollArea>
                       <div className="flex gap-2 mt-2">
                         <Input
                           value={newNote}
@@ -1603,7 +1615,7 @@ export default function SecurityModule() {
                 <CardDescription>Detailed system activity log with change tracking</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto h-96">
+                <ScrollArea className="h-96 overflow-x-auto">
                   <table className="enterprise-table min-w-[1200px]">
                     <thead>
                       <tr>
@@ -1671,7 +1683,7 @@ export default function SecurityModule() {
                         ))}
                     </tbody>
                   </table>
-                </div>
+                </ScrollArea>
               </CardContent>
             </Card>
           </div>
@@ -1798,7 +1810,7 @@ export default function SecurityModule() {
                 <CardDescription>Status of each compliance framework audit</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-y-auto h-96">
+                <ScrollArea className="h-96">
                   <div className="space-y-3">
                     {complianceChecks.map((check) => (
                       <div key={check.id} className="p-4 border rounded-sm">
@@ -1849,7 +1861,7 @@ export default function SecurityModule() {
                       </div>
                     ))}
                   </div>
-                </div>
+                </ScrollArea>
               </CardContent>
             </Card>
           </div>
@@ -1872,7 +1884,7 @@ export default function SecurityModule() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-y-auto h-96">
+                <ScrollArea className="h-96">
                   <div className="space-y-3">
                     {roles.map((role) => (
                       <div key={role.id} className="p-4 border rounded-sm">
@@ -1918,7 +1930,7 @@ export default function SecurityModule() {
                       </div>
                     ))}
                   </div>
-                </div>
+                </ScrollArea>
               </CardContent>
             </Card>
           </div>

@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate route structure
-    if (!route.origin || !route.destination || !route.isInternational === undefined) {
+    if (!route.origin || !route.destination || route.isInternational === undefined) {
       return NextResponse.json(
         { error: 'Invalid route structure. Must include origin, destination, and isInternational' },
         { status: 400 }

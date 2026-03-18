@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-// import { ScrollArea } from '@/components/ui/scroll-area'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog'
@@ -205,134 +205,6 @@ export default function PSSModule() {
     }
   }, [pendingAction])
   
-  // Generate demo data if needed
-  useEffect(() => {
-    // Generate additional PNRs if we don't have enough
-    if (pnrs.length < 30) {
-      const routes = [
-        { origin: 'JFK', destination: 'LHR', flightNumber: 'AA100', duration: 420, aircraft: 'B777-300ER' },
-        { origin: 'JFK', destination: 'LAX', flightNumber: 'AA200', duration: 375, aircraft: 'B787-9' },
-        { origin: 'JFK', destination: 'ORD', flightNumber: 'AA300', duration: 120, aircraft: 'B737-800' },
-        { origin: 'LAX', destination: 'LHR', flightNumber: 'AA400', duration: 645, aircraft: 'A350-900' },
-        { origin: 'LAX', destination: 'SFO', flightNumber: 'AA500', duration: 90, aircraft: 'A320-200' },
-        { origin: 'ORD', destination: 'MIA', flightNumber: 'AA600', duration: 180, aircraft: 'B737-800' },
-        { origin: 'LHR', destination: 'CDG', flightNumber: 'AA700', duration: 75, aircraft: 'A320-200' },
-        { origin: 'SFO', destination: 'SEA', flightNumber: 'AA800', duration: 130, aircraft: 'B737-800' },
-        { origin: 'MIA', destination: 'ATL', flightNumber: 'AA900', duration: 120, aircraft: 'B737-800' },
-        { origin: 'CDG', destination: 'FRA', flightNumber: 'AA1000', duration: 60, aircraft: 'A320-200' },
-      ]
-      
-      const firstNames = ['James', 'Mary', 'Robert', 'Patricia', 'John', 'Jennifer', 'Michael', 'Linda', 'David', 'Elizabeth', 'William', 'Barbara', 'Richard', 'Susan', 'Joseph', 'Jessica', 'Thomas', 'Sarah', 'Charles', 'Karen', 'Christopher', 'Nancy', 'Daniel', 'Lisa', 'Matthew', 'Betty', 'Anthony', 'Margaret', 'Mark', 'Sandra']
-      const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin']
-      
-      const fareBases = [
-        { code: 'YEXP', name: 'Economy Express', cabin: 'economy' as const, baseFare: 200 },
-        { code: 'YFLEX', name: 'Economy Flexible', cabin: 'economy' as const, baseFare: 280 },
-        { code: 'BFLEX', name: 'Business Flexible', cabin: 'business' as const, baseFare: 600 },
-        { code: 'JPREM', name: 'Business Premium', cabin: 'business' as const, baseFare: 800 },
-        { code: 'FFIRST', name: 'First Class', cabin: 'first' as const, baseFare: 1200 },
-      ]
-      
-      const statuses: Array<'confirmed' | 'ticketed' | 'waitlist' | 'cancelled'> = ['confirmed', 'confirmed', 'confirmed', 'ticketed', 'ticketed', 'waitlist', 'cancelled']
-      
-      for (let i = pnrs.length; i < 30; i++) {
-        const route = routes[Math.floor(Math.random() * routes.length)]
-        const fare = fareBases[Math.floor(Math.random() * fareBases.length)]
-        const firstName = firstNames[Math.floor(Math.random() * firstNames.length)]
-        const lastName = lastNames[Math.floor(Math.random() * lastNames.length)]
-        const departureDate = new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        const departureTime = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'][Math.floor(Math.random() * 9)]
-        const arrivalDate = new Date(new Date(departureDate).getTime() + route.duration * 60 * 1000).toISOString().split('T')[0]
-        const arrivalHours = parseInt(departureTime.split(':')[0]) + Math.floor(route.duration / 60)
-        const arrivalMins = parseInt(departureTime.split(':')[1]) + (route.duration % 60)
-        const arrivalTime = `${(arrivalHours % 24).toString().padStart(2, '0')}:${(arrivalMins % 60).toString().padStart(2, '0')}`
-        const status = statuses[Math.floor(Math.random() * statuses.length)]
-        
-        const passenger = {
-          id: `P${String(i + 1000).padStart(4, '0')}`,
-          title: ['Mr', 'Ms', 'Mrs', 'Dr'][Math.floor(Math.random() * 4)],
-          firstName,
-          lastName,
-          dateOfBirth: `198${Math.floor(Math.random() * 9)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-          passportNumber: `P${String(Math.floor(Math.random() * 900000000) + 100000000)}`,
-          passportExpiry: `202${Math.floor(Math.random() * 5) + 5}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-          nationality: ['US', 'UK', 'CA', 'AU', 'DE', 'FR'][Math.floor(Math.random() * 6)],
-          ssr: [],
-        }
-        
-        const pnr = createPNR({
-          passengers: [passenger],
-          segments: [{
-            id: `SEG-${i + 1000}`,
-            flightNumber: route.flightNumber,
-            airlineCode: 'AA',
-            origin: route.origin,
-            destination: route.destination,
-            departureDate,
-            departureTime,
-            arrivalDate,
-            arrivalTime,
-            aircraftType: route.aircraft,
-            fareClass: fare.cabin === 'economy' ? 'Y' : fare.cabin === 'business' ? 'J' : 'F',
-            fareBasis: fare.code,
-            status: 'confirmed',
-            boardingClass: fare.cabin,
-          }],
-          fareQuote: {
-            baseFare: fare.baseFare,
-            taxes: fare.baseFare * 0.15,
-            fees: 40,
-            total: fare.baseFare * 1.15 + 40,
-            currency: 'USD',
-            fareRules: fare.cabin === 'economy' ? ['Non-refundable', 'Changes allowed with fee'] : ['Fully refundable', 'Changes allowed'],
-          },
-          contactInfo: {
-            email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@email.com`,
-            phone: `+1-555-${String(Math.floor(Math.random() * 9000) + 1000)}`,
-            address: `${Math.floor(Math.random() * 9999) + 1} Main St, City, ST 00000`,
-          },
-          paymentInfo: {
-            paymentMethod: 'credit_card',
-            cardLastFour: String(Math.floor(Math.random() * 9000) + 1000),
-            amount: fare.baseFare * 1.15 + 40,
-            currency: 'USD',
-          },
-          bookingClass: fare.cabin === 'economy' ? 'Y' : fare.cabin === 'business' ? 'J' : 'F',
-          agentId: `AG${String(Math.floor(Math.random() * 10) + 1).padStart(3, '0')}`,
-          agencyCode: 'TRAVEL01',
-          remarks: [],
-          status,
-          source: ['web', 'mobile', 'api', 'agent'][Math.floor(Math.random() * 4)] as any,
-        })
-        
-        // Issue ticket for confirmed and ticketed PNRs
-        if (status !== 'cancelled' && status !== 'waitlist') {
-          issueTicket({
-            ticketNumber: '',
-            pnrNumber: pnr.pnrNumber,
-            passengerId: passenger.id,
-            passengerName: `${passenger.title} ${firstName} ${lastName}`,
-            fare: pnr.fareQuote,
-            segments: pnr.segments,
-            taxes: [
-              { code: 'US', name: 'US Transportation Tax', amount: pnr.fareQuote.taxes * 0.4, currency: 'USD' },
-              { code: 'XF', name: 'Passenger Facility Charge', amount: pnr.fareQuote.taxes * 0.3, currency: 'USD' },
-              { code: 'AY', name: 'US User Fee', amount: pnr.fareQuote.taxes * 0.3, currency: 'USD' }
-            ],
-            commission: {
-              amount: pnr.fareQuote.total * 0.07,
-              rate: 7,
-              paidTo: 'TRAVEL01'
-            },
-            validationAirline: 'AA',
-            refundable: fare.cabin !== 'economy',
-            changePenalty: fare.cabin === 'economy' ? 200 : 0
-          })
-        }
-      }
-    }
-  }, [pnrs.length, createPNR, issueTicket])
-  
   const handleExportData = () => {
     const headers = ['PNR', 'Status', 'Passengers', 'Origin', 'Destination', 'Amount']
     const rows = pnrs.map(p => [p.pnrNumber, p.status, p.passengers.map(x => `${x.firstName} ${x.lastName}`).join('; '), p.segments[0]?.origin || '', p.segments[0]?.destination || '', p.fareQuote.total])
@@ -362,30 +234,19 @@ export default function PSSModule() {
   
   // Fare Classes with hierarchy support
   const [fareClasses, setFareClasses] = useState<FareClass[]>([
-    // First Class
     { code: 'F', name: 'First Full', hierarchy: 1, capacity: 10, sold: 4, available: 6, isOpen: true, price: 1500, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }, parentCode: null },
     { code: 'A', name: 'First Discount', hierarchy: 2, capacity: 8, sold: 5, available: 3, isOpen: true, price: 1200, restrictions: { advancePurchase: 7, minStay: 0, maxStay: 180 }, parentCode: 'F' },
-    { code: 'P', name: 'First Promo', hierarchy: 3, capacity: 5, sold: 3, available: 2, isOpen: true, price: 950, restrictions: { advancePurchase: 14, minStay: 3, maxStay: 90 }, parentCode: 'F' },
-    // Business Class
-    { code: 'J', name: 'Business Full', hierarchy: 4, capacity: 20, sold: 12, available: 8, isOpen: true, price: 800, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }, parentCode: null },
-    { code: 'C', name: 'Business Flex', hierarchy: 5, capacity: 15, sold: 10, available: 5, isOpen: true, price: 700, restrictions: { advancePurchase: 3, minStay: 0, maxStay: 180 }, parentCode: 'J' },
-    { code: 'D', name: 'Business Promo', hierarchy: 6, capacity: 10, sold: 7, available: 3, isOpen: true, price: 600, restrictions: { advancePurchase: 14, minStay: 3, maxStay: 90 }, parentCode: 'J' },
-    { code: 'I', name: 'Business Corporate', hierarchy: 7, capacity: 12, sold: 8, available: 4, isOpen: true, price: 750, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }, parentCode: 'J' },
-    { code: 'Z', name: 'Business Premium', hierarchy: 8, capacity: 8, sold: 5, available: 3, isOpen: true, price: 850, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }, parentCode: 'J' },
-    { code: 'R', name: 'Business Saver', hierarchy: 9, capacity: 10, sold: 8, available: 2, isOpen: true, price: 550, restrictions: { advancePurchase: 21, minStay: 7, maxStay: 30 }, parentCode: 'J' },
-    // Economy Class
-    { code: 'Y', name: 'Economy Full', hierarchy: 10, capacity: 50, sold: 32, available: 18, isOpen: true, price: 350, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }, parentCode: null },
-    { code: 'B', name: 'Economy Flex', hierarchy: 11, capacity: 40, sold: 28, available: 12, isOpen: true, price: 380, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }, parentCode: 'Y' },
-    { code: 'M', name: 'Economy Semi-Flex', hierarchy: 12, capacity: 35, sold: 30, available: 5, isOpen: true, price: 320, restrictions: { advancePurchase: 7, minStay: 3, maxStay: 180 }, parentCode: 'Y' },
-    { code: 'Q', name: 'Economy Saver', hierarchy: 13, capacity: 30, sold: 25, available: 5, isOpen: true, price: 280, restrictions: { advancePurchase: 14, minStay: 7, maxStay: 90 }, parentCode: 'B' },
-    { code: 'K', name: 'Economy Promo', hierarchy: 14, capacity: 25, sold: 20, available: 5, isOpen: true, price: 240, restrictions: { advancePurchase: 21, minStay: 14, maxStay: 30 }, parentCode: 'B' },
-    { code: 'L', name: 'Economy Deep Discount', hierarchy: 15, capacity: 20, sold: 15, available: 5, isOpen: true, price: 200, restrictions: { advancePurchase: 30, minStay: 0, maxStay: 30 }, parentCode: 'M' },
-    { code: 'T', name: 'Economy Flash Sale', hierarchy: 16, capacity: 15, sold: 12, available: 3, isOpen: true, price: 150, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 7 }, parentCode: 'Q' },
-    { code: 'E', name: 'Economy Basic', hierarchy: 17, capacity: 10, sold: 8, available: 2, isOpen: true, price: 120, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 0 }, parentCode: 'L' },
-    { code: 'N', name: 'Economy No Frills', hierarchy: 18, capacity: 15, sold: 12, available: 3, isOpen: true, price: 100, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 0 }, parentCode: 'E' },
-    { code: 'W', name: 'Economy Weekend', hierarchy: 19, capacity: 12, sold: 9, available: 3, isOpen: true, price: 180, restrictions: { advancePurchase: 7, minStay: 0, maxStay: 3 }, parentCode: 'K' },
-    { code: 'S', name: 'Economy Student', hierarchy: 20, capacity: 20, sold: 16, available: 4, isOpen: true, price: 160, restrictions: { advancePurchase: 30, minStay: 7, maxStay: 180 }, parentCode: 'M' },
-    { code: 'V', name: 'Economy Corporate', hierarchy: 21, capacity: 25, sold: 18, available: 7, isOpen: true, price: 300, restrictions: { advancePurchase: 3, minStay: 0, maxStay: 365 }, parentCode: 'Y' },
+    { code: 'J', name: 'Business Full', hierarchy: 3, capacity: 20, sold: 12, available: 8, isOpen: true, price: 800, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }, parentCode: null },
+    { code: 'C', name: 'Business Flex', hierarchy: 4, capacity: 15, sold: 10, available: 5, isOpen: true, price: 700, restrictions: { advancePurchase: 3, minStay: 0, maxStay: 180 }, parentCode: 'J' },
+    { code: 'D', name: 'Business Promo', hierarchy: 5, capacity: 10, sold: 7, available: 3, isOpen: true, price: 600, restrictions: { advancePurchase: 14, minStay: 3, maxStay: 90 }, parentCode: 'J' },
+    { code: 'Y', name: 'Economy Full', hierarchy: 6, capacity: 50, sold: 32, available: 18, isOpen: true, price: 350, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }, parentCode: null },
+    { code: 'B', name: 'Economy Flex', hierarchy: 7, capacity: 40, sold: 28, available: 12, isOpen: true, price: 380, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 365 }, parentCode: 'Y' },
+    { code: 'M', name: 'Economy Semi-Flex', hierarchy: 8, capacity: 35, sold: 30, available: 5, isOpen: true, price: 320, restrictions: { advancePurchase: 7, minStay: 3, maxStay: 180 }, parentCode: 'Y' },
+    { code: 'Q', name: 'Economy Saver', hierarchy: 9, capacity: 30, sold: 25, available: 5, isOpen: true, price: 280, restrictions: { advancePurchase: 14, minStay: 7, maxStay: 90 }, parentCode: 'B' },
+    { code: 'K', name: 'Economy Promo', hierarchy: 10, capacity: 25, sold: 20, available: 5, isOpen: true, price: 240, restrictions: { advancePurchase: 21, minStay: 14, maxStay: 30 }, parentCode: 'B' },
+    { code: 'L', name: 'Economy Deep Discount', hierarchy: 11, capacity: 20, sold: 15, available: 5, isOpen: true, price: 200, restrictions: { advancePurchase: 30, minStay: 0, maxStay: 30 }, parentCode: 'M' },
+    { code: 'T', name: 'Economy Flash Sale', hierarchy: 12, capacity: 15, sold: 12, available: 3, isOpen: true, price: 150, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 7 }, parentCode: 'Q' },
+    { code: 'E', name: 'Economy Basic', hierarchy: 13, capacity: 10, sold: 8, available: 2, isOpen: true, price: 120, restrictions: { advancePurchase: 0, minStay: 0, maxStay: 0 }, parentCode: 'L' },
   ])
   
   // Fare class bucket status history
@@ -431,266 +292,6 @@ export default function PSSModule() {
         'J': { capacity: 15, sold: 12, isOpen: true },
       },
       overbooking: { economy: 3, business: 1, first: 0 },
-      blackoutDates: []
-    },
-    'LAX-SFO': {
-      capacity: 160,
-      sold: 128,
-      fareClasses: {
-        'Y': { capacity: 45, sold: 38, isOpen: true },
-        'B': { capacity: 35, sold: 28, isOpen: true },
-      },
-      overbooking: { economy: 4, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'ORD-MIA': {
-      capacity: 140,
-      sold: 105,
-      fareClasses: {
-        'Y': { capacity: 40, sold: 32, isOpen: true },
-        'B': { capacity: 30, sold: 24, isOpen: true },
-        'J': { capacity: 15, sold: 11, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 1, first: 0 },
-      blackoutDates: []
-    },
-    'CDG-FRA': {
-      capacity: 130,
-      sold: 98,
-      fareClasses: {
-        'Y': { capacity: 38, sold: 30, isOpen: true },
-        'B': { capacity: 28, sold: 22, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'SFO-SEA': {
-      capacity: 120,
-      sold: 90,
-      fareClasses: {
-        'Y': { capacity: 40, sold: 32, isOpen: true },
-        'B': { capacity: 25, sold: 20, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'MIA-ATL': {
-      capacity: 140,
-      sold: 112,
-      fareClasses: {
-        'Y': { capacity: 42, sold: 35, isOpen: true },
-        'B': { capacity: 32, sold: 26, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'FRA-MUC': {
-      capacity: 110,
-      sold: 82,
-      fareClasses: {
-        'Y': { capacity: 35, sold: 28, isOpen: true },
-        'B': { capacity: 25, sold: 19, isOpen: true },
-      },
-      overbooking: { economy: 2, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'JFK-ORD': {
-      capacity: 150,
-      sold: 120,
-      fareClasses: {
-        'Y': { capacity: 45, sold: 38, isOpen: true },
-        'B': { capacity: 30, sold: 24, isOpen: true },
-        'J': { capacity: 12, sold: 9, isOpen: true },
-      },
-      overbooking: { economy: 4, business: 1, first: 0 },
-      blackoutDates: []
-    },
-    'LAX-SEA': {
-      capacity: 130,
-      sold: 97,
-      fareClasses: {
-        'Y': { capacity: 40, sold: 32, isOpen: true },
-        'B': { capacity: 28, sold: 21, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'ORD-DEN': {
-      capacity: 140,
-      sold: 105,
-      fareClasses: {
-        'Y': { capacity: 42, sold: 33, isOpen: true },
-        'B': { capacity: 30, sold: 24, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'LHR-MAD': {
-      capacity: 145,
-      sold: 109,
-      fareClasses: {
-        'Y': { capacity: 40, sold: 32, isOpen: true },
-        'B': { capacity: 32, sold: 25, isOpen: true },
-        'J': { capacity: 14, sold: 11, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 1, first: 0 },
-      blackoutDates: []
-    },
-    'CDG-ROM': {
-      capacity: 135,
-      sold: 101,
-      fareClasses: {
-        'Y': { capacity: 38, sold: 30, isOpen: true },
-        'B': { capacity: 30, sold: 23, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'SFO-DEN': {
-      capacity: 125,
-      sold: 94,
-      fareClasses: {
-        'Y': { capacity: 38, sold: 30, isOpen: true },
-        'B': { capacity: 26, sold: 20, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'MIA-DFW': {
-      capacity: 150,
-      sold: 113,
-      fareClasses: {
-        'Y': { capacity: 45, sold: 36, isOpen: true },
-        'B': { capacity: 32, sold: 25, isOpen: true },
-        'J': { capacity: 12, sold: 9, isOpen: true },
-      },
-      overbooking: { economy: 4, business: 1, first: 0 },
-      blackoutDates: []
-    },
-    'ATL-CLT': {
-      capacity: 130,
-      sold: 104,
-      fareClasses: {
-        'Y': { capacity: 40, sold: 32, isOpen: true },
-        'B': { capacity: 28, sold: 22, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'JFK-IAD': {
-      capacity: 140,
-      sold: 112,
-      fareClasses: {
-        'Y': { capacity: 42, sold: 34, isOpen: true },
-        'B': { capacity: 30, sold: 24, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'LAX-DEN': {
-      capacity: 145,
-      sold: 116,
-      fareClasses: {
-        'Y': { capacity: 43, sold: 34, isOpen: true },
-        'B': { capacity: 32, sold: 26, isOpen: true },
-        'J': { capacity: 10, sold: 8, isOpen: true },
-      },
-      overbooking: { economy: 4, business: 1, first: 0 },
-      blackoutDates: []
-    },
-    'ORD-ATL': {
-      capacity: 135,
-      sold: 108,
-      fareClasses: {
-        'Y': { capacity: 40, sold: 32, isOpen: true },
-        'B': { capacity: 30, sold: 24, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'LHR-FRA': {
-      capacity: 155,
-      sold: 124,
-      fareClasses: {
-        'Y': { capacity: 45, sold: 36, isOpen: true },
-        'B': { capacity: 35, sold: 28, isOpen: true },
-        'J': { capacity: 15, sold: 12, isOpen: true },
-        'F': { capacity: 8, sold: 6, isOpen: true },
-      },
-      overbooking: { economy: 4, business: 2, first: 0 },
-      blackoutDates: []
-    },
-    'CDG-AMS': {
-      capacity: 120,
-      sold: 90,
-      fareClasses: {
-        'Y': { capacity: 38, sold: 30, isOpen: true },
-        'B': { capacity: 26, sold: 20, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'SFO-PHX': {
-      capacity: 125,
-      sold: 100,
-      fareClasses: {
-        'Y': { capacity: 38, sold: 30, isOpen: true },
-        'B': { capacity: 28, sold: 22, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'MIA-TPA': {
-      capacity: 115,
-      sold: 86,
-      fareClasses: {
-        'Y': { capacity: 35, sold: 28, isOpen: true },
-        'B': { capacity: 25, sold: 19, isOpen: true },
-      },
-      overbooking: { economy: 2, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'ATL-MCO': {
-      capacity: 140,
-      sold: 112,
-      fareClasses: {
-        'Y': { capacity: 42, sold: 34, isOpen: true },
-        'B': { capacity: 30, sold: 24, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 0, first: 0 },
-      blackoutDates: []
-    },
-    'JFK-BOS': {
-      capacity: 130,
-      sold: 104,
-      fareClasses: {
-        'Y': { capacity: 40, sold: 32, isOpen: true },
-        'B': { capacity: 28, sold: 22, isOpen: true },
-        'J': { capacity: 12, sold: 9, isOpen: true },
-      },
-      overbooking: { economy: 3, business: 1, first: 0 },
-      blackoutDates: []
-    },
-    'LAX-ORD': {
-      capacity: 180,
-      sold: 144,
-      fareClasses: {
-        'Y': { capacity: 48, sold: 38, isOpen: true },
-        'B': { capacity: 35, sold: 28, isOpen: true },
-        'J': { capacity: 18, sold: 14, isOpen: true },
-      },
-      overbooking: { economy: 4, business: 1, first: 0 },
-      blackoutDates: []
-    },
-    'ORD-LAX': {
-      capacity: 180,
-      sold: 153,
-      fareClasses: {
-        'Y': { capacity: 50, sold: 42, isOpen: true },
-        'B': { capacity: 38, sold: 30, isOpen: true },
-        'J': { capacity: 18, sold: 15, isOpen: true },
-      },
-      overbooking: { economy: 4, business: 1, first: 0 },
       blackoutDates: []
     },
   })
@@ -2941,7 +2542,7 @@ export default function PSSModule() {
                       Add Passenger
                     </Button>
                   </div>
-                  <div className="overflow-y-auto max-h-64">
+                  <ScrollArea className="max-h-64">
                     <div className="space-y-3">
                       {passengers.map((passenger, index) => (
                         <Card key={passenger.id || index} className="p-4 bg-secondary/30">
@@ -3023,7 +2624,7 @@ export default function PSSModule() {
                         </Card>
                       ))}
                     </div>
-                  </div>
+                  </ScrollArea>
                 </div>
 
                 {/* Contact Info */}
@@ -3166,7 +2767,7 @@ export default function PSSModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto h-96">
+              <ScrollArea className="h-96 overflow-x-auto">
                 <table className="enterprise-table min-w-[900px]">
                   <thead>
                     <tr>
@@ -3254,7 +2855,7 @@ export default function PSSModule() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
 
@@ -3675,7 +3276,7 @@ export default function PSSModule() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto h-96">
+              <ScrollArea className="h-96 overflow-x-auto">
                 <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
@@ -3790,7 +3391,7 @@ export default function PSSModule() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
 
@@ -3808,7 +3409,7 @@ export default function PSSModule() {
                   No EMDs issued yet
                 </div>
               ) : (
-                <div className="overflow-x-auto h-48">
+                <ScrollArea className="h-48 overflow-x-auto">
                   <table className="enterprise-table min-w-[900px]">
                     <thead>
                       <tr>
@@ -3848,7 +3449,7 @@ export default function PSSModule() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </ScrollArea>
               )}
             </CardContent>
           </Card>
@@ -4772,7 +4373,7 @@ export default function PSSModule() {
                   </div>
 
                   {/* Seat Map */}
-                  <div className="overflow-y-auto max-h-96">
+                  <ScrollArea className="max-h-96">
                     <div className="flex justify-center">
                       <div className="space-y-1 w-full max-w-4xl px-2 sm:px-0">
                         {/* Aircraft nose */}
@@ -4820,7 +4421,7 @@ export default function PSSModule() {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </ScrollArea>
 
                   {/* Selected Seat Details */}
                   {selectedSeat && (
@@ -4959,7 +4560,7 @@ export default function PSSModule() {
                   </div>
 
                   {odRoutes.length > 0 ? (
-                    <div className="overflow-y-auto max-h-96">
+                    <ScrollArea className="max-h-96">
                       <div className="space-y-3">
                         {odRoutes.map((route, idx) => (
                           <Card key={route.id} className="border-2">
@@ -5027,7 +4628,7 @@ export default function PSSModule() {
                           </Card>
                         ))}
                       </div>
-                    </div>
+                    </ScrollArea>
                   ) : (
                     <div className="text-center py-12 text-muted-foreground">
                       <Plane className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -5169,7 +4770,7 @@ export default function PSSModule() {
 
               <Card className="enterprise-card">
                 <CardContent className="pt-6">
-                  <div className="overflow-x-auto max-h-96">
+                  <ScrollArea className="max-h-96 overflow-x-auto">
                     <table className="enterprise-table min-w-[1000px]">
                       <thead>
                         <tr>
@@ -5222,7 +4823,7 @@ export default function PSSModule() {
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                  </ScrollArea>
                 </CardContent>
               </Card>
 
@@ -5521,7 +5122,7 @@ export default function PSSModule() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="overflow-y-auto max-h-64">
+                    <ScrollArea className="max-h-64">
                       <div className="space-y-2">
                         {blockedInventory.map((block) => (
                           <div key={block.id} className="p-3 bg-secondary/20 rounded flex items-center justify-between">
@@ -5547,7 +5148,7 @@ export default function PSSModule() {
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </ScrollArea>
                   </CardContent>
                 </Card>
 
@@ -5598,7 +5199,7 @@ export default function PSSModule() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="overflow-y-auto max-h-64">
+                    <ScrollArea className="max-h-64">
                       <div className="space-y-2">
                         {groupAllotments.map((group) => (
                           <div key={group.id} className="p-3 bg-secondary/20 rounded">
@@ -5632,7 +5233,7 @@ export default function PSSModule() {
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </ScrollArea>
                   </CardContent>
                 </Card>
 
@@ -5752,7 +5353,7 @@ export default function PSSModule() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="overflow-y-auto max-h-64">
+                    <ScrollArea className="max-h-64">
                       <div className="space-y-2">
                         {blackoutDates.map((blackout) => (
                           <div key={blackout.id} className="p-3 bg-red-50 border border-red-200 rounded flex items-center justify-between">
@@ -5779,7 +5380,7 @@ export default function PSSModule() {
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </ScrollArea>
                   </CardContent>
                 </Card>
               </div>
@@ -5973,7 +5574,7 @@ export default function PSSModule() {
                   <CardDescription>Configure inventory and pricing by route</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto max-h-80">
+                  <ScrollArea className="max-h-80 overflow-x-auto">
                     <table className="enterprise-table min-w-[900px]">
                       <thead>
                         <tr>
@@ -6049,7 +5650,7 @@ export default function PSSModule() {
                         </tr>
                       </tbody>
                     </table>
-                  </div>
+                  </ScrollArea>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -6333,7 +5934,7 @@ export default function PSSModule() {
 
             <div>
               <h4 className="font-medium mb-2">Current Waitlist ({pnrs.filter(p => p.status === 'waitlist').length} PNRs)</h4>
-              <div className="overflow-y-auto h-48">
+              <ScrollArea className="h-48 border rounded-lg p-2">
                 {pnrs.filter(p => p.status === 'waitlist').map((pnr) => (
                   <div key={pnr.pnrNumber} className="p-2 border-b last:border-0">
                     <div className="flex items-center justify-between">
@@ -6348,7 +5949,7 @@ export default function PSSModule() {
                 {pnrs.filter(p => p.status === 'waitlist').length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">No PNRs on waitlist</p>
                 )}
-              </div>
+              </ScrollArea>
             </div>
 
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -6734,13 +6335,13 @@ export default function PSSModule() {
             {selectedPNR && selectedPNR.remarks.length > 0 && (
               <div>
                 <h4 className="font-medium mb-2">Existing Remarks</h4>
-                <div className="overflow-y-auto h-32">
+                <ScrollArea className="h-32 border rounded-lg p-2">
                   {selectedPNR.remarks.map((remark, idx) => (
                     <div key={idx} className="p-2 border-b last:border-0 text-sm">
                       {remark}
                     </div>
                   ))}
-                </div>
+                </ScrollArea>
               </div>
             )}
           </div>

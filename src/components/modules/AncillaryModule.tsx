@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-// import { ScrollArea } from '@/components/ui/scroll-area'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -40,31 +40,7 @@ const defaultProducts: AncillaryProduct[] = [
   { id: '3', name: 'Lounge Access', category: 'lounge', price: 50, description: 'Airport lounge entry' },
   { id: '4', name: 'Premium Meal', category: 'meal', price: 25, description: 'Gourmet in-flight meal' },
   { id: '5', name: 'Travel Insurance', category: 'insurance', price: 35, description: 'Comprehensive coverage' },
-  { id: '6', name: 'Priority Boarding', category: 'upgrade', price: 20, description: 'Board before group 3' },
-  { id: '7', name: 'Window Seat Selection', category: 'seat', price: 15, description: 'Choose your window seat' },
-  { id: '8', name: 'Aisle Seat Selection', category: 'seat', price: 15, description: 'Choose your aisle seat' },
-  { id: '9', name: 'Extra Baggage (32kg)', category: 'baggage', price: 120, description: 'Heavy checked bag allowance' },
-  { id: '10', name: 'Sports Equipment', category: 'baggage', price: 85, description: 'Golf clubs, skis, or surfboard' },
-  { id: '11', name: 'Pet in Cabin', category: 'baggage', price: 95, description: 'Small pet in travel carrier' },
-  { id: '12', name: 'Pet as Checked Baggage', category: 'baggage', price: 150, description: 'Larger pet in cargo' },
-  { id: '13', name: 'Premium Lounge Access', category: 'lounge', price: 85, description: 'Priority lounge with spa services' },
-  { id: '14', name: 'Day Room Access', category: 'lounge', price: 120, description: 'Private day room at lounge' },
-  { id: '15', name: 'Vegetarian Meal', category: 'meal', price: 15, description: 'Fresh vegetarian selection' },
-  { id: '16', name: 'Vegan Meal', category: 'meal', price: 15, description: 'Plant-based gourmet meal' },
-  { id: '17', name: 'Kosher Meal', category: 'meal', price: 18, description: 'Certified kosher meal' },
-  { id: '18', name: 'Halal Meal', category: 'meal', price: 18, description: 'Certified halal meal' },
-  { id: '19', name: 'Gluten-Free Meal', category: 'meal', price: 15, description: 'Special dietary meal' },
-  { id: '20', name: 'Kids Meal', category: 'meal', price: 12, description: 'Child-friendly meal option' },
-  { id: '21', name: 'Comprehensive Insurance', category: 'insurance', price: 55, description: 'Full trip protection' },
-  { id: '22', name: 'Medical Evacuation Insurance', category: 'insurance', price: 75, description: 'Emergency medical coverage' },
-  { id: '23', name: 'Trip Cancellation Insurance', category: 'insurance', price: 45, description: 'Cancel for any reason' },
-  { id: '24', name: 'Business Class Upgrade', category: 'upgrade', price: 450, description: 'Upgrade to business class' },
-  { id: '25', name: 'Premium Economy Upgrade', category: 'upgrade', price: 150, description: 'Upgrade to premium economy' },
-  { id: '26', name: 'Extra Comfort Seat', category: 'seat', price: 35, description: 'Wider seat with more legroom' },
-  { id: '27', name: 'Front Cabin Seat', category: 'seat', price: 25, description: 'Seat in front section' },
-  { id: '28', name: 'Musical Instrument', category: 'baggage', price: 65, description: 'Carry-on musical instrument' },
-  { id: '29', name: 'Baby Stroller', category: 'baggage', price: 0, description: 'Free stroller allowance' },
-  { id: '30', name: 'Car Seat', category: 'baggage', price: 0, description: 'Free child car seat' }
+  { id: '6', name: 'Priority Boarding', category: 'upgrade', price: 20, description: 'Board before group 3' }
 ]
 
 export default function AncillaryModule() {
@@ -237,35 +213,7 @@ export default function AncillaryModule() {
                   { name: 'Essential', price: 299, savings: 0, items: ['Personal item', 'Seat selection'] },
                   { name: 'Standard', price: 349, savings: 25, items: ['Carry-on', 'Seat selection', 'Meal'] },
                   { name: 'Flex', price: 449, savings: 50, items: ['Checked bag', 'Flexible changes', 'Lounge'] },
-                  { name: 'Premium', price: 699, savings: 100, items: ['2 Bags', 'Priority boarding', 'Lounge', 'Meal'] },
-                  { name: 'Budget', price: 249, savings: 0, items: ['Personal item', 'No seat selection'] },
-                  { name: 'Value', price: 319, savings: 20, items: ['Carry-on', 'Seat selection'] },
-                  { name: 'Comfort', price: 399, savings: 45, items: ['Checked bag', 'Seat selection', 'Meal'] },
-                  { name: 'Business', price: 899, savings: 150, items: ['2 Bags', 'Priority boarding', 'Lounge', 'Meal', 'Upgrade'] },
-                  { name: 'Student', price: 279, savings: 30, items: ['Carry-on', 'Seat selection', 'Meal'] },
-                  { name: 'Senior', price: 329, savings: 35, items: ['Checked bag', 'Flexible changes'] },
-                  { name: 'Family', price: 549, savings: 80, items: ['2 Bags', 'Priority boarding', 'Kids meals', 'Extra legroom'] },
-                  { name: 'Adventure', price: 479, savings: 60, items: ['Checked bag', 'Sports equipment discount', 'Meal'] },
-                  { name: 'Work', price: 389, savings: 40, items: ['Carry-on', 'Seat selection', 'Lounge day pass', 'WiFi'] },
-                  { name: 'Relax', price: 429, savings: 55, items: ['Checked bag', 'Premium lounge access', 'Meal upgrade'] },
-                  { name: 'Luxury', price: 999, savings: 200, items: ['3 Bags', 'Priority boarding', 'Premium lounge', 'Business class meal', 'Spa voucher'] },
-                  { name: 'Eco', price: 339, savings: 25, items: ['Carry-on', 'Carbon offset included', 'Vegan meal'] },
-                  { name: 'Quick', price: 289, savings: 15, items: ['Carry-on', 'Priority boarding'] },
-                  { name: 'Connect', price: 379, savings: 38, items: ['Carry-on', 'Seat selection', 'WiFi', 'Power outlet'] },
-                  { name: 'Pet Friendly', price: 459, savings: 65, items: ['Carry-on', 'Pet in cabin', 'Seat selection'] },
-                  { name: 'Health', price: 349, savings: 30, items: ['Carry-on', 'Healthy meal option', 'Travel insurance'] },
-                  { name: 'Solo', price: 269, savings: 18, items: ['Carry-on', 'Seat selection'] },
-                  { name: 'Group', price: 499, savings: 75, items: ['Checked bag each', 'Group seating', 'Meals included'] },
-                  { name: 'Holiday', price: 579, savings: 90, items: ['2 Bags', 'Priority boarding', 'Holiday meal', 'Gift voucher'] },
-                  { name: 'Weekend', price: 329, savings: 28, items: ['Carry-on', 'Seat selection', 'Meal'] },
-                  { name: 'Business Plus', price: 1099, savings: 250, items: ['3 Bags', 'Priority boarding', 'Premium lounge', 'Business class meal', 'Chauffeur service'] },
-                  { name: 'Budget Plus', price: 279, savings: 12, items: ['Personal item', 'Seat selection', 'Water bottle'] },
-                  { name: 'Comfort Plus', price: 449, savings: 55, items: ['2 Bags', 'Extra legroom seat', 'Premium meal', 'Priority boarding'] },
-                  { name: 'First Class', price: 1499, savings: 400, items: ['Unlimited bags', 'First class seat', 'Premium lounge', 'Gourmet meal', 'Private suite'] },
-                  { name: 'Travel Light', price: 259, savings: 10, items: ['Personal item', 'Water bottle'] },
-                  { name: 'Experience', price: 649, savings: 110, items: ['2 Bags', 'Premium lounge', 'VIP treatment', 'Concierge service'] },
-                  { name: 'Essential Plus', price: 319, savings: 22, items: ['Carry-on', 'Seat selection', 'Snack box'] },
-                  { name: 'Ultimate', price: 1999, savings: 600, items: ['Everything included', 'Private jet transfer', '5-star hotel stay', 'VIP treatment'] }
+                  { name: 'Premium', price: 699, savings: 100, items: ['2 Bags', 'Priority boarding', 'Lounge', 'Meal'] }
                 ].map((bundle, i) => (
                   <Card key={i} className={`enterprise-card ${i === 2 ? 'border-primary border-2' : ''}`}>
                     <CardHeader>
@@ -311,7 +259,7 @@ export default function AncillaryModule() {
               <CardDescription>Discount codes and promotional offers</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto h-80">
+              <ScrollArea className="h-80 overflow-x-auto">
                 <table className="enterprise-table min-w-[1000px]">
                   <thead>
                     <tr>
@@ -350,7 +298,7 @@ export default function AncillaryModule() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>

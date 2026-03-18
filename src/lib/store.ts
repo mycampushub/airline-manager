@@ -1537,14 +1537,12 @@ interface AirlineStore {
   updateFlightSchedule: (id: string, updates: Partial<FlightSchedule>) => FlightSchedule
   updateFlightInstance: (id: string, updates: Partial<FlightInstance>) => FlightInstance
   createDisruption: (disruption: Partial<DisruptionEvent>) => DisruptionEvent
-  setDisruptions: (disruptions: DisruptionEvent[]) => void
   generateFlightRelease: (flightId: string) => FlightRelease
   
   // Crew Actions
   addCrewMember: (crew: Partial<CrewMember>) => CrewMember
   assignCrewSchedule: (schedule: Partial<CrewSchedule>) => CrewSchedule
   createCrewPairing: (pairing: Partial<CrewPairing>) => CrewPairing
-  initializeCrewDemoData: () => void
   
   // MRO Actions
   createMaintenanceRecord: (record: Partial<MaintenanceRecord>) => MaintenanceRecord
@@ -1976,10 +1974,6 @@ export const useAirlineStore = create<AirlineStore>((set, get) => ({
     return newDisruption
   },
   
-  setDisruptions: (disruptions) => {
-    set({ disruptions })
-  },
-  
   generateFlightRelease: (flightId) => {
     const release: FlightRelease = {
       id: generateId(),
@@ -2056,118 +2050,6 @@ export const useAirlineStore = create<AirlineStore>((set, get) => ({
     }
     set((state) => ({ crewPairings: [...state.crewPairings, newPairing] }))
     return newPairing
-  },
-
-  initializeCrewDemoData: () => {
-    const state = get()
-    
-    // Generate crew pairings if we have less than 30
-    if (state.crewPairings.length < 30 && state.flightInstances.length >= 10) {
-      const bases = ['JFK', 'LAX', 'LHR', 'SFO', 'DXB']
-      const routes = ['JFK-LHR', 'LAX-TYO', 'SFO-HKG', 'ORD-LAX', 'MIA-CDG', 'JFK-PAR', 'LAX-SYD', 'SIN-SYD']
-      
-      // Generate 35 pairings
-      for (let i = 0; i < 35; i++) {
-        const base = bases[i % bases.length]
-        const route = routes[i % routes.length]
-        const startDate = new Date(Date.now() + (i * 2) * 24 * 60 * 60 * 1000)
-        const endDate = new Date(startDate.getTime() + 4 * 24 * 60 * 60 * 1000)
-        const flightNumbers: string[] = []
-        
-        // Add 2-4 flight numbers per pairing
-        const numFlights = 2 + (i % 3)
-        for (let j = 0; j < numFlights; j++) {
-          const flight = state.flightInstances[(i + j) % state.flightInstances.length]
-          if (flight) {
-            flightNumbers.push(flight.flightNumber)
-          }
-        }
-        
-        const totalFlightTime = numFlights * (6 + Math.floor(Math.random() * 4))
-        const totalDutyTime = totalFlightTime + 2
-        const overnightStops = numFlights > 2 ? 1 : 0
-        
-        const pairing: CrewPairing = {
-          id: generateId(),
-          pairingNumber: `PR${String(1000 + i).padStart(6, '0')}`,
-          startDate: startDate.toISOString().split('T')[0],
-          endDate: endDate.toISOString().split('T')[0],
-          flights: flightNumbers,
-          totalFlightTime,
-          totalDutyTime,
-          restPeriods: [
-            {
-              location: base,
-              startTime: '22:00',
-              endTime: '08:00',
-              duration: 10,
-              minimumRequired: 10,
-              compliant: true
-            }
-          ],
-          base,
-          deadhead: false,
-          overnightStops,
-          hotels: overnightStops > 0 ? ['Grand Hotel', 'Airport Inn'] : [],
-          cost: totalDutyTime * 150 + (overnightStops * 200),
-          compliant: true,
-          complianceNotes: []
-        }
-        
-        set((s) => ({ crewPairings: [...s.crewPairings, pairing] }))
-      }
-    }
-    
-    // Generate additional crew schedules if needed
-    if (state.crewSchedules.length < 30 && state.crewMembers.length >= 10 && state.flightInstances.length >= 10) {
-      const types: Array<'flight' | 'standby' | 'training' | 'leave' | 'reserve'> = ['flight', 'standby', 'training', 'reserve']
-      const statuses: Array<'scheduled' | 'in_progress' | 'completed' | 'cancelled'> = ['scheduled', 'in_progress', 'completed', 'scheduled']
-      
-      for (let i = state.crewSchedules.length; i < 35; i++) {
-        const crew = state.crewMembers[i % state.crewMembers.length]
-        const flight = state.flightInstances[i % state.flightInstances.length]
-        const type = types[i % types.length]
-        const status = statuses[i % statuses.length]
-        
-        if (crew && flight) {
-          const startDate = new Date(Date.now() + (i * 1) * 24 * 60 * 60 * 1000)
-          const departureTime = new Date(`${flight.date}T${flight.scheduledDeparture}:00Z`)
-          const duration = 7 + Math.floor(Math.random() * 4)
-          
-          const schedule: CrewSchedule = {
-            id: generateId(),
-            crewId: crew.id,
-            type,
-            startDate: startDate.toISOString().split('T')[0],
-            endDate: startDate.toISOString().split('T')[0],
-            startTime: '06:00',
-            endTime: `${(6 + duration).toString().padStart(2, '0')}:00`,
-            flightId: flight.id,
-            flightNumber: type === 'flight' ? flight.flightNumber : undefined,
-            route: type === 'flight' ? `${flight.origin}-${flight.destination}` : undefined,
-            position: crew.position,
-            reportTime: '05:30',
-            releaseTime: `${(6 + duration + 1).toString().padStart(2, '0')}:00`,
-            dutyHours: duration + 1,
-            status,
-            hotel: type === 'flight' && status !== 'completed' ? {
-              name: `${flight.destination} Airport Hotel`,
-              address: `${flight.destination} Airport Road`,
-              phone: '+1-555-0000',
-              checkIn: '10:00',
-              checkOut: '16:00'
-            } : undefined,
-            transport: type === 'flight' && status !== 'completed' ? {
-              type: 'hotel_shuttle',
-              pickup: `${flight.destination} Airport`,
-              dropoff: `${flight.destination} Airport Hotel`
-            } : undefined
-          }
-          
-          set((s) => ({ crewSchedules: [...s.crewSchedules, schedule] }))
-        }
-      }
-    }
   },
   
   // MRO Actions
