@@ -171,7 +171,7 @@ interface PasswordPolicy {
 }
 
 export default function SecurityModule() {
-  const { users, auditLogs, securityEvents } = useAirlineStore()
+  const { users, auditLogs, securityEvents, deleteUser, updateUser } = useAirlineStore()
   const { toast } = useToast()
   
   // MFA state
@@ -718,7 +718,10 @@ export default function SecurityModule() {
   }
 
   const handleDeleteUser = (userId: string) => {
-    toast({ title: 'User Deleted', description: `User ${userId} has been deleted`, variant: 'destructive' })
+    if (confirm('Are you sure you want to delete this user?')) {
+      deleteUser(userId)
+      toast({ title: 'User Deleted', description: `User has been deleted`, variant: 'destructive' })
+    }
   }
 
   const handleCreateRole = () => {

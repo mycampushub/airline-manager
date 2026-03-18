@@ -44,7 +44,7 @@ const defaultProducts: AncillaryProduct[] = [
 ]
 
 export default function AncillaryModule() {
-  const { tickets, emds } = useAirlineStore()
+  const { tickets, emds, ancillaryProducts, bundles, promoCodes } = useAirlineStore()
   const { toast } = useToast()
   
   const [products, setProducts] = useState<AncillaryProduct[]>(defaultProducts)

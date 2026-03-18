@@ -137,7 +137,7 @@ export default function AgencyModule() {
 
   const [newRestriction, setNewRestriction] = useState({
     agencyCode: '',
-    type: 'booking_restriction' as const,
+    type: 'booking_restriction' as 'booking_restriction' | 'route_restriction' | 'payment_restriction' | 'credit_hold' | 'suspension',
     reason: '',
     expiresAt: '',
     restrictionType: '',
@@ -486,7 +486,7 @@ export default function AgencyModule() {
 
   const handleExportAlerts = () => {
     const headers = ['Date', 'Type', 'Agency', 'Amount', 'Severity', 'Status']
-    const rows = fraudAlerts.map(a => [a.date, a.type, a.agencyName, a.amount, a.severity, a.status])
+    const rows = fraudAlerts.map(a => [a.detectedAt, a.type, a.agencyCode, a.amount, a.severity, a.status])
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
     downloadCSV(csv, 'fraud-alerts')
     toast({ title: 'Export Complete', description: 'Fraud alerts exported to CSV' })
@@ -503,7 +503,7 @@ export default function AgencyModule() {
   const handleViewAgencyDetails = (agencyId: string) => {
     const agency = agencies.find(a => a.id === agencyId)
     if (agency) {
-      toast({ title: 'Agency Details', description: `${agency.name} (${agency.iataCode}) - ${agency.country}` })
+      toast({ title: 'Agency Details', description: `${agency.name} (Tier: ${agency.tier}) - ${agency.status}` })
     }
   }
 
@@ -515,8 +515,8 @@ export default function AgencyModule() {
   }
 
   const handleExportAgencies = () => {
-    const headers = ['Name', 'IATA Code', 'Country', 'Status', 'Credit Limit']
-    const rows = agencies.map(a => [a.name, a.iataCode, a.country, a.status, a.creditLimit])
+    const headers = ['Name', 'Code', 'Status', 'Credit Available']
+    const rows = agencies.map(a => [a.name, a.code, a.status, a.credit.available])
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
     downloadCSV(csv, 'agencies')
     toast({ title: 'Export Complete', description: 'Agencies data exported to CSV' })
@@ -524,7 +524,7 @@ export default function AgencyModule() {
 
   const handleExportAdmWorkflows = () => {
     const headers = ['ADM Number', 'Agency', 'Amount', 'Reason', 'Status', 'Date']
-    const rows = admWorkflows.map(w => [w.adm.admNumber, w.adm.agencyName, w.adm.amountDue, w.adm.reason, w.adm.status, w.adm.issueDate])
+    const rows = admWorkflows.map(w => [w.adm.number, w.adm.agencyCode, w.adm.amount, w.adm.reason, w.adm.status, w.adm.issuedDate])
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
     downloadCSV(csv, 'adm-workflows')
     toast({ title: 'Export Complete', description: 'ADM workflows exported to CSV' })
@@ -537,7 +537,7 @@ export default function AgencyModule() {
   const handleViewAdmDetails = (admId: string) => {
     const workflow = admWorkflows.find(wf => wf.adm.id === admId)
     if (workflow) {
-      toast({ title: 'ADM Details', description: `${workflow.adm.admNumber} - $${workflow.adm.amountDue}` })
+      toast({ title: 'ADM Details', description: `${workflow.adm.number} - $${workflow.adm.amount}` })
     }
   }
 
@@ -1418,7 +1418,9 @@ export default function AgencyModule() {
                                   {agency.status}
                                 </Badge>
                                 {hasRestriction && (
-                                  <Lock className="h-4 w-4 text-orange-600" title="Has active restrictions" />
+                                  <span title="Has active restrictions">
+                                    <Lock className="h-4 w-4 text-orange-600" />
+                                  </span>
                                 )}
                               </div>
                             </td>

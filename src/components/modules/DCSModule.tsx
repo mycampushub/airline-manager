@@ -348,6 +348,8 @@ export default function DCSModule() {
     flightInstances,
     checkInRecords,
     baggageRecords,
+    boardingRecords,
+    loadSheets,
     createCheckIn,
     updateBoarding,
     generateLoadSheet,

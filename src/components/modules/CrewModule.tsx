@@ -105,7 +105,7 @@ export default function CrewModule() {
   const handleExportData = () => {
     const headers = ['ID', 'Name', 'Position', 'Base', 'Status', 'Flight Hours']
     const rows = crewMembers.map(c => [
-      c.employeeId, `${c.firstName} ${c.lastName}`, c.position, c.base, c.status, c.flightHours
+      c.employeeNumber, `${c.firstName} ${c.lastName}`, c.position, c.base, c.status, c.hoursFlown
     ])
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })

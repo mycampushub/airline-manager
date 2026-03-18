@@ -187,6 +187,11 @@ export interface FareFamily {
   fareClasses: string[]
   features: string[]
   createdAt: string
+  pricingRules?: {
+    baseMarkup: number
+    seasonalMultiplier: number
+    demandThreshold: number
+  }
 }
 
 export interface SeatMap {
@@ -2673,6 +2678,62 @@ export const useAirlineStore = create<AirlineStore>((set, get) => ({
     }
     set((state) => ({ automationRules: [...state.automationRules, newRule] }))
     return newRule
+  },
+  
+  // User Actions
+  deleteUser: (userId) => {
+    set((state) => ({ users: state.users.filter(u => u.id !== userId) }))
+  },
+  
+  updateUser: (userId, updates) => {
+    set((state) => ({ 
+      users: state.users.map(u => u.id === userId ? { ...u, ...updates } : u)
+    }))
+  },
+  
+  // Integration Actions - extended
+  deleteIntegration: (integrationId) => {
+    set((state) => ({ integrations: state.integrations.filter(i => i.id !== integrationId) }))
+  },
+  
+  updateIntegration: (integrationId, updates) => {
+    set((state) => ({ 
+      integrations: state.integrations.map(i => i.id === integrationId ? { ...i, ...updates } : i)
+    }))
+  },
+  
+  // Additional Crew Actions
+  deleteCrewMember: (crewId) => {
+    set((state) => ({ crewMembers: state.crewMembers.filter(c => c.id !== crewId) }))
+  },
+  
+  // Additional Agency Actions
+  deleteAgency: (agencyId) => {
+    set((state) => ({ agencies: state.agencies.filter(a => a.id !== agencyId) }))
+  },
+  
+  // Additional Cargo Actions
+  deleteCargoBooking: (bookingId) => {
+    set((state) => ({ cargoBookings: state.cargoBookings.filter(b => b.id !== bookingId) }))
+  },
+  
+  // Additional Campaign Actions
+  deleteCampaign: (campaignId) => {
+    set((state) => ({ campaigns: state.campaigns.filter(c => c.id !== campaignId) }))
+  },
+  
+  // Additional Maintenance Actions
+  deleteMaintenanceRecord: (recordId) => {
+    set((state) => ({ maintenanceRecords: state.maintenanceRecords.filter(r => r.id !== recordId) }))
+  },
+  
+  deletePart: (partId) => {
+    set((state) => ({ parts: state.parts.filter(p => p.id !== partId) }))
+  },
+  
+  // Additional CRM Actions
+  deleteCustomer: (customerId) => {
+    set((state) => ({ customerProfiles: state.customerProfiles.filter(c => c.id !== customerId) }))
   },
   
   // Global Actions

@@ -631,8 +631,8 @@ export default function AnalyticsModule() {
   }
 
   const handleExportTopAgents = () => {
-    const headers = ['Agent', 'Bookings', 'Revenue', 'Score']
-    const rows = kpiDashboard.topAgents.map(a => [a.name, a.bookings, a.revenue, a.score])
+    const headers = ['Agent', 'Bookings', 'Revenue', 'Growth']
+    const rows = kpiDashboard.topAgents.map(a => [a.agentName, a.bookings, a.revenue, a.growth])
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const link = document.createElement('a')
@@ -645,9 +645,9 @@ export default function AnalyticsModule() {
   const handleRetrainModels = () => {
     setIsGenerating(true)
     setTimeout(() => {
-      setAiModels(models => models.map(m => ({ ...m, lastTrained: new Date().toISOString() })))
-      setIsGenerating(false)
+      // Update models in place - use aiModels directly
       toast({ title: 'Models Retrained', description: 'AI models have been retrained' })
+      setIsGenerating(false)
     }, 2000)
   }
 

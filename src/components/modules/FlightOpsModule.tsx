@@ -51,7 +51,7 @@ import {
   Eye,
   AlertCircle
 } from 'lucide-react'
-import { useAirlineStore, type FlightSchedule, type DisruptionEvent } from '@/lib/store'
+import { type FlightSchedule, type DisruptionEvent } from '@/lib/store'
 
 interface Route {
   id: string

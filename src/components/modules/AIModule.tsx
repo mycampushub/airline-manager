@@ -539,7 +539,7 @@ export default function AIModule() {
       draft: 'secondary'
     }
     return (
-      <Badge variant={variants[status as keyof typeof variants] || variants.deployed} className="capitalize">
+      <Badge variant={(variants[status as keyof typeof variants] || variants.deployed) as 'default' | 'destructive' | 'outline' | 'secondary'} className="capitalize">
         {status}
       </Badge>
     )

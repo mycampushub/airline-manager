@@ -178,6 +178,44 @@ export default function MROModule() {
     station: 'JFK'
   })
 
+  const handleCreateMaintenance = () => {
+    if (!newMaintenance.aircraftRegistration || !newMaintenance.description) {
+      toast({ title: 'Error', description: 'Please fill in all required fields', variant: 'destructive' })
+      return
+    }
+    
+    createMaintenanceRecord({
+      aircraftRegistration: newMaintenance.aircraftRegistration,
+      aircraftType: newMaintenance.aircraftType,
+      type: newMaintenance.type,
+      category: newMaintenance.category,
+      description: newMaintenance.description,
+      priority: newMaintenance.priority,
+      scheduledStart: newMaintenance.scheduledStart || new Date().toISOString(),
+      scheduledEnd: newMaintenance.scheduledEnd || new Date(Date.now() + 86400000).toISOString(),
+      station: newMaintenance.station,
+      status: 'pending',
+      tasks: [],
+      partsUsed: [],
+      laborHours: 0,
+      cost: 0
+    })
+    
+    setShowMaintenanceDialog(false)
+    setNewMaintenance({
+      aircraftRegistration: '',
+      aircraftType: 'B737-800',
+      type: 'scheduled' as const,
+      category: 'a-check' as const,
+      description: '',
+      priority: 'medium' as const,
+      scheduledStart: '',
+      scheduledEnd: '',
+      station: 'JFK'
+    })
+    toast({ title: 'Work Order Created', description: 'Maintenance work order has been created' })
+  }
+
   const [newPart, setNewPart] = useState({
     partNumber: '',
     name: '',

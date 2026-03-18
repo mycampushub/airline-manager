@@ -208,6 +208,28 @@
   @apply bg-primary/5;
 }
 
+/* Responsive table wrapper */
+.table-responsive-wrapper {
+  @apply overflow-x-auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive-wrapper .enterprise-table {
+  min-width: 600px;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .enterprise-table {
+    font-size: 0.75rem;
+  }
+  
+  .enterprise-table th,
+  .enterprise-table td {
+    @apply px-2 py-1;
+  }
+}
+
 /* Enterprise card styling */
 .enterprise-card {
   @apply bg-card border border-border rounded-sm shadow-sm;

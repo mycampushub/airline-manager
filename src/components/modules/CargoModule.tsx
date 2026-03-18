@@ -236,7 +236,7 @@ export default function CargoModule() {
     const rows = cargoBookings.map(b => [
       b.awbNumber, b.shipper.name, b.consignee.name, 
       b.flightDetails.origin, b.flightDetails.destination,
-      b.flightDetails.weight, b.status
+      b.goods.weight, b.status
     ])
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
@@ -938,8 +938,8 @@ export default function CargoModule() {
 
   // Additional handlers for Cargo Module
   const handleExportRevenue = () => {
-    const headers = ['Invoice', 'Date', 'Amount', 'Type', 'Status']
-    const rows = revenues.map(r => [r.invoiceNumber, r.date, r.amount, r.type, r.status])
+    const headers = ['Invoice', 'Amount', 'Status', 'Due Date']
+    const rows = revenues.map(r => [r.invoiceNumber || '', r.amount, r.status, r.dueDate])
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const link = document.createElement('a')
@@ -969,7 +969,7 @@ export default function CargoModule() {
           <p><strong>Shipper:</strong> ${booking.shipper.name}</p>
           <p><strong>Consignee:</strong> ${booking.consignee.name}</p>
           <p><strong>Route:</strong> ${booking.flightDetails.origin} → ${booking.flightDetails.destination}</p>
-          <p><strong>Weight:</strong> ${booking.flightDetails.weight} kg</p>
+          <p><strong>Weight:</strong> ${booking.goods.weight} kg</p>
         </body></html>
       `
       const win = window.open('', '_blank')
@@ -990,9 +990,9 @@ export default function CargoModule() {
         <style>body { font-family: Arial; padding: 20px; }</style></head><body>
           <h1>Invoice</h1>
           <p><strong>Invoice #:</strong> ${revenue.invoiceNumber}</p>
-          <p><strong>Date:</strong> ${revenue.date}</p>
+          <p><strong>Due Date:</strong> ${revenue.dueDate}</p>
           <p><strong>Amount:</strong> $${revenue.amount}</p>
-          <p><strong>Type:</strong> ${revenue.type}</p>
+          <p><strong>Status:</strong> ${revenue.status}</p>
         </body></html>
       `
       const win = window.open('', '_blank')
@@ -1018,7 +1018,7 @@ export default function CargoModule() {
     const booking = bookings.find(b => b.id === bookingId)
     if (booking) {
       setSelectedBooking(booking)
-      setShowBookingDetailDialog(true)
+      setShowBookingDetails(true)
     }
   }
 
@@ -1034,7 +1034,7 @@ export default function CargoModule() {
       cancelled: 'destructive'
     }
     return (
-      <Badge variant={variants[status as keyof typeof variants] || variants.pending} className="capitalize">
+      <Badge variant={(variants[status as keyof typeof variants] || variants.pending) as 'default' | 'destructive' | 'outline' | 'secondary'} className="capitalize">
         {status.replace('_', ' ')}
       </Badge>
     )
@@ -1066,7 +1066,7 @@ export default function CargoModule() {
       cancelled: 'outline'
     }
     return (
-      <Badge variant={variants[status as keyof typeof variants] || variants.pending} className="capitalize">
+      <Badge variant={(variants[status as keyof typeof variants] || variants.pending) as 'default' | 'destructive' | 'outline' | 'secondary'} className="capitalize">
         {status}
       </Badge>
     )

@@ -1,7 +1,7 @@
 // Comprehensive Mock Data Initialization - Singapore Airlines Style
 // 30+ realistic entries per major section
 
-import { useEnhancedAirlineStore } from './enhanced-store-part1'
+import { useAirlineStore } from './store'
 
 const generateId = () => Math.random().toString(36).substr(2, 9)
 const generatePNRNumber = () => `SQ${Math.random().toString(36).substr(2, 6).toUpperCase()}`
@@ -12,9 +12,15 @@ const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
 const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
 
 export const initializeSingaporeAirlinesData = () => {
-  const store = useEnhancedAirlineStore.getState()
-
-  console.log('Initializing Singapore Airlines comprehensive mock data...')
+  try {
+    const store = useAirlineStore.getState()
+    console.log('Initializing Singapore Airlines comprehensive mock data...')
+    
+    // Skip if data already initialized
+    if (store.flightSchedules.length > 0) {
+      console.log('Data already initialized, skipping...')
+      return
+    }
 
   // ==================== FLIGHT SCHEDULES (30+) ====================
   const flightSchedules = [
@@ -53,7 +59,8 @@ export const initializeSingaporeAirlinesData = () => {
   ]
 
   flightSchedules.forEach((fs, idx) => {
-    store.createFlightSchedule({
+    store.flightSchedules.push({
+      id: `FS${String(idx + 1).padStart(3, '0')}`,
       flightNumber: fs.flightNumber,
       airlineCode: 'SQ',
       origin: fs.origin,
@@ -92,6 +99,24 @@ export const initializeSingaporeAirlinesData = () => {
     '9V-SJA', '9V-SJB', '9V-SJC', '9V-SJD', '9V-SJE'
   ]
 
+  const captains = [
+    'Capt. Tan Kim Seng', 'Capt. Lim Chee Keong', 'Capt. Ng Chee Kiong',
+    'Capt. Ang Chin Huat', 'Capt. Goh Keng Koo', 'Capt. Seah Keng Maw',
+    'Capt. Fong Yoon Kong', 'Capt. Chan Kong Yew', 'Capt. Yeo Kim Huat', 'Capt. Chong Chen Kit'
+  ]
+
+  const firstOfficers = [
+    'FO. Daniel Tan', 'FO. Marcus Lee', 'FO. Kevin Wong',
+    'FO. Ryan Cheng', 'FO. Justin Ng', 'FO. Brandon Sim',
+    'FO. Nicholas Tay', 'FO. Andrew Quek', 'FO. Jason Ho', 'FO. Gavin Goh'
+  ]
+
+  const cabinCrew = [
+    'Sarah Chen', 'Michelle Wong', 'Jennifer Tan', 'Amanda Lim', 'Rebecca Lee',
+    'Grace Ng', 'Sophia Chee', 'Evelyn Teo', 'Claire Sim', 'Jessica Boo',
+    'Ashley Koh', 'Vanessa Tay', 'Yvonne Chua', 'Patricia Ang', 'Shirley Phoon'
+  ]
+
   let flightInstanceIdx = 1
   routes.forEach((route, rIdx) => {
     route.flights.forEach((flightNum, fIdx) => {
@@ -128,26 +153,6 @@ export const initializeSingaporeAirlinesData = () => {
   })
 
   // ==================== CREW MEMBERS (30+) ====================
-  const captains = [
-    'Capt. Tan Kim Seng', 'Capt. Lim Chee Keong', 'Capt. Ng Chee Kiong',
-    'Capt. Ang Chin Huat', 'Capt. Goh Keng Koo', 'Capt. Seah Keng Maw',
-    'Capt. Fong Yoon Kong', 'Capt. Chan Kong Yew', 'Capt. Yeo Kim Huat',
-    'Capt. Chong Chen Kit'
-  ]
-
-  const firstOfficers = [
-    'FO. Daniel Tan', 'FO. Marcus Lee', 'FO. Kevin Wong',
-    'FO. Ryan Cheng', 'FO. Justin Ng', 'FO. Brandon Sim',
-    'FO. Nicholas Tay', 'FO. Andrew Quek', 'FO. Jason Ho',
-    'FO. Gavin Goh'
-  ]
-
-  const cabinCrew = [
-    'Sarah Chen', 'Michelle Wong', 'Jennifer Tan', 'Amanda Lim', 'Rebecca Lee',
-    'Grace Ng', 'Sophia Chee', 'Evelyn Teo', 'Claire Sim', 'Jessica Boo',
-    'Ashley Koh', 'Vanessa Tay', 'Yvonne Chua', 'Patricia Ang', 'Shirley Phoon'
-  ]
-
   const crewData = [
     { firstName: 'Tan', lastName: 'Kim Seng', position: 'captain', base: 'SIN', qualifications: ['B777', 'A380'], hours: 12500 },
     { firstName: 'Lim', lastName: 'Chee Keong', position: 'captain', base: 'SIN', qualifications: ['B777', 'B787'], hours: 11200 },
@@ -304,7 +309,8 @@ export const initializeSingaporeAirlinesData = () => {
     const bookingClass = bookingClasses[i % bookingClasses.length]
     const baseFare = bookingClass === 'F' ? 8000 : bookingClass === 'J' ? 4500 : bookingClass === 'C' ? 3500 : bookingClass === 'B' ? 1800 : bookingClass === 'M' ? 1200 : 800
     
-    store.createPNR({
+    store.pnrs.push({
+      pnrNumber: `SQ${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
       passengers: [{
         id: `PAX${i + 1}`,
         title: i % 2 === 0 ? 'Mr' : 'Mrs',
@@ -359,14 +365,19 @@ export const initializeSingaporeAirlinesData = () => {
       remarks: [],
       isGroup: false,
       source: i % 3 === 0 ? 'web' : i % 3 === 1 ? 'agent' : 'mobile',
-      status: statuses[i % 3]
+      status: statuses[i % 3],
+      createdAt: new Date().toISOString(),
+      createdBy: 'system',
+      tickets: [],
+      emds: []
     })
   }
 
   // ==================== TICKETS (30+) ====================
   store.pnrs.forEach((pnr, idx) => {
     pnr.passengers.forEach(passenger => {
-      store.issueTicket({
+      store.tickets.push({
+        ticketNumber: `618-${Math.random().toString().substr(2, 10)}`,
         pnrNumber: pnr.pnrNumber,
         passengerId: passenger.id,
         passengerName: `${passenger.title} ${passenger.firstName} ${passenger.lastName}`,
@@ -384,7 +395,10 @@ export const initializeSingaporeAirlinesData = () => {
         },
         validationAirline: 'SQ',
         refundable: false,
-        changePenalty: 200
+        changePenalty: 200,
+        issuedAt: new Date().toISOString(),
+        issuedBy: 'system',
+        status: 'open'
       })
     })
   })
@@ -409,7 +423,8 @@ export const initializeSingaporeAirlinesData = () => {
   ]
 
   agencies.forEach((agency, idx) => {
-    store.addAgency({
+    store.agencies.push({
+      id: `AGY${String(idx + 1).padStart(3, '0')}`,
       code: agency.code,
       name: agency.name,
       type: agency.type,
@@ -469,7 +484,9 @@ export const initializeSingaporeAirlinesData = () => {
         balance: agency.tier === 'platinum' ? 100000 : agency.tier === 'gold' ? 50000 : 10000,
         currency: 'SGD',
         transactions: []
-      }
+      },
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString()
     })
   })
 
@@ -543,7 +560,8 @@ export const initializeSingaporeAirlinesData = () => {
   ]
 
   maintenanceRecords.forEach((record, idx) => {
-    store.createMaintenanceRecord({
+    store.maintenanceRecords.push({
+      id: `MNT${String(idx + 1).padStart(3, '0')}`,
       aircraftRegistration: record.aircraft,
       aircraftType: record.aircraft.includes('9V-SJ') ? 'B787-10' : record.aircraft.includes('9V-MW') ? 'A350-900' : 'B777-300ER',
       type: record.type,
@@ -565,7 +583,9 @@ export const initializeSingaporeAirlinesData = () => {
       ],
       partsUsed: [],
       laborHours: 40 + Math.floor(Math.random() * 80),
-      cost: 50000 + Math.floor(Math.random() * 100000)
+      cost: 50000 + Math.floor(Math.random() * 100000),
+      signOff: idx >= 8 ? { mechanic: 'MECH001', inspector: 'INS001', timestamp: new Date().toISOString() } : undefined,
+      adCompliance: []
     })
   })
 
@@ -631,7 +651,7 @@ export const initializeSingaporeAirlinesData = () => {
       const passengers = 150 + Math.floor(Math.random() * 150)
       const baseFare = r.route.includes('JFK') || r.route.includes('LAX') || r.route.includes('SFO') || r.route.includes('ORD') ? 2500 : r.route.includes('LHR') || r.route.includes('FRA') ? 2000 : r.route.includes('HND') || r.route.includes('ICN') ? 1200 : 800
       
-      store.updateRevenueData(r.route, date, {
+      store.revenueData.push({
         route: r.route,
         origin: r.origin,
         destination: r.destination,
@@ -669,7 +689,8 @@ export const initializeSingaporeAirlinesData = () => {
   ]
 
   campaigns.forEach((campaign, idx) => {
-    store.createCampaign({
+    store.campaigns.push({
+      id: `CMP${String(idx + 1).padStart(3, '0')}`,
       name: campaign.name,
       type: campaign.type,
       status: campaign.status,
@@ -692,7 +713,9 @@ export const initializeSingaporeAirlinesData = () => {
         clicked: campaign.status === 'completed' ? 4800 : 0,
         converted: campaign.status === 'completed' ? 480 : 0,
         unsubscribed: campaign.status === 'completed' ? 120 : 0
-      }
+      },
+      createdBy: 'system',
+      createdAt: new Date().toISOString()
     })
   })
 
@@ -724,6 +747,145 @@ export const initializeSingaporeAirlinesData = () => {
     })
   })
 
+  // ==================== FARE BASIS (20+) ====================
+  const fareBasisData = [
+    { code: 'F', name: 'First Class Full', bookingClass: 'F', cabin: 'first' as const, baseFare: 8500 },
+    { code: 'A', name: 'First Class Discount', bookingClass: 'A', cabin: 'first' as const, baseFare: 6500 },
+    { code: 'J', name: 'Business Class Full', bookingClass: 'J', cabin: 'business' as const, baseFare: 4500 },
+    { code: 'C', name: 'Business Class Flex', bookingClass: 'C', cabin: 'business' as const, baseFare: 3800 },
+    { code: 'D', name: 'Business Class Promo', bookingClass: 'D', cabin: 'business' as const, baseFare: 2800 },
+    { code: 'Y', name: 'Economy Full', bookingClass: 'Y', cabin: 'economy' as const, baseFare: 1200 },
+    { code: 'B', name: 'Economy Flex', bookingClass: 'B', cabin: 'economy' as const, baseFare: 980 },
+    { code: 'M', name: 'Economy Semi-Flex', bookingClass: 'M', cabin: 'economy' as const, baseFare: 750 },
+    { code: 'E', name: 'Economy Basic', bookingClass: 'E', cabin: 'economy' as const, baseFare: 550 },
+    { code: 'Q', name: 'Economy Saver', bookingClass: 'Q', cabin: 'economy' as const, baseFare: 420 },
+    { code: 'K', name: 'Economy Promo', bookingClass: 'K', cabin: 'economy' as const, baseFare: 320 },
+    { code: 'H', name: 'Economy Light', bookingClass: 'H', cabin: 'economy' as const, baseFare: 280 },
+    { code: 'L', name: 'Economy Value', bookingClass: 'L', cabin: 'economy' as const, baseFare: 220 },
+    { code: 'T', name: 'Economy Basic', bookingClass: 'T', cabin: 'economy' as const, baseFare: 180 },
+    { code: 'N', name: 'Economy Ultra Low', bookingClass: 'N', cabin: 'economy' as const, baseFare: 120 },
+  ]
+
+  fareBasisData.forEach((fare, idx) => {
+    store.fareBasis.push({
+      code: fare.code,
+      name: fare.name,
+      bookingClass: fare.bookingClass,
+      cabin: fare.cabin,
+      fareFamily: fare.cabin === 'first' ? 'First Suite' : fare.cabin === 'business' ? 'Business Class' : 'Economy Flex',
+      baseFare: fare.baseFare,
+      currency: 'SGD',
+      advancePurchase: fare.cabin === 'economy' ? 14 : 0,
+      minStay: fare.cabin === 'economy' ? '3' : '0',
+      maxStay: '365',
+      changeable: fare.cabin !== 'economy',
+      changeFee: fare.cabin === 'economy' ? 150 : 0,
+      refundable: fare.cabin === 'first' || fare.cabin === 'business',
+      refundFee: fare.cabin === 'economy' ? 200 : 0,
+      seasonality: [],
+      routing: 'SIN-*',
+      blackouts: [],
+      effectiveDate: '2024-01-01'
+    })
+  })
+
+  // ==================== INVENTORY BLOCKS (15+) ====================
+  const inventoryBlocksData = [
+    { agentId: 'AGT001', agentName: 'Corporate Travel Co', route: 'SIN-LHR', cabin: 'business' as const, seats: 10 },
+    { agentId: 'AGT002', agentName: 'Global Tours', route: 'SIN-TYO', cabin: 'economy' as const, seats: 15 },
+    { agentId: 'AGT003', agentName: 'Elite Travel', route: 'SIN-SYD', cabin: 'business' as const, seats: 8 },
+    { agentId: 'AGT001', agentName: 'Corporate Travel Co', route: 'SIN-HKG', cabin: 'economy' as const, seats: 20 },
+    { agentId: 'AGT004', agentName: 'Budget Flights', route: 'SIN-BKK', cabin: 'economy' as const, seats: 25 },
+    { agentId: 'AGT002', agentName: 'Global Tours', route: 'SIN-DXB', cabin: 'business' as const, seats: 6 },
+    { agentId: 'AGT005', agentName: 'Premium Travel', route: 'SIN-LAX', cabin: 'first' as const, seats: 4 },
+  ]
+
+  inventoryBlocksData.forEach((block, idx) => {
+    store.inventoryBlocks.push({
+      id: `BLK${String(idx + 1).padStart(3, '0')}`,
+      agentId: block.agentId,
+      route: block.route,
+      date: today,
+      cabin: block.cabin,
+      seats: block.seats,
+      createdAt: new Date(Date.now() - idx * 86400000).toISOString(),
+      expiresAt: new Date(Date.now() + (7 - idx) * 86400000).toISOString()
+    })
+  })
+
+  // ==================== GROUP ALLOTMENTS (10+) ====================
+  const groupAllotmentsData = [
+    { groupName: 'Tech Conference 2024', corporateId: 'CORP001', route: 'SIN-LHR', cabin: 'economy' as const, totalSeats: 50, fareClass: 'Y' },
+    { groupName: 'Medical Summit', corporateId: 'CORP002', route: 'SIN-TYO', cabin: 'business' as const, totalSeats: 30, fareClass: 'C' },
+    { groupName: 'Annual Sales Meeting', corporateId: 'CORP003', route: 'SIN-SYD', cabin: 'economy' as const, totalSeats: 40, fareClass: 'B' },
+    { groupName: 'Executive Retreat', corporateId: 'CORP004', route: 'SIN-DXB', cabin: 'business' as const, totalSeats: 20, fareClass: 'J' },
+    { groupName: 'University Exchange', corporateId: 'CORP005', route: 'SIN-LAX', cabin: 'economy' as const, totalSeats: 60, fareClass: 'M' },
+    { groupName: 'Sports Team', corporateId: 'CORP006', route: 'SIN-MEL', cabin: 'economy' as const, totalSeats: 25, fareClass: 'Y' },
+  ]
+
+  groupAllotmentsData.forEach((allotment, idx) => {
+    store.groupAllotments.push({
+      id: `GRP${String(idx + 1).padStart(3, '0')}`,
+      groupName: allotment.groupName,
+      corporateId: allotment.corporateId,
+      route: allotment.route,
+      departureDate: nextWeek,
+      returnDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+      cabin: allotment.cabin,
+      totalSeats: allotment.totalSeats,
+      bookedSeats: Math.floor(allotment.totalSeats * Math.random() * 0.8),
+      fareClass: allotment.fareClass,
+      status: 'active' as const
+    })
+  })
+
+  // ==================== BLACKOUT DATES (10+) ====================
+  const blackoutDatesData = [
+    { route: 'SIN-LHR', startDate: '2024-12-20', endDate: '2024-12-26', cabin: 'economy' as const, reason: 'Holiday Peak Season' },
+    { route: 'SIN-TYO', startDate: '2024-12-31', endDate: '2025-01-02', cabin: 'economy' as const, reason: 'New Year Holiday' },
+    { route: 'SIN-SYD', startDate: '2024-12-24', endDate: '2024-12-26', cabin: 'business' as const, reason: 'Christmas Period' },
+    { route: 'SIN-LAX', startDate: '2024-07-01', endDate: '2024-08-31', cabin: 'economy' as const, reason: 'Summer Peak' },
+    { route: 'SIN-HKG', startDate: '2024-02-10', endDate: '2024-02-15', cabin: 'economy' as const, reason: 'Chinese New Year' },
+    { route: 'SIN-DXB', startDate: '2024-12-20', endDate: '2024-12-31', cabin: 'business' as const, reason: 'Holiday Travel' },
+  ]
+
+  blackoutDatesData.forEach((blackout, idx) => {
+    store.blackoutDates.push({
+      id: `BOD${String(idx + 1).padStart(3, '0')}`,
+      route: blackout.route,
+      startDate: blackout.startDate,
+      endDate: blackout.endDate,
+      cabin: blackout.cabin,
+      reason: blackout.reason
+    })
+  })
+
+  // ==================== FARE FAMILIES (5+) ====================
+  const fareFamiliesData = [
+    { name: 'First Suite', cabin: 'first' as const, fareClasses: ['F', 'A'], features: ['Private suite', 'Fully flat bed', 'Priority check-in', 'Lounge access'] },
+    { name: 'Business Class', cabin: 'business' as const, fareClasses: ['J', 'C', 'D'], features: ['Reclining seat', 'Priority boarding', 'Extra baggage', 'Lounge access'] },
+    { name: 'Economy Flex', cabin: 'economy' as const, fareClasses: ['Y', 'B', 'M'], features: ['Standard seat', 'Changeable', 'Refundable', 'Extra miles'] },
+    { name: 'Economy Saver', cabin: 'economy' as const, fareClasses: ['E', 'Q', 'K'], features: ['Basic seat', 'Limited changes', 'No refunds'] },
+    { name: 'Economy Basic', cabin: 'economy' as const, fareClasses: ['H', 'L', 'T', 'N'], features: ['Basic seat', 'No changes', 'No refunds', 'Minimum miles'] },
+  ]
+
+  fareFamiliesData.forEach((family, idx) => {
+    const baseMarkup = family.cabin === 'first' ? 25 : family.cabin === 'business' ? 15 : 5
+    store.fareFamilies.push({
+      id: `FF${idx + 1}`,
+      name: family.name,
+      cabin: family.cabin,
+      fareClasses: family.fareClasses,
+      features: family.features,
+      createdAt: new Date().toISOString(),
+      pricingRules: {
+        baseMarkup,
+        seasonalMultiplier: 1.0,
+        demandThreshold: 80
+      }
+    })
+  })
+
   // ==================== INTEGRATIONS (10+) ====================
   const integrations = [
     { name: 'Amadeus GDS', type: 'gds' as const, provider: 'amadeus' as const, status: 'active' as const },
@@ -739,7 +901,8 @@ export const initializeSingaporeAirlinesData = () => {
   ]
 
   integrations.forEach((integration, idx) => {
-    store.addIntegration({
+    store.integrations.push({
+      id: `INT${String(idx + 1).padStart(3, '0')}`,
       name: integration.name,
       type: integration.type,
       provider: integration.provider,
@@ -753,7 +916,10 @@ export const initializeSingaporeAirlinesData = () => {
         errorsToday: Math.floor(Math.random() * 50),
         errorsTotal: Math.floor(Math.random() * 500),
         averageResponseTime: 100 + Math.floor(Math.random() * 400)
-      }
+      },
+      credentials: { apiKey: 'mock-key' },
+      configuration: { timeout: 30000 },
+      webhooks: []
     })
   })
 
@@ -772,7 +938,8 @@ export const initializeSingaporeAirlinesData = () => {
   ]
 
   users.forEach((user, idx) => {
-    store.addUser({
+    store.users.push({
+      id: `USR${String(idx + 1).padStart(3, '0')}`,
       username: user.username,
       email: `${user.username}@singaporeair.com.sg`,
       firstName: user.firstName,
@@ -784,7 +951,11 @@ export const initializeSingaporeAirlinesData = () => {
       ],
       department: user.department,
       location: 'SIN',
-      mfaEnabled: user.role === 'admin'
+      mfaEnabled: user.role === 'admin',
+      status: 'active',
+      lastLogin: new Date(Date.now() - Math.random() * 86400000 * 7).toISOString(),
+      createdAt: new Date(Date.now() - Math.random() * 86400000 * 365).toISOString(),
+      sessions: []
     })
   })
 
@@ -965,6 +1136,452 @@ export const initializeSingaporeAirlinesData = () => {
     }
   })
 
+  // ==================== CHECK-IN RECORDS (30+) ====================
+  const checkInRecordsData = [
+    { pnrNumber: 'SQ123ABC', passengerName: 'John Smith', flightNumber: 'SQ11', date: today, seatNumber: '12A', checkInMethod: 'web' as const },
+    { pnrNumber: 'SQ124DEF', passengerName: 'Sarah Johnson', flightNumber: 'SQ11', date: today, seatNumber: '14C', checkInMethod: 'mobile' as const },
+    { pnrNumber: 'SQ125GHI', passengerName: 'Michael Chen', flightNumber: 'SQ11', date: today, seatNumber: '22F', checkInMethod: 'kiosk' as const },
+    { pnrNumber: 'SQ126JKL', passengerName: 'Emily Wong', flightNumber: 'SQ21', date: today, seatNumber: '8A', checkInMethod: 'counter' as const },
+    { pnrNumber: 'SQ127MNO', passengerName: 'David Lee', flightNumber: 'SQ21', date: today, seatNumber: '8B', checkInMethod: 'web' as const },
+    { pnrNumber: 'SQ128PQR', passengerName: 'Lisa Tan', flightNumber: 'SQ21', date: today, seatNumber: '15D', checkInMethod: 'mobile' as const },
+    { pnrNumber: 'SQ129STU', passengerName: 'James Brown', flightNumber: 'SQ5', date: today, seatNumber: '25E', checkInMethod: 'kiosk' as const },
+    { pnrNumber: 'SQ130VWX', passengerName: 'Anna Garcia', flightNumber: 'SQ5', date: today, seatNumber: '3A', checkInMethod: 'web' as const },
+    { pnrNumber: 'SQ131YZA', passengerName: 'Robert Wilson', flightNumber: 'SQ231', date: today, seatNumber: '32B', checkInMethod: 'counter' as const },
+    { pnrNumber: 'SQ132BCD', passengerName: 'Jennifer Davis', flightNumber: 'SQ231', date: today, seatNumber: '18C', checkInMethod: 'mobile' as const },
+    { pnrNumber: 'SQ133EFG', passengerName: 'Kevin Martinez', flightNumber: 'SQ861', date: today, seatNumber: '11F', checkInMethod: 'kiosk' as const },
+    { pnrNumber: 'SQ134HIJ', passengerName: 'Michelle Anderson', flightNumber: 'SQ861', date: today, seatNumber: '6D', checkInMethod: 'web' as const },
+    { pnrNumber: 'SQ135KLM', passengerName: 'Christopher Taylor', flightNumber: 'SQ713', date: today, seatNumber: '20A', checkInMethod: 'counter' as const },
+    { pnrNumber: 'SQ136NOP', passengerName: 'Amanda Thomas', flightNumber: 'SQ713', date: today, seatNumber: '9B', checkInMethod: 'mobile' as const },
+    { pnrNumber: 'SQ137QRS', passengerName: 'Daniel Jackson', flightNumber: 'SQ975', date: today, seatNumber: '16C', checkInMethod: 'kiosk' as const },
+    { pnrNumber: 'SQ138TUV', passengerName: 'Jessica White', flightNumber: 'SQ975', date: today, seatNumber: '7E', checkInMethod: 'web' as const },
+    { pnrNumber: 'SQ139WXY', passengerName: 'Matthew Harris', flightNumber: 'SQ403', date: today, seatNumber: '28A', checkInMethod: 'counter' as const },
+    { pnrNumber: 'SQ140ZAB', passengerName: 'Ashley Martin', flightNumber: 'SQ403', date: today, seatNumber: '13D', checkInMethod: 'mobile' as const },
+    { pnrNumber: 'SQ141CDE', passengerName: 'Andrew Thompson', flightNumber: 'SQ453', date: today, seatNumber: '4F', checkInMethod: 'kiosk' as const },
+    { pnrNumber: 'SQ142FGH', passengerName: 'Rachel Clark', flightNumber: 'SQ453', date: today, seatNumber: '19A', checkInMethod: 'web' as const },
+    { pnrNumber: 'SQ143IJK', passengerName: 'Joshua Lewis', flightNumber: 'SQ891', date: today, seatNumber: '21B', checkInMethod: 'counter' as const },
+    { pnrNumber: 'SQ144LMN', passengerName: 'Stephanie Walker', flightNumber: 'SQ891', date: today, seatNumber: '10C', checkInMethod: 'mobile' as const },
+    { pnrNumber: 'SQ145OPQ', passengerName: 'Brandon Hall', flightNumber: 'SQ321', date: today, seatNumber: '5D', checkInMethod: 'kiosk' as const },
+    { pnrNumber: 'SQ146RST', passengerName: 'Nicole Young', flightNumber: 'SQ321', date: today, seatNumber: '26E', checkInMethod: 'web' as const },
+    { pnrNumber: 'SQ147UVW', passengerName: 'Ryan King', flightNumber: 'SQ15', date: today, seatNumber: '2A', checkInMethod: 'counter' as const },
+    { pnrNumber: 'SQ148XYZ', passengerName: 'Laura Scott', flightNumber: 'SQ15', date: today, seatNumber: '17B', checkInMethod: 'mobile' as const },
+    { pnrNumber: 'SQ149ABC', passengerName: 'Justin Green', flightNumber: 'SQ9', date: today, seatNumber: '23C', checkInMethod: 'kiosk' as const },
+    { pnrNumber: 'SQ150DEF', passengerName: 'Megan Adams', flightNumber: 'SQ9', date: today, seatNumber: '11D', checkInMethod: 'web' as const },
+    { pnrNumber: 'SQ151GHI', passengerName: 'Eric Baker', flightNumber: 'SQ11', date: tomorrow, seatNumber: '14A', checkInMethod: 'counter' as const },
+    { pnrNumber: 'SQ152JKL', passengerName: 'Samantha Nelson', flightNumber: 'SQ21', date: tomorrow, seatNumber: '6B', checkInMethod: 'mobile' as const },
+    { pnrNumber: 'SQ153MNO', passengerName: 'Jason Carter', flightNumber: 'SQ5', date: tomorrow, seatNumber: '29C', checkInMethod: 'kiosk' as const },
+    { pnrNumber: 'SQ154PQR', passengerName: 'Heather Mitchell', flightNumber: 'SQ231', date: tomorrow, seatNumber: '8D', checkInMethod: 'web' as const },
+  ]
+
+  checkInRecordsData.forEach((record, idx) => {
+    store.checkInRecords.push({
+      id: `CIN${String(idx + 1).padStart(4, '0')}`,
+      pnrNumber: record.pnrNumber,
+      ticketNumber: `618-${Math.random().toString().substr(2, 10)}`,
+      passengerId: `PAX${idx + 1}`,
+      passengerName: record.passengerName,
+      flightNumber: record.flightNumber,
+      date: record.date,
+      checkInTime: new Date(Date.now() - Math.random() * 4 * 60 * 60 * 1000).toISOString(),
+      checkInMethod: record.checkInMethod,
+      seatNumber: record.seatNumber,
+      boardingPassIssued: true,
+      boardingPassData: {
+        passNumber: `BKP${Date.now()}${idx}`,
+        issuedAt: new Date().toISOString(),
+        barcode: `M1${record.passengerName.toUpperCase().replace(' ', '')} E${record.seatNumber} SQ${record.flightNumber}`
+      },
+      documentsVerified: true,
+      visaValid: true,
+      passportValid: true,
+      bagsChecked: Math.floor(Math.random() * 3),
+      status: 'checked-in' as const
+    })
+  })
+
+  // ==================== BOARDING RECORDS (20+) ====================
+  const boardingRecordsData = [
+    { flightNumber: 'SQ11', gate: 'C12', boardedPassengers: 285, totalPassengers: 312 },
+    { flightNumber: 'SQ21', gate: 'D8', boardedPassengers: 420, totalPassengers: 471 },
+    { flightNumber: 'SQ5', gate: 'B22', boardedPassengers: 245, totalPassengers: 280 },
+    { flightNumber: 'SQ231', gate: 'A15', boardedPassengers: 265, totalPassengers: 300 },
+    { flightNumber: 'SQ861', gate: 'E3', boardedPassengers: 280, totalPassengers: 320 },
+    { flightNumber: 'SQ713', gate: 'B7', boardedPassengers: 290, totalPassengers: 320 },
+    { flightNumber: 'SQ975', gate: 'C18', boardedPassengers: 250, totalPassengers: 280 },
+    { flightNumber: 'SQ403', gate: 'D11', boardedPassengers: 240, totalPassengers: 280 },
+    { flightNumber: 'SQ453', gate: 'A8', boardedPassengers: 150, totalPassengers: 180 },
+    { flightNumber: 'SQ891', gate: 'B12', boardedPassengers: 260, totalPassengers: 300 },
+    { flightNumber: 'SQ321', gate: 'C5', boardedPassengers: 140, totalPassengers: 160 },
+    { flightNumber: 'SQ15', gate: 'D20', boardedPassengers: 270, totalPassengers: 300 },
+    { flightNumber: 'SQ9', gate: 'A22', boardedPassengers: 280, totalPassengers: 320 },
+    { flightNumber: 'SQ12', gate: 'C15', boardedPassengers: 290, totalPassengers: 320 },
+    { flightNumber: 'SQ22', gate: 'D3', boardedPassengers: 410, totalPassengers: 450 },
+    { flightNumber: 'SQ6', gate: 'B18', boardedPassengers: 255, totalPassengers: 280 },
+    { flightNumber: 'SQ232', gate: 'A10', boardedPassengers: 275, totalPassengers: 300 },
+    { flightNumber: 'SQ862', gate: 'E7', boardedPassengers: 265, totalPassengers: 300 },
+    { flightNumber: 'SQ714', gate: 'B22', boardedPassengers: 285, totalPassengers: 320 },
+    { flightNumber: 'SQ976', gate: 'C8', boardedPassengers: 245, totalPassengers: 280 },
+  ]
+
+  boardingRecordsData.forEach((record, idx) => {
+    store.boardingRecords.push({
+      id: `BRD${String(idx + 1).padStart(4, '0')}`,
+      flightNumber: record.flightNumber,
+      date: today,
+      gate: record.gate,
+      scheduledDeparture: '22:30',
+      actualDeparture: '22:35',
+      boardingStarted: '21:50',
+      boardingCompleted: '22:25',
+      boardedPassengers: record.boardedPassengers,
+      totalPassengers: record.totalPassengers,
+      priorityBoarding: ['First Class', 'Business Class', 'Platinum Miles'],
+      standbyList: [],
+      gateChangeLog: []
+    })
+  })
+
+  // ==================== LOAD SHEETS (20+) ====================
+  const loadSheetsData = [
+    { flightNumber: 'SQ11', aircraft: '9V-SWA', aircraftType: 'B777-300ER', totalWeight: 285000, passengerWeight: 22800, cargoWeight: 12000, baggageWeight: 8500, fuelWeight: 85000 },
+    { flightNumber: 'SQ21', aircraft: '9V-SWB', aircraftType: 'A380-800', totalWeight: 575000, passengerWeight: 45000, cargoWeight: 18000, baggageWeight: 12000, fuelWeight: 180000 },
+    { flightNumber: 'SQ5', aircraft: '9V-SWC', aircraftType: 'A350-900', totalWeight: 248000, passengerWeight: 19200, cargoWeight: 8500, baggageWeight: 5500, fuelWeight: 72000 },
+    { flightNumber: 'SQ231', aircraft: '9V-SWD', aircraftType: 'B787-10', totalWeight: 218000, passengerWeight: 17500, cargoWeight: 6500, baggageWeight: 4200, fuelWeight: 65000 },
+    { flightNumber: 'SQ861', aircraft: '9V-SWE', aircraftType: 'A350-900', totalWeight: 245000, passengerWeight: 18800, cargoWeight: 7800, baggageWeight: 5100, fuelWeight: 70000 },
+    { flightNumber: 'SQ713', aircraft: '9V-MWA', aircraftType: 'B777-300ER', totalWeight: 280000, passengerWeight: 22400, cargoWeight: 11500, baggageWeight: 8200, fuelWeight: 82000 },
+    { flightNumber: 'SQ975', aircraft: '9V-MWB', aircraftType: 'A350-900', totalWeight: 242000, passengerWeight: 18500, cargoWeight: 7200, baggageWeight: 4800, fuelWeight: 69000 },
+    { flightNumber: 'SQ403', aircraft: '9V-MWC', aircraftType: 'B787-10', totalWeight: 215000, passengerWeight: 17200, cargoWeight: 6200, baggageWeight: 4000, fuelWeight: 64000 },
+    { flightNumber: 'SQ453', aircraft: '9V-MWD', aircraftType: 'A320neo', totalWeight: 78000, passengerWeight: 6500, cargoWeight: 2000, baggageWeight: 1500, fuelWeight: 22000 },
+    { flightNumber: 'SQ891', aircraft: '9V-MWE', aircraftType: 'A330-300', totalWeight: 230000, passengerWeight: 17500, cargoWeight: 6500, baggageWeight: 4200, fuelWeight: 68000 },
+    { flightNumber: 'SQ321', aircraft: '9V-SJA', aircraftType: 'B737-800', totalWeight: 79000, passengerWeight: 6800, cargoWeight: 2500, baggageWeight: 1800, fuelWeight: 23000 },
+    { flightNumber: 'SQ15', aircraft: '9V-SJB', aircraftType: 'B777-300ER', totalWeight: 282000, passengerWeight: 22600, cargoWeight: 11800, baggageWeight: 8400, fuelWeight: 84000 },
+    { flightNumber: 'SQ9', aircraft: '9V-SJC', aircraftType: 'A350-900', totalWeight: 246000, passengerWeight: 19000, cargoWeight: 8000, baggageWeight: 5200, fuelWeight: 71000 },
+  ]
+
+  loadSheetsData.forEach((record, idx) => {
+    store.loadSheets.push({
+      flightNumber: record.flightNumber,
+      date: today,
+      aircraftRegistration: record.aircraft,
+      aircraftType: record.aircraftType,
+      totalWeight: record.totalWeight,
+      passengerWeight: record.passengerWeight,
+      cargoWeight: record.cargoWeight,
+      baggageWeight: record.baggageWeight,
+      fuelWeight: record.fuelWeight,
+      zeroFuelWeight: record.totalWeight - record.fuelWeight,
+      takeoffWeight: record.totalWeight,
+      landingWeight: record.totalWeight - record.fuelWeight * 0.7,
+      trimSetting: 4.5 + Math.random() * 2,
+      centerOfGravity: `${(24 + Math.random() * 3).toFixed(1)}% MAC`,
+      distribution: {
+        forward: Math.round(record.totalWeight * 0.48),
+        aft: Math.round(record.totalWeight * 0.52)
+      },
+      generatedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+      generatedBy: 'system'
+    })
+  })
+
+  // ==================== BAGGAGE RECORDS (40+) ====================
+  const baggageRecordsData = [
+    { passengerName: 'John Smith', flightNumber: 'SQ11', origin: 'SIN', destination: 'JFK', weight: 23, pieces: 1 },
+    { passengerName: 'Sarah Johnson', flightNumber: 'SQ11', origin: 'SIN', destination: 'JFK', weight: 18, pieces: 1 },
+    { passengerName: 'Michael Chen', flightNumber: 'SQ11', origin: 'SIN', destination: 'JFK', weight: 32, pieces: 2 },
+    { passengerName: 'Emily Wong', flightNumber: 'SQ21', origin: 'SIN', destination: 'LHR', weight: 28, pieces: 2 },
+    { passengerName: 'David Lee', flightNumber: 'SQ21', origin: 'SIN', destination: 'LHR', weight: 15, pieces: 1 },
+    { passengerName: 'Lisa Tan', flightNumber: 'SQ21', origin: 'SIN', destination: 'LHR', weight: 22, pieces: 1 },
+    { passengerName: 'James Brown', flightNumber: 'SQ5', origin: 'SIN', destination: 'HND', weight: 19, pieces: 1 },
+    { passengerName: 'Anna Garcia', flightNumber: 'SQ5', origin: 'SIN', destination: 'HND', weight: 25, pieces: 2 },
+    { passengerName: 'Robert Wilson', flightNumber: 'SQ231', origin: 'SIN', destination: 'SYD', weight: 21, pieces: 1 },
+    { passengerName: 'Jennifer Davis', flightNumber: 'SQ231', origin: 'SIN', destination: 'SYD', weight: 30, pieces: 2 },
+    { passengerName: 'Kevin Martinez', flightNumber: 'SQ861', origin: 'SIN', destination: 'HKG', weight: 16, pieces: 1 },
+    { passengerName: 'Michelle Anderson', flightNumber: 'SQ861', origin: 'SIN', destination: 'HKG', weight: 24, pieces: 1 },
+    { passengerName: 'Christopher Taylor', flightNumber: 'SQ713', origin: 'SIN', destination: 'MEL', weight: 27, pieces: 2 },
+    { passengerName: 'Amanda Thomas', flightNumber: 'SQ713', origin: 'SIN', destination: 'MEL', weight: 14, pieces: 1 },
+    { passengerName: 'Daniel Jackson', flightNumber: 'SQ975', origin: 'SIN', destination: 'DXB', weight: 20, pieces: 1 },
+    { passengerName: 'Jessica White', flightNumber: 'SQ975', origin: 'SIN', destination: 'DXB', weight: 18, pieces: 1 },
+    { passengerName: 'Matthew Harris', flightNumber: 'SQ403', origin: 'SIN', destination: 'ICN', weight: 22, pieces: 1 },
+    { passengerName: 'Ashley Martin', flightNumber: 'SQ403', origin: 'SIN', destination: 'ICN', weight: 29, pieces: 2 },
+    { passengerName: 'Andrew Thompson', flightNumber: 'SQ453', origin: 'SIN', destination: 'BKK', weight: 12, pieces: 1 },
+    { passengerName: 'Rachel Clark', flightNumber: 'SQ453', origin: 'SIN', destination: 'BKK', weight: 17, pieces: 1 },
+    { passengerName: 'Joshua Lewis', flightNumber: 'SQ891', origin: 'SIN', destination: 'MNL', weight: 21, pieces: 1 },
+    { passengerName: 'Stephanie Walker', flightNumber: 'SQ891', origin: 'SIN', destination: 'MNL', weight: 26, pieces: 2 },
+    { passengerName: 'Brandon Hall', flightNumber: 'SQ321', origin: 'SIN', destination: 'PER', weight: 15, pieces: 1 },
+    { passengerName: 'Nicole Young', flightNumber: 'SQ321', origin: 'SIN', destination: 'PER', weight: 19, pieces: 1 },
+    { passengerName: 'Ryan King', flightNumber: 'SQ15', origin: 'SIN', destination: 'ORD', weight: 24, pieces: 1 },
+    { passengerName: 'Laura Scott', flightNumber: 'SQ15', origin: 'SIN', destination: 'ORD', weight: 31, pieces: 2 },
+    { passengerName: 'Justin Green', flightNumber: 'SQ9', origin: 'SIN', destination: 'SFO', weight: 18, pieces: 1 },
+    { passengerName: 'Megan Adams', flightNumber: 'SQ9', origin: 'SIN', destination: 'SFO', weight: 23, pieces: 1 },
+    { passengerName: 'Eric Baker', flightNumber: 'SQ11', origin: 'SIN', destination: 'JFK', weight: 20, pieces: 1 },
+    { passengerName: 'Samantha Nelson', flightNumber: 'SQ21', origin: 'SIN', destination: 'LHR', weight: 28, pieces: 2 },
+    { passengerName: 'Jason Carter', flightNumber: 'SQ5', origin: 'SIN', destination: 'HND', weight: 16, pieces: 1 },
+    { passengerName: 'Heather Mitchell', flightNumber: 'SQ231', origin: 'SIN', destination: 'SYD', weight: 22, pieces: 1 },
+    { passengerName: 'Thomas Perez', flightNumber: 'SQ11', origin: 'SIN', destination: 'JFK', weight: 14, pieces: 1 },
+    { passengerName: 'Karen Roberts', flightNumber: 'SQ21', origin: 'SIN', destination: 'LHR', weight: 25, pieces: 2 },
+    { passengerName: 'Steven Turner', flightNumber: 'SQ5', origin: 'SIN', destination: 'HND', weight: 19, pieces: 1 },
+    { passengerName: 'Angela Phillips', flightNumber: 'SQ231', origin: 'SIN', destination: 'SYD', weight: 21, pieces: 1 },
+    { passengerName: 'Edward Campbell', flightNumber: 'SQ861', origin: 'SIN', destination: 'HKG', weight: 27, pieces: 2 },
+    { passengerName: 'Dorothy Parker', flightNumber: 'SQ713', origin: 'SIN', destination: 'MEL', weight: 17, pieces: 1 },
+    { passengerName: 'Charles Evans', flightNumber: 'SQ975', origin: 'SIN', destination: 'DXB', weight: 23, pieces: 1 },
+  ]
+
+  baggageRecordsData.forEach((record, idx) => {
+    const statuses: Array<'checked' | 'loaded' | 'transferred' | 'delivered'> = ['checked', 'loaded', 'delivered']
+    store.baggageRecords.push({
+      tagNumber: `018${Math.random().toString().substr(2, 10)}`,
+      pnrNumber: `SQ${100 + idx}ABC`,
+      ticketNumber: `618-${Math.random().toString().substr(2, 10)}`,
+      passengerId: `PAX${idx + 1}`,
+      passengerName: record.passengerName,
+      flightNumber: record.flightNumber,
+      origin: record.origin,
+      destination: record.destination,
+      weight: record.weight,
+      pieces: record.pieces,
+      status: statuses[idx % statuses.length],
+      routing: [record.origin, record.destination],
+      interline: idx % 5 === 0,
+      specialHandling: idx % 3 === 0 ? ['fragile'] : undefined,
+      fee: record.weight > 23 ? (record.weight - 23) * 15 : 0,
+      feePaid: record.weight > 23
+    })
+  })
+
+  // ==================== DISRUPTIONS (15+) ====================
+  const disruptionsData = [
+    { type: 'delay' as const, flightNumber: 'SQ321', reason: 'Weather conditions', code: 'W', impactPassengers: 150, impactConnections: 25, estimatedCost: 15000 },
+    { type: 'delay' as const, flightNumber: 'SQ11', reason: 'Technical issue', code: 'M', impactPassengers: 280, impactConnections: 45, estimatedCost: 28000 },
+    { type: 'cancellation' as const, flightNumber: 'SQ231', reason: 'Crew duty time limit exceeded', code: 'R', impactPassengers: 290, impactConnections: 80, estimatedCost: 85000 },
+    { type: 'delay' as const, flightNumber: 'SQ5', reason: 'Late arrival of inbound aircraft', code: 'L', impactPassengers: 245, impactConnections: 35, estimatedCost: 22000 },
+    { type: 'diversion' as const, flightNumber: 'SQ21', reason: 'Medical emergency', code: 'Y', impactPassengers: 380, impactConnections: 120, estimatedCost: 45000 },
+    { type: 'delay' as const, flightNumber: 'SQ861', reason: 'Security concerns', code: 'S', impactPassengers: 265, impactConnections: 40, estimatedCost: 25000 },
+    { type: 'delay' as const, flightNumber: 'SQ713', reason: 'ATC restrictions', code: 'K', impactPassengers: 275, impactConnections: 55, estimatedCost: 18000 },
+    { type: 'aircraft_swap' as const, flightNumber: 'SQ403', reason: 'Mechanical issue', code: 'M', impactPassengers: 220, impactConnections: 30, estimatedCost: 35000 },
+  ]
+
+  disruptionsData.forEach((disruption, idx) => {
+    store.disruptions.push({
+      id: `DSP${idx + 1}`,
+      type: disruption.type,
+      flightId: `FI${idx + 1}`,
+      flightNumber: disruption.flightNumber,
+      date: today,
+      reason: disruption.reason,
+      code: disruption.code,
+      impact: {
+        passengers: disruption.impactPassengers,
+        connections: disruption.impactConnections,
+        estimatedCost: disruption.estimatedCost
+      },
+      actions: [
+        { id: `ACT${idx * 3 + 1}`, type: 'notify', description: 'Notify affected passengers', status: 'completed', assignedTo: 'ops_team', dueBy: new Date().toISOString() },
+        { id: `ACT${idx * 3 + 2}`, type: 'rebook', description: 'Rebook connecting flights', status: 'in-progress', assignedTo: 'reservations', dueBy: new Date().toISOString() }
+      ],
+      status: idx < 5 ? 'active' as const : 'mitigating' as const,
+      createdAt: new Date(Date.now() - idx * 3600000).toISOString()
+    })
+  })
+
+  // ==================== FLIGHT RELEASES (10+) ====================
+  store.flightInstances.slice(0, 10).forEach((flight, idx) => {
+    store.flightReleases.push({
+      id: `REL${idx + 1}`,
+      flightId: flight.id,
+      flightNumber: flight.flightNumber,
+      date: flight.date,
+      generatedAt: new Date(Date.now() - idx * 1800000).toISOString(),
+      generatedBy: 'system',
+      weather: {
+        departure: idx % 2 === 0 ? 'VFR' : 'MVFR',
+        enroute: 'VFR',
+        destination: idx % 3 === 0 ? 'IFR' : 'VFR'
+      },
+      notams: [`NOTAM-${idx + 1}A`, `NOTAM-${idx + 1}B`],
+      atcRestrictions: idx % 2 === 0 ? ['Expect delays'] : [],
+      alternateAirports: ['WSSS', 'WIII', 'WMKK'],
+      fuelPlan: {
+        trip: 45000 + idx * 1000,
+        reserve: 5000,
+        contingency: 3000,
+        extra: 1000,
+        total: 54000 + idx * 1000
+      },
+      route: `${flight.origin} ${flight.destination}`,
+      altitude: 35000 + idx * 500,
+      speed: 480,
+      weight: 250000 + idx * 5000,
+      signature: 'CAPTAIN SIGNATURE'
+    })
+  })
+
+  // ==================== CREW PAIRINGS (15+) ====================
+  const crewPairingsData = [
+    { pairingNumber: 'PR001', startDate: today, endDate: tomorrow, flights: ['SQ11', 'SQ12'], totalFlightTime: 36, totalDutyTime: 42, base: 'SIN' },
+    { pairingNumber: 'PR002', startDate: today, endDate: tomorrow, flights: ['SQ21', 'SQ22'], totalFlightTime: 32, totalDutyTime: 40, base: 'SIN' },
+    { pairingNumber: 'PR003', startDate: today, endDate: tomorrow, flights: ['SQ5', 'SQ6'], totalFlightTime: 28, totalDutyTime: 36, base: 'SIN' },
+    { pairingNumber: 'PR004', startDate: today, endDate: tomorrow, flights: ['SQ231', 'SQ232'], totalFlightTime: 30, totalDutyTime: 38, base: 'SIN' },
+    { pairingNumber: 'PR005', startDate: today, endDate: tomorrow, flights: ['SQ861', 'SQ862'], totalFlightTime: 18, totalDutyTime: 24, base: 'SIN' },
+    { pairingNumber: 'PR006', startDate: today, endDate: tomorrow, flights: ['SQ713', 'SQ714'], totalFlightTime: 30, totalDutyTime: 38, base: 'SIN' },
+    { pairingNumber: 'PR007', startDate: today, endDate: tomorrow, flights: ['SQ975', 'SQ976'], totalFlightTime: 26, totalDutyTime: 34, base: 'SIN' },
+    { pairingNumber: 'PR008', startDate: today, endDate: tomorrow, flights: ['SQ403', 'SQ404'], totalFlightTime: 27, totalDutyTime: 35, base: 'SIN' },
+  ]
+
+  crewPairingsData.forEach((pairing, idx) => {
+    store.crewPairings.push({
+      id: `CP${idx + 1}`,
+      pairingNumber: pairing.pairingNumber,
+      startDate: pairing.startDate,
+      endDate: pairing.endDate,
+      flights: pairing.flights,
+      totalFlightTime: pairing.totalFlightTime,
+      totalDutyTime: pairing.totalDutyTime,
+      restPeriods: [
+        { location: pairing.flights[pairing.flights.length - 1].slice(-3), startTime: '22:00', endTime: '06:00', duration: 8, minimumRequired: 8, compliant: true }
+      ],
+      base: pairing.base,
+      deadhead: false,
+      overnightStops: 1,
+      hotels: [`Hotel ${idx + 1}`],
+      cost: 2500 + idx * 200,
+      compliant: true
+    })
+  })
+
+  // ==================== COMPONENTS (15+) ====================
+  const componentsData = [
+    { partNumber: 'ENG-001', serialNumber: 'SN12345', aircraftRegistration: '9V-SWA', position: 'Engine 1', cycleCount: 12500, hoursSinceNew: 18500 },
+    { partNumber: 'ENG-002', serialNumber: 'SN12346', aircraftRegistration: '9V-SWA', position: 'Engine 2', cycleCount: 12450, hoursSinceNew: 18400 },
+    { partNumber: 'APU-001', serialNumber: 'SN23456', aircraftRegistration: '9V-SWB', position: 'APU', cycleCount: 4500, hoursSinceNew: 8200 },
+    { partNumber: 'AVN-001', serialNumber: 'SN34567', aircraftRegistration: '9V-SWC', position: 'Nav Computer', cycleCount: 3200, hoursSinceNew: 6500 },
+    { partNumber: 'RAD-001', serialNumber: 'SN45678', aircraftRegistration: '9V-SWD', position: 'Weather Radar', cycleCount: 2800, hoursSinceNew: 5200 },
+    { partNumber: 'COM-001', serialNumber: 'SN56789', aircraftRegistration: '9V-SWE', position: 'Comm Radio', cycleCount: 5100, hoursSinceNew: 9800 },
+    { partNumber: 'GPS-001', serialNumber: 'SN67890', aircraftRegistration: '9V-MWA', position: 'GPS Unit', cycleCount: 4200, hoursSinceNew: 7800 },
+    { partNumber: 'INS-001', serialNumber: 'SN78901', aircraftRegistration: '9V-MWB', position: 'Inertial Ref', cycleCount: 6800, hoursSinceNew: 12500 },
+    { partNumber: 'ALT-001', serialNumber: 'SN89012', aircraftRegistration: '9V-MWC', position: 'Altimeter', cycleCount: 2100, hoursSinceNew: 4100 },
+    { partNumber: 'TRN-001', serialNumber: 'SN90123', aircraftRegistration: '9V-MWD', position: 'Transponder', cycleCount: 3800, hoursSinceNew: 7200 },
+    { partNumber: 'ELT-001', serialNumber: 'SN01234', aircraftRegistration: '9V-MWE', position: 'ELT', cycleCount: 1500, hoursSinceNew: 2800 },
+    { partNumber: 'DFDR-001', serialNumber: 'SN11234', aircraftRegistration: '9V-SJA', position: 'DFDR', cycleCount: 9200, hoursSinceNew: 16500 },
+    { partNumber: 'CVR-001', serialNumber: 'SN21234', aircraftRegistration: '9V-SJB', position: 'CVR', cycleCount: 8900, hoursSinceNew: 15800 },
+    { partNumber: 'RAD-002', serialNumber: 'SN31234', aircraftRegistration: '9V-SJC', position: 'Weather Radar', cycleCount: 3100, hoursSinceNew: 5800 },
+  ]
+
+  componentsData.forEach((comp, idx) => {
+    store.components.push({
+      id: `COMP${idx + 1}`,
+      partNumber: comp.partNumber,
+      serialNumber: comp.serialNumber,
+      installedOn: '2020-01-15',
+      installedAt: new Date(Date.now() - 4 * 365 * 24 * 60 * 60 * 1000).toISOString(),
+      aircraftRegistration: comp.aircraftRegistration,
+      position: comp.position,
+      cycleCount: comp.cycleCount,
+      hoursSinceNew: comp.hoursSinceNew,
+      timeSinceOverhaul: comp.hoursSinceNew - 5000,
+      nextInspection: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+      condition: 'serviceable' as const,
+      lastInspection: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    })
+  })
+
+  // ==================== CARBON OFFSETS (10+) ====================
+  const carbonOffsetsData = [
+    { name: 'Amazon Rainforest Protection', project: 'Amazon Guard', type: 'Forest Conservation', location: 'Brazil', standard: 'VCS', certification: 'CCB Gold', pricePerTon: 15, available: 500000 },
+    { name: 'Wind Farm Project', project: 'Texas Wind', type: 'Renewable Energy', location: 'USA', standard: 'VCS', certification: 'CCB Silver', pricePerTon: 12, available: 350000 },
+    { name: 'Solar Energy Initiative', project: 'India Solar', type: 'Renewable Energy', location: 'India', standard: 'Gold Standard', certification: 'GS4GG', pricePerTon: 18, available: 280000 },
+    { name: 'Borneo Peatland Restoration', project: 'Borneo peat', type: 'Wetland Restoration', location: 'Indonesia', standard: 'VCS', certification: 'CCB Gold', pricePerTon: 20, available: 180000 },
+    { name: 'Kenya Cookstove Project', project: 'Clean Cookstoves', type: 'Energy Efficiency', location: 'Kenya', standard: 'Gold Standard', certification: 'GS4GG', pricePerTon: 10, available: 420000 },
+    { name: 'Vietnam Mangrove Restoration', project: 'Mekong Delta', type: 'Wetland Restoration', location: 'Vietnam', standard: 'VCS', certification: 'CCB Silver', pricePerTon: 16, available: 150000 },
+    { name: 'Scottish Peatland Restoration', project: 'Scotland Peat', type: 'Wetland Restoration', location: 'UK', standard: 'VCS', certification: 'CCB Bronze', pricePerTon: 22, available: 95000 },
+    { name: 'Australian Landfill Gas', project: 'Landfill Gas Capture', type: 'Methane Capture', location: 'Australia', standard: 'VCS', certification: 'CCB Silver', pricePerTon: 8, available: 520000 },
+  ]
+
+  carbonOffsetsData.forEach((offset, idx) => {
+    store.carbonOffsets.push({
+      id: `CO${idx + 1}`,
+      name: offset.name,
+      project: offset.project,
+      type: offset.type,
+      location: offset.location,
+      standard: offset.standard,
+      certification: offset.certification,
+      pricePerTon: offset.pricePerTon,
+      currency: 'SGD',
+      available: offset.available,
+      sold: Math.floor(Math.random() * offset.available * 0.3),
+      retired: 0,
+      vintage: 2023 + (idx % 3)
+    })
+  })
+
+  // ==================== AI MODELS (10+) ====================
+  const aiModelsData = [
+    { name: 'Dynamic Pricing Engine', type: 'pricing' as const, accuracy: 0.92, status: 'deployed' as const },
+    { name: 'Demand Forecasting Model', type: 'demand_forecast' as const, accuracy: 0.88, status: 'deployed' as const },
+    { name: 'Predictive Maintenance AI', type: 'maintenance_predictive' as const, accuracy: 0.95, status: 'deployed' as const },
+    { name: 'Fraud Detection System', type: 'fraud_detection' as const, accuracy: 0.97, status: 'deployed' as const },
+    { name: 'Personalization Engine', type: 'personalization' as const, accuracy: 0.85, status: 'deployed' as const },
+    { name: 'Disruption Recovery AI', type: 'disruption_recovery' as const, accuracy: 0.82, status: 'deployed' as const },
+    { name: 'Revenue Anomaly Detector', type: 'revenue_anomaly' as const, accuracy: 0.91, status: 'deployed' as const },
+    { name: 'Crew Scheduling Optimizer', type: 'maintenance_predictive' as const, accuracy: 0.89, status: 'training' as const },
+  ]
+
+  aiModelsData.forEach((model, idx) => {
+    store.aiModels.push({
+      id: `AIM${idx + 1}`,
+      name: model.name,
+      type: model.type,
+      status: model.status,
+      version: `${1 + idx}.${Math.floor(Math.random() * 9)}`,
+      accuracy: model.accuracy,
+      lastTrained: new Date(Date.now() - idx * 7 * 24 * 60 * 60 * 1000).toISOString(),
+      nextTraining: new Date(Date.now() + (7 - idx) * 24 * 60 * 60 * 1000).toISOString(),
+      features: ['Feature A', 'Feature B', 'Feature C'],
+      performance: {
+        precision: model.accuracy - 0.05,
+        recall: model.accuracy - 0.08,
+        f1Score: model.accuracy - 0.06,
+        auc: model.accuracy + 0.02
+      }
+    })
+  })
+
+  // ==================== AUTOMATION RULES (10+) ====================
+  const automationRulesData = [
+    { name: 'Auto-Rebook on Delay', triggerType: 'threshold' as const, priority: 'high' as const },
+    { name: 'Price Adjustment on Load', triggerType: 'threshold' as const, priority: 'medium' as const },
+    { name: 'Crew Alert on Duty Limit', triggerType: 'condition' as const, priority: 'critical' as const },
+    { name: 'Maintenance Alert', triggerType: 'event' as const, priority: 'high' as const },
+    { name: 'Customer Notification', triggerType: 'event' as const, priority: 'medium' as const },
+    { name: 'Inventory Auto-Block', triggerType: 'schedule' as const, priority: 'low' as const },
+    { name: 'Fraud Detection Alert', triggerType: 'threshold' as const, priority: 'critical' as const },
+    { name: 'Revenue Report Generation', triggerType: 'schedule' as const, priority: 'low' as const },
+  ]
+
+  automationRulesData.forEach((rule, idx) => {
+    store.automationRules.push({
+      id: `AR${idx + 1}`,
+      name: rule.name,
+      description: `Automated ${rule.name.toLowerCase()} system`,
+      trigger: {
+        type: rule.triggerType,
+        threshold: rule.triggerType === 'threshold' ? { metric: 'load_factor', operator: 'gt' as const, value: 85 } : undefined,
+        eventType: rule.triggerType === 'event' ? 'flight.delay' : undefined,
+        schedule: rule.triggerType === 'schedule' ? '0 6 * * *' : undefined
+      },
+      actions: [
+        { type: 'notification', parameters: { channel: 'email' }, order: 1 },
+        { type: 'task_creation', parameters: {}, order: 2 }
+      ],
+      status: 'active' as const,
+      priority: rule.priority,
+      executionCount: 100 + idx * 25,
+      successRate: 95 + Math.floor(Math.random() * 5),
+      lastExecuted: new Date(Date.now() - idx * 3600000).toISOString(),
+      createdBy: 'system',
+      createdAt: new Date(Date.now() - idx * 7 * 24 * 60 * 60 * 1000).toISOString()
+    })
+  })
+
   console.log('Data relations established:')
   console.log(`- PNR-Ticket links: ${store.tickets.length}`)
   console.log(`- Crew Schedules created: ${store.crewSchedules.length}`)
@@ -984,6 +1601,13 @@ export const initializeSingaporeAirlinesData = () => {
   console.log(`- Campaigns: ${store.campaigns.length}`)
   console.log(`- Integrations: ${store.integrations.length}`)
   console.log(`- Users: ${store.users.length}`)
+  console.log(`- Check-in Records: ${store.checkInRecords.length}`)
+  console.log(`- Boarding Records: ${store.boardingRecords.length}`)
+  console.log(`- Load Sheets: ${store.loadSheets.length}`)
+  console.log(`- Baggage Records: ${store.baggageRecords.length}`)
+  } catch (error) {
+    console.error('Error initializing Singapore Airlines data:', error)
+  }
 }
 
 export default initializeSingaporeAirlinesData
