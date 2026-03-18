@@ -639,6 +639,10 @@ export default function CRMModule() {
 
   // Handlers
   const handleAddCustomer = () => {
+    if (!newCustomer.firstName.trim() || !newCustomer.lastName.trim() || !newCustomer.email.trim()) {
+      toast({ title: 'Validation Error', description: 'Please fill in all required fields', variant: 'destructive' })
+      return
+    }
     addCustomer({
       firstName: newCustomer.firstName,
       lastName: newCustomer.lastName,
@@ -650,6 +654,7 @@ export default function CRMModule() {
     })
     setShowCustomerDialog(false)
     setNewCustomer({ firstName: '', lastName: '', email: '', phone: '' })
+    toast({ title: 'Customer Added', description: `${newCustomer.firstName} ${newCustomer.lastName} has been added` })
   }
 
   const handleSelectTemplate = (template: CampaignTemplate) => {
@@ -843,7 +848,7 @@ export default function CRMModule() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowCustomerDialog(false)}>Cancel</Button>
-              <Button onClick={handleAddCustomer}>Add Customer</Button>
+              <Button onClick={handleAddCustomer} disabled={!newCustomer.firstName.trim() || !newCustomer.lastName.trim() || !newCustomer.email.trim()}>Add Customer</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

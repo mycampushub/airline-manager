@@ -321,6 +321,112 @@ export interface BaggageRecord {
   feePaid: boolean
 }
 
+// Extended DCS Types for Module Features
+export type SSRType = 'wheelchair' | 'meal' | 'assistance' | 'pet' | 'infant' | 'unaccompanied_minor' | 'medical' | 'other'
+export type SSRStatus = 'requested' | 'confirmed' | 'pending' | 'unavailable'
+
+export interface SSRRequest {
+  id: string
+  type: SSRType
+  description: string
+  status: SSRStatus
+  cost?: number
+  notes?: string
+  confirmedAt?: string
+}
+
+export type CabinClass = 'economy' | 'premium_economy' | 'business' | 'first'
+
+export interface UpgradeRequest {
+  id: string
+  passengerId: string
+  passengerName: string
+  currentCabin: CabinClass
+  requestedCabin: CabinClass
+  price: number
+  status: 'pending' | 'approved' | 'paid' | 'rejected'
+  timestamp: string
+}
+
+export type SpecialBaggageType = 'golf_clubs' | 'ski_equipment' | 'surfboard' | 'bicycle' | 'musical_instrument' | 'pet_cabin' | 'pet_hold' | 'fragile' | 'medical' | 'wheelchair' | 'stroller' | 'car_seat'
+
+export interface SpecialBaggageRequest {
+  id: string
+  passengerId: string
+  passengerName: string
+  type: SpecialBaggageType
+  weight: number
+  dimensions?: { length: number; width: number; height: number }
+  healthCertificate?: string
+  vaccinationRecord?: string
+  specialInstructions?: string
+  approved: boolean
+  fee: number
+  status: 'pending' | 'approved' | 'rejected' | 'checked'
+  restrictions: string[]
+  requirements: string[]
+}
+
+export type DGClass = '1' | '2.1' | '2.2' | '2.3' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+export type DGStatus = 'permitted' | 'restricted' | 'prohibited'
+
+export interface DangerousGoodsItem {
+  id: string
+  dgClass: DGClass
+  unNumber: string
+  properShippingName: string
+  quantity: number
+  unit: string
+  packingGroup: 'I' | 'II' | 'III'
+  status: DGStatus
+  requiresDeclaration: boolean
+  specialHandling: string[]
+  restrictions: string[]
+  documentationRequired: string[]
+  approved: boolean
+  approvedBy?: string
+  approvedAt?: string
+}
+
+export type InterlineStatus = 'pending' | 'transferred' | 'received' | 'delivered'
+
+export interface InterlineSegment {
+  airlineCode: string
+  flightNumber: string
+  origin: string
+  destination: string
+  status: InterlineStatus
+  transferTime?: number
+  carousel?: string
+  trackedAt?: string
+}
+
+export interface BaggageTrackingPoint {
+  timestamp: string
+  location: string
+  status: string
+  userId: string
+}
+
+export interface InterlineBaggage {
+  id: string
+  tagNumber: string
+  passengerId: string
+  passengerName: string
+  finalDestination: string
+  segments: InterlineSegment[]
+  currentLocation: string
+  status: InterlineStatus
+  interlinePartners: string[]
+  feeSettled: boolean
+  feeAmount: number
+  trackingHistory: BaggageTrackingPoint[]
+  lastUpdated: string
+  estimatedDelivery?: string
+  lostDelayed?: boolean
+  resolutionRemarks?: string
+}
+
 // Flight Operations Types
 export interface FlightSchedule {
   id: string
@@ -1435,6 +1541,11 @@ interface AirlineStore {
   boardingRecords: BoardingRecord[]
   loadSheets: LoadSheet[]
   baggageRecords: BaggageRecord[]
+  ssrRequests: Record<string, SSRRequest[]>
+  upgradeRequests: UpgradeRequest[]
+  specialBaggageRequests: SpecialBaggageRequest[]
+  dangerousGoodsItems: DangerousGoodsItem[]
+  interlineBaggageData: InterlineBaggage[]
   
   // Flight Operations Data
   flightSchedules: FlightSchedule[]
@@ -1623,12 +1734,17 @@ export const useAirlineStore = create<AirlineStore>((set, get) => ({
   pnrs: demoData.pnrs || [],
   tickets: demoData.tickets || [],
   emds: [],
-  fareClasses: [],
+  fareClasses: demoData.fareClasses || [],
   routeInventory: [],
   checkInRecords: demoData.checkInRecords || [],
-  boardingRecords: [],
-  loadSheets: [],
+  boardingRecords: demoData.boardingRecords || [],
+  loadSheets: demoData.loadSheets || [],
   baggageRecords: demoData.baggageRecords || [],
+  ssrRequests: demoData.ssrRequests || {},
+  upgradeRequests: demoData.upgradeRequests || [],
+  specialBaggageRequests: demoData.specialBaggageRequests || [],
+  dangerousGoodsItems: demoData.dangerousGoodsItems || [],
+  interlineBaggageData: demoData.interlineBaggageData || [],
   flightSchedules: demoData.flightSchedules || [],
   flightInstances: demoData.flightInstances || [],
   disruptions: demoData.disruptions || [],
@@ -1643,13 +1759,13 @@ export const useAirlineStore = create<AirlineStore>((set, get) => ({
   revenueData: demoData.revenueData || [],
   demandForecasts: [],
   ancillaryProducts: demoData.ancillaryProducts || [],
-  bundles: [],
-  promoCodes: [],
+  bundles: demoData.bundles || [],
+  promoCodes: demoData.promoCodes || [],
   agencies: demoData.agencies || [],
   adms: demoData.adms || [],
   customerProfiles: demoData.customerProfiles || [],
-  campaigns: [],
-  complaints: [],
+  campaigns: demoData.campaigns || [],
+  complaints: demoData.complaints || [],
   kpiDashboard: {
     period: 'last_30_days',
     metrics: {
@@ -1688,8 +1804,8 @@ export const useAirlineStore = create<AirlineStore>((set, get) => ({
     ]
   },
   users: [],
-  auditLogs: [],
-  securityEvents: [],
+  auditLogs: demoData.auditLogs || [],
+  securityEvents: demoData.securityEvents || [],
   integrations: demoData.integrations || [],
   cargoBookings: demoData.cargoBookings || [],
   ulds: demoData.ulds || [],

@@ -584,6 +584,10 @@ export default function IntegrationModule() {
 
   // Handlers for Connections
   const handleAddConnection = () => {
+    if (!newConnection.name.trim() || !newConnection.endpoint.trim()) {
+      toast({ title: 'Validation Error', description: 'Please fill in all required fields', variant: 'destructive' })
+      return
+    }
     const newConn: ConnectionConfig = {
       id: `conn-${Date.now()}`,
       name: newConnection.name,
@@ -614,6 +618,7 @@ export default function IntegrationModule() {
     setConnections([...connections, newConn])
     setShowConnectionDialog(false)
     setNewConnection({ name: '', type: 'gds', provider: 'amadeus', endpoint: '', apiKey: '', apiSecret: '', authType: 'api_key' })
+    toast({ title: 'Connection Added', description: `${newConnection.name} has been added` })
   }
 
   const handleTestConnection = (connId: string) => {
@@ -1220,8 +1225,8 @@ export default function IntegrationModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
-                <table className="enterprise-table">
+              <ScrollArea className="h-96 overflow-x-auto">
+                <table className="enterprise-table min-w-[900px]">
                   <thead>
                     <tr>
                       <th>Timestamp</th>
@@ -1348,7 +1353,7 @@ export default function IntegrationModule() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConnectionDialog(false)}>Cancel</Button>
-            <Button onClick={handleAddConnection}>
+            <Button onClick={handleAddConnection} disabled={!newConnection.name.trim() || !newConnection.endpoint.trim()}>
               <Plug className="h-4 w-4 mr-2" />
               Add Connection
             </Button>

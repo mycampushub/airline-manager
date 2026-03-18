@@ -21,7 +21,30 @@ import type {
   AIPrediction,
   SustainabilityMetrics,
   AutomationRule,
-  ULD
+  ULD,
+  Campaign,
+  Complaint,
+  Bundle,
+  PromoCode,
+  SecurityEvent,
+  AuditLog,
+  FareClass,
+  BoardingRecord,
+  LoadSheet,
+  SSRRequest,
+  UpgradeRequest,
+  SpecialBaggageRequest,
+  DangerousGoodsItem,
+  InterlineBaggage,
+  SSRType,
+  SSRStatus,
+  CabinClass,
+  SpecialBaggageType,
+  DGClass,
+  DGStatus,
+  InterlineSegment,
+  BaggageTrackingPoint,
+  InterlineStatus
 } from './store';
 
 // ============= CONSTANTS =============
@@ -746,6 +769,291 @@ for (let i = 0; i < 35; i++) {
     resolvedAt: i % 15 === 0 ? generateDate(-1) : undefined,
     fee: randomInt(0, 100),
     feePaid: true
+  });
+}
+
+// ============= GENERATE BOARDING RECORDS =============
+
+const boardingRecords: BoardingRecord[] = [];
+
+for (let i = 0; i < 25; i++) {
+  const flight = flightInstances[i % flightInstances.length];
+  const gateLetters = ['A', 'B', 'C', 'D'];
+  const gateNumber = randomInt(1, 30);
+  
+  boardingRecords.push({
+    id: generateId('BRD', i),
+    flightNumber: flight.flightNumber,
+    date: flight.date,
+    gate: `${gateLetters[i % 4]}${gateNumber}`,
+    scheduledDeparture: flight.scheduledDeparture,
+    actualDeparture: i % 5 === 0 ? `${parseInt(flight.scheduledDeparture.split(':')[0]) + 1}:${flight.scheduledDeparture.split(':')[1]}` : flight.scheduledDeparture,
+    boardingStarted: `${parseInt(flight.scheduledDeparture.split(':')[0]) - 1}:00`,
+    boardingCompleted: i % 4 === 0 ? null : `${parseInt(flight.scheduledDeparture.split(':')[0]) - 0}:${randomInt(10, 30)}`,
+    boardedPassengers: randomInt(120, 280),
+    totalPassengers: randomInt(150, 300),
+    priorityBoarding: ['Platinum Members', 'Business Class', 'Gold Members'].slice(0, i % 3 + 1),
+    standbyList: [`SB${i + 1}`, `SB${i + 2}`, `SB${i + 3}`].slice(0, i % 3 + 1),
+    gateChangeLog: i % 6 === 0 ? [
+      { 
+        timestamp: `${flight.date}T${randomInt(10, 14)}:00:00Z`, 
+        fromGate: `${gateLetters[(i - 1) % 4]}${gateNumber - 1}`, 
+        toGate: `${gateLetters[i % 4]}${gateNumber}`, 
+        reason: 'Terminal reconfiguration', 
+        notified: true 
+      }
+    ] : []
+  });
+}
+
+// ============= GENERATE LOAD SHEETS =============
+
+const loadSheets: LoadSheet[] = [];
+
+for (let i = 0; i < 30; i++) {
+  const flight = flightInstances[i % flightInstances.length];
+  const aircraftType = AIRCRAFT_TYPES[i % AIRCRAFT_TYPES.length];
+  const passengerWeight = randomInt(15000, 25000);
+  const cargoWeight = randomInt(3000, 12000);
+  const baggageWeight = randomInt(5000, 10000);
+  const fuelWeight = randomInt(40000, 80000);
+  const zeroFuelWeight = 35000 + passengerWeight + cargoWeight + baggageWeight;
+  
+  loadSheets.push({
+    id: generateId('LD', i),
+    flightNumber: flight.flightNumber,
+    date: flight.date,
+    aircraftRegistration: AIRCRAFT_REGISTRATIONS[i % AIRCRAFT_REGISTRATIONS.length],
+    aircraftType: aircraftType,
+    totalWeight: zeroFuelWeight + fuelWeight,
+    passengerWeight: passengerWeight,
+    cargoWeight: cargoWeight,
+    baggageWeight: baggageWeight,
+    fuelWeight: fuelWeight,
+    zeroFuelWeight: zeroFuelWeight,
+    takeoffWeight: zeroFuelWeight + fuelWeight,
+    landingWeight: zeroFuelWeight + Math.round(fuelWeight * 0.3),
+    trimSetting: randomInt(25, 45),
+    centerOfGravity: `${randomInt(15, 35)}% MAC`,
+    distribution: {
+      forward: randomInt(40, 55),
+      aft: randomInt(45, 60)
+    },
+    generatedAt: `${flight.date}T12:00:00Z`,
+    generatedBy: 'DISPATCH01'
+  });
+}
+
+// ============= GENERATE SSR REQUESTS (for DCS module) =============
+
+const ssrRequests: Record<string, SSRRequest[]> = {};
+
+const ssrTypes: SSRType[] = ['wheelchair', 'meal', 'assistance', 'pet', 'infant', 'medical'];
+const ssrDescriptions: Record<SSRType, string> = {
+  wheelchair: 'Wheelchair assistance required from check-in to aircraft',
+  meal: 'Special meal preference requested',
+  assistance: 'Special assistance needed for mobility',
+  pet: 'Pet in cabin (service animal)',
+  infant: 'Infant with bassinet seat',
+  medical: 'Medical condition - oxygen required'
+};
+
+for (let i = 0; i < 30; i++) {
+  const pnr = pnrs[i % pnrs.length];
+  const passenger = pnr.passengers![0];
+  const flight = pnr.segments![0];
+  const ssrType = ssrTypes[i % ssrTypes.length];
+  const passengerId = passenger.id;
+  
+  const request: SSRRequest = {
+    id: generateId('SSR', i),
+    type: ssrType,
+    description: ssrDescriptions[ssrType],
+    status: ['confirmed', 'pending', 'requested'][i % 3] as SSRStatus,
+    cost: ssrType === 'wheelchair' || ssrType === 'infant' ? 0 : randomInt(25, 100),
+    notes: i % 5 === 0 ? 'Special handling instructions' : undefined,
+    confirmedAt: i % 3 !== 1 ? generateDate(-1) : undefined
+  };
+  
+  if (!ssrRequests[passengerId]) {
+    ssrRequests[passengerId] = [];
+  }
+  ssrRequests[passengerId].push(request);
+}
+
+// ============= GENERATE UPGRADE REQUESTS (for DCS module) =============
+
+const upgradeRequests: UpgradeRequest[] = [];
+
+const cabinUpgrades: { from: CabinClass; to: CabinClass }[] = [
+  { from: 'economy', to: 'premium_economy' },
+  { from: 'economy', to: 'business' },
+  { from: 'premium_economy', to: 'business' },
+  { from: 'business', to: 'first' }
+];
+
+for (let i = 0; i < 15; i++) {
+  const pnr = pnrs[i % pnrs.length];
+  const passenger = pnr.passengers![0];
+  const upgrade = cabinUpgrades[i % cabinUpgrades.length];
+  
+  const priceMap: Record<string, number> = {
+    'economy-premium_economy': 150,
+    'economy-business': 400,
+    'premium_economy-business': 250,
+    'business-first': 800
+  };
+  
+  upgradeRequests.push({
+    id: generateId('UPG', i),
+    passengerId: passenger.id,
+    passengerName: `${passenger.firstName} ${passenger.lastName}`,
+    currentCabin: upgrade.from,
+    requestedCabin: upgrade.to,
+    price: priceMap[`${upgrade.from}-${upgrade.to}`] || 300,
+    status: ['pending', 'approved', 'paid', 'rejected'][i % 4] as UpgradeRequest['status'],
+    timestamp: generateDate(-i)
+  });
+}
+
+// ============= GENERATE SPECIAL BAGGAGE REQUESTS (for DCS module) =============
+
+const specialBaggageRequests: SpecialBaggageRequest[] = [];
+
+const specialBaggageTypes: SpecialBaggageType[] = ['golf_clubs', 'ski_equipment', 'surfboard', 'bicycle', 'musical_instrument', 'pet_cabin', 'fragile'];
+
+for (let i = 0; i < 20; i++) {
+  const pnr = pnrs[i % pnrs.length];
+  const passenger = pnr.passengers![0];
+  const baggageType = specialBaggageTypes[i % specialBaggageTypes.length];
+  
+  const feeMap: Record<SpecialBaggageType, number> = {
+    golf_clubs: 75,
+    ski_equipment: 75,
+    surfboard: 75,
+    bicycle: 50,
+    musical_instrument: 100,
+    pet_cabin: 125,
+    pet_hold: 200,
+    fragile: 0,
+    medical: 0,
+    wheelchair: 0,
+    stroller: 0
+  };
+  
+  specialBaggageRequests.push({
+    id: generateId('SBR', i),
+    passengerId: passenger.id,
+    passengerName: `${passenger.firstName} ${passenger.lastName}`,
+    type: baggageType,
+    weight: baggageType === 'fragile' ? randomInt(5, 30) : randomInt(10, 25),
+    dimensions: baggageType !== 'pet_cabin' && baggageType !== 'wheelchair' ? { length: randomInt(80, 200), width: randomInt(30, 80), height: randomInt(20, 60) } : undefined,
+    healthCertificate: baggageType === 'pet_cabin' ? 'vaccination.pdf' : undefined,
+    specialInstructions: i % 4 === 0 ? 'Handle with care' : undefined,
+    approved: i % 3 !== 0,
+    fee: feeMap[baggageType],
+    status: i % 3 === 0 ? 'pending' : i % 3 === 1 ? 'approved' : 'checked',
+    restrictions: ['Must be properly packaged', 'Maximum weight limits apply'],
+    requirements: baggageType === 'pet_cabin' ? ['Health certificate required', 'Pet must remain in container'] : ['Must be properly packaged']
+  });
+}
+
+// ============= GENERATE DANGEROUS GOODS ITEMS (for DCS module) =============
+
+const dangerousGoodsItems: DangerousGoodsItem[] = [];
+
+const dgClasses: DGClass[] = ['3', '4', '6', '8', '9'];
+const dgNames: Record<DGClass, string> = {
+  '1': 'Explosives',
+  '2.1': 'Flammable gas',
+  '2.2': 'Non-flammable gas',
+  '2.3': 'Toxic gas',
+  '3': 'Flammable liquid',
+  '4': 'Flammable solid',
+  '5': 'Oxidizer',
+  '6': 'Toxic substance',
+  '7': 'Radioactive material',
+  '8': 'Corrosive substance',
+  '9': 'Miscellaneous dangerous goods'
+};
+
+for (let i = 0; i < 15; i++) {
+  const dgClass = dgClasses[i % dgClasses.length];
+  const flight = flightInstances[i % flightInstances.length];
+  
+  dangerousGoodsItems.push({
+    id: generateId('DG', i),
+    dgClass: dgClass,
+    unNumber: `UN${randomInt(1000, 9999)}`,
+    properShippingName: dgNames[dgClass],
+    quantity: randomInt(1, 50),
+    unit: ['kg', 'L', 'pcs'][i % 3],
+    packingGroup: ['I', 'II', 'III'][i % 3] as 'I' | 'II' | 'III',
+    status: ['permitted', 'restricted', 'prohibited'][i % 3] as DGStatus,
+    requiresDeclaration: true,
+    specialHandling: ['Temperature controlled', 'Keep upright', 'Protect from sparks'].slice(0, i % 2 + 1),
+    restrictions: ['Max quantity per aircraft', 'Must be declared to captain'],
+    documentationRequired: ['Shipper declaration', 'Packing certificate', 'Safety data sheet'],
+    approved: i % 3 !== 2,
+    approvedBy: i % 3 !== 2 ? 'DGR_APPROVED_01' : undefined,
+    approvedAt: i % 3 !== 2 ? generateDate(-1) : undefined
+  });
+}
+
+// ============= GENERATE INTERLINE BAGGAGE (for DCS module) =============
+
+const interlineBaggageData: InterlineBaggage[] = [];
+
+const airlines = ['AA', 'BA', 'LH', 'AF', 'EK', 'SQ', 'QF', 'CX'];
+
+for (let i = 0; i < 12; i++) {
+  const pnr = pnrs[i % pnrs.length];
+  const passenger = pnr.passengers![0];
+  const segments = pnr.segments!;
+  const interlineAirlines = airlines.slice(0, i % 3 + 2);
+  
+  const interlineSegments: InterlineSegment[] = [
+    {
+      airlineCode: 'AA',
+      flightNumber: `AA${randomInt(100, 999)}`,
+      origin: segments[0].origin,
+      destination: segments[0].destination,
+      status: i % 4 === 0 ? 'received' : i % 4 === 1 ? 'transferred' : i % 4 === 2 ? 'delivered' : 'pending',
+      transferTime: randomInt(60, 180),
+      carousel: i % 2 === 0 ? `CRSL-${randomInt(1, 10)}` : undefined,
+      trackedAt: generateDate(-randomInt(0, 2))
+    },
+    {
+      airlineCode: interlineAirlines[1],
+      flightNumber: `${interlineAirlines[1]}${randomInt(100, 999)}`,
+      origin: segments[0].destination,
+      destination: segments.length > 1 ? segments[1].destination : segments[0].origin,
+      status: i % 3 === 0 ? 'pending' : 'transferred',
+      transferTime: randomInt(60, 180)
+    }
+  ];
+  
+  interlineBaggageData.push({
+    id: generateId('ILB', i),
+    tagNumber: `IL${randomInt(100000, 999999)}`,
+    passengerId: passenger.id,
+    passengerName: `${passenger.firstName} ${passenger.lastName}`,
+    finalDestination: segments.length > 1 ? segments[1].destination : segments[0].origin,
+    segments: interlineSegments,
+    currentLocation: interlineSegments[interlineSegments.length - 1].destination,
+    status: i % 5 === 0 ? 'lost' : i % 5 === 1 ? 'delayed' : 'transferred',
+    interlinePartners: interlineAirlines,
+    feeSettled: i % 3 !== 0,
+    feeAmount: i % 3 !== 0 ? randomInt(50, 200) : 0,
+    trackingHistory: [
+      { timestamp: generateDate(-2), location: segments[0].origin, status: 'Checked in', userId: 'CHECKIN01' },
+      { timestamp: generateDate(-1), location: segments[0].origin, status: 'Loaded on aircraft', userId: 'LOAD01' },
+      { timestamp: generateDate(0), location: segments[0].destination, status: 'Arrived', userId: 'HANDLING01' }
+    ],
+    lastUpdated: generateDate(0),
+    estimatedDelivery: i % 5 === 1 ? generateDate(1) : undefined,
+    lostDelayed: i % 5 === 0 || i % 5 === 1,
+    resolutionRemarks: i % 5 === 0 ? 'Tracing with partner airline' : undefined
   });
 }
 
@@ -1586,6 +1894,239 @@ for (let i = 0; i < 35; i++) {
   }
 }
 
+// ============= GENERATE CAMPAIGNS =============
+
+const campaigns: Campaign[] = [];
+
+const campaignData = [
+  { name: 'Summer Sale 2024', type: 'email' as const, status: 'active' as const, subject: 'Up to 30% Off Business Class!' },
+  { name: 'Loyalty Upgrade Offer', type: 'email' as const, status: 'active' as const, subject: 'As a Platinum member, enjoy complimentary upgrades' },
+  { name: 'Holiday Travel Deals', type: 'multi_channel' as const, status: 'scheduled' as const, subject: 'Book your holiday escape now' },
+  { name: 'New Route Announcement', type: 'push' as const, status: 'draft' as const, subject: 'Discover our new JFK-LHR direct flights' },
+  { name: 'Frequent Flyer Promotion', type: 'sms' as const, status: 'active' as const, subject: 'Double miles on all bookings this month' },
+  { name: 'Corporate Travel Benefits', type: 'email' as const, status: 'completed' as const, subject: 'Exclusive corporate rates available' },
+  { name: 'First Class Experience', type: 'in_app' as const, status: 'active' as const, subject: 'Upgrade to First Class from $599' },
+  { name: 'Refer a Friend', type: 'multi_channel' as const, status: 'active' as const, subject: 'Earn 5000 bonus miles for each referral' },
+];
+
+for (let i = 0; i < 8; i++) {
+  const data = campaignData[i % campaignData.length];
+  const isScheduled = data.status === 'scheduled';
+  const isCompleted = data.status === 'completed';
+  
+  campaigns.push({
+    id: generateId('CMP', i),
+    name: data.name,
+    type: data.type,
+    status: data.status,
+    targetSegments: ['frequent_flyer', 'business', 'leisure'].slice(0, randomInt(1, 3)),
+    targetTiers: ['silver', 'gold', 'platinum'].slice(0, randomInt(1, 3)),
+    message: {
+      subject: data.subject,
+      body: `Dear valued customer,\n\n${data.name}\n\nBook now and enjoy exclusive benefits.`,
+      template: `campaign-${i + 1}`
+    },
+    schedule: {
+      startDate: isCompleted ? generateDate(-randomInt(30, 60)) : generateDate(randomInt(1, 30)),
+      endDate: isScheduled ? generateDate(randomInt(60, 90)) : undefined,
+      sendTime: '09:00',
+      frequency: isScheduled ? 'weekly' : 'once'
+    },
+    metrics: {
+      sent: isCompleted ? randomInt(10000, 50000) : 0,
+      delivered: isCompleted ? randomInt(9500, 49500) : 0,
+      opened: isCompleted ? randomInt(3000, 15000) : 0,
+      clicked: isCompleted ? randomInt(500, 3000) : 0,
+      converted: isCompleted ? randomInt(100, 500) : 0,
+      unsubscribed: isCompleted ? randomInt(10, 100) : 0
+    },
+    createdAt: generateDate(-randomInt(60, 90)),
+    createdBy: 'MARKETING01'
+  });
+}
+
+// ============= GENERATE COMPLAINTS =============
+
+const complaints: Complaint[] = [];
+
+const complaintCategories: Complaint['category'][] = ['flight_delay', 'cancellation', 'baggage', 'service', 'booking', 'refund', 'other'];
+const complaintReasons = [
+  { category: 'flight_delay', subject: 'Flight delayed by 4 hours without explanation', severity: 'high' as const },
+  { category: 'baggage', subject: 'Baggage lost on arrival at LHR', severity: 'critical' as const },
+  { category: 'service', subject: 'Poor cabin crew service on JFK-LAX route', severity: 'medium' as const },
+  { category: 'booking', subject: 'Unable to complete online booking', severity: 'medium' as const },
+  { category: 'refund', subject: 'Refund not processed after 30 days', severity: 'high' as const },
+  { category: 'cancellation', subject: 'Flight cancelled without rebooking', severity: 'critical' as const },
+  { category: 'other', subject: 'Seating assignment changed without notice', severity: 'low' as const },
+];
+
+for (let i = 0; i < 20; i++) {
+  const reason = complaintReasons[i % complaintReasons.length];
+  const customer = customerProfiles[i % customerProfiles.length];
+  const pnr = pnrs[i % pnrs.length];
+  const flight = flightInstances[i % flightInstances.length];
+  const status = ['open', 'in_progress', 'resolved', 'closed'][i % 4] as Complaint['status'];
+  
+  complaints.push({
+    id: generateId('CMP', i),
+    customerId: customer.id,
+    customerName: `${customer.firstName} ${customer.lastName}`,
+    category: reason.category,
+    subject: reason.subject,
+    description: `${reason.subject} - Customer is requesting compensation and explanation.`,
+    severity: reason.severity,
+    channel: ['email', 'phone', 'web'][i % 3] as Complaint['channel'],
+    status,
+    pnrNumber: pnr?.pnrNumber,
+    flightNumber: flight?.flightNumber,
+    flightDate: flight?.date,
+    assignedTo: i % 3 === 0 ? 'AGENT001' : i % 3 === 1 ? 'AGENT002' : undefined,
+    priority: reason.severity === 'critical' ? 1 : reason.severity === 'high' ? 2 : reason.severity === 'medium' ? 3 : 4,
+    sla: reason.severity === 'critical' ? '24 hours' : '48 hours',
+    createdAt: generateDate(-randomInt(1, 30)),
+    dueDate: generateDate(randomInt(1, 3)),
+    resolvedAt: status === 'resolved' || status === 'closed' ? generateDate(-randomInt(1, 5)) : undefined,
+    resolution: status === 'resolved' || status === 'closed' ? 'Issue resolved with customer satisfaction' : undefined,
+    compensation: i % 4 === 0 ? { type: 'voucher', amount: randomInt(50, 500), currency: 'USD' } : undefined,
+    followUpRequired: i % 5 === 0,
+    followUpDate: i % 5 === 0 ? generateDate(randomInt(7, 14)) : undefined
+  });
+}
+
+// ============= GENERATE BUNDLES =============
+
+const bundles: Bundle[] = [
+  { id: 'BUN001', name: 'Economy Plus Bundle', code: 'ECON_PLUS', description: 'Extra legroom + Priority boarding + Extra baggage', products: ['SEAT01', 'BAG01', 'PRIO01'], totalPrice: 150, savings: 25, currency: 'USD', targetSegment: 'leisure', validity: 'Valid for 12 months', terms: ['Non-refundable', 'Subject to availability'] },
+  { id: 'BUN002', name: 'Business Class Experience', code: 'BIZ_EXP', description: 'Lounge access + WiFi + Extra baggage', products: ['LOUN01', 'WIFI01', 'BAG02'], totalPrice: 280, savings: 45, currency: 'USD', targetSegment: 'business', validity: 'Valid for 6 months', terms: ['Refundable', 'All routes'] },
+  { id: 'BUN003', name: 'Family Travel Pack', code: 'FAM_PACK', description: 'Extra baggage for family + Meal upgrades', products: ['BAG02', 'MEAL01'], totalPrice: 120, savings: 20, currency: 'USD', targetSegment: 'family', validity: 'Valid for single booking', terms: ['Non-refundable', 'Min 2 passengers'] },
+  { id: 'BUN004', name: 'Premium Experience', code: 'PREM_EXP', description: 'First class lounge + Spa + Dining', products: ['LOUN02', 'SPA01', 'DINE01'], totalPrice: 550, savings: 100, currency: 'USD', targetSegment: 'vip', validity: 'Valid for 12 months', terms: ['Fully refundable'] },
+  { id: 'BUN005', name: 'Connect Package', code: 'CONNECT', description: 'WiFi + Entertainment pass', products: ['WIFI01', 'ENT01'], totalPrice: 35, savings: 10, currency: 'USD', targetSegment: 'all', validity: 'Valid for single flight', terms: ['Non-refundable'] },
+];
+
+// ============= GENERATE PROMO CODES =============
+
+const promoCodes: PromoCode[] = [
+  { code: 'SUMMER30', type: 'percentage' as const, value: 30, minSpend: 500, maxDiscount: 500, applicableRoutes: ['*'], applicableFares: ['Y', 'B', 'M', 'K'], validFrom: '2024-06-01', validUntil: '2024-08-31', usageLimit: 10000, usedCount: 3450, perCustomerLimit: 3, active: true, terms: ['Summer promotion only', 'Economy fares'] },
+  { code: 'WELCOME100', type: 'fixed' as const, value: 100, minSpend: 800, maxDiscount: 100, applicableRoutes: ['*'], applicableFares: ['*'], validFrom: '2024-01-01', validUntil: '2024-12-31', usageLimit: 5000, usedCount: 1200, perCustomerLimit: 1, active: true, terms: ['First-time customers only'] },
+  { code: 'BUSINESS25', type: 'percentage' as const, value: 25, minSpend: 2000, maxDiscount: 800, applicableRoutes: ['*'], applicableFares: ['J', 'C', 'D', 'F'], validFrom: '2024-01-01', validUntil: '2024-12-31', usageLimit: 2000, usedCount: 450, perCustomerLimit: 2, active: true, terms: ['Business class only'] },
+  { code: 'CORPORATE20', type: 'percentage' as const, value: 20, minSpend: 5000, maxDiscount: 2000, applicableRoutes: ['*'], applicableFares: ['*'], validFrom: '2024-01-01', validUntil: '2024-12-31', usageLimit: 500, usedCount: 120, perCustomerLimit: 10, active: true, terms: ['Corporate accounts only'] },
+  { code: 'BLACKFRIDAY', type: 'percentage' as const, value: 40, minSpend: 300, maxDiscount: 600, applicableRoutes: ['*'], applicableFares: ['Y', 'B', 'M'], validFrom: '2024-11-25', validUntil: '2024-11-30', usageLimit: 50000, usedCount: 25000, perCustomerLimit: 5, active: false, terms: ['Black Friday special'] },
+  { code: 'FREQUENTFLYER', type: 'ancillary' as const, value: 15, applicableRoutes: ['*'], applicableFares: ['*'], validFrom: '2024-01-01', validUntil: '2024-12-31', usageLimit: 100000, usedCount: 45000, perCustomerLimit: 20, active: true, terms: ['Gold and Platinum members only'] },
+];
+
+// ============= GENERATE SECURITY EVENTS =============
+
+const securityEvents: SecurityEvent[] = [];
+
+const securityEventTypes: SecurityEvent['type'][] = ['login_attempt', 'unauthorized_access', 'suspicious_activity', 'fraud_attempt'];
+const securityDescriptions = [
+  { type: 'login_attempt', description: 'Multiple failed login attempts from unusual location' },
+  { type: 'unauthorized_access', description: 'Access attempt to restricted booking records' },
+  { type: 'suspicious_activity', description: 'Unusual booking pattern detected for agency account' },
+  { type: 'fraud_attempt', description: 'Multiple booking attempts with different payment methods' },
+];
+
+for (let i = 0; i < 15; i++) {
+  const eventType = securityEventTypes[i % securityEventTypes.length];
+  const desc = securityDescriptions.find(d => d.type === eventType)!;
+  const severity = i < 3 ? 'critical' : i < 7 ? 'high' : i < 12 ? 'medium' : 'low';
+  const status = ['open', 'investigating', 'resolved', 'false_positive'][i % 4] as SecurityEvent['status'];
+  
+  securityEvents.push({
+    id: generateId('SEC', i),
+    type: eventType,
+    severity: severity as SecurityEvent['severity'],
+    description: desc.description,
+    userId: i % 3 === 0 ? `USER${randomInt(1000, 9999)}` : undefined,
+    ipAddress: `${randomInt(100, 255)}.${randomInt(100, 255)}.${randomInt(100, 255)}.${randomInt(100, 255)}`,
+    timestamp: generateDate(-randomInt(0, 30)),
+    status,
+    assignedTo: status === 'investigating' ? 'SECURITY01' : undefined,
+    resolution: status === 'resolved' ? 'Threat neutralized, account secured' : status === 'false_positive' ? 'Verified as legitimate activity' : undefined,
+    resolvedAt: status === 'resolved' || status === 'false_positive' ? generateDate(-randomInt(1, 5)) : undefined
+  });
+}
+
+// ============= GENERATE AUDIT LOGS =============
+
+const auditLogs: AuditLog[] = [];
+
+const auditActions = [
+  { action: 'USER_LOGIN', module: 'AUTH', details: 'User logged in successfully' },
+  { action: 'BOOKING_CREATED', module: 'PSS', details: 'New PNR created via web channel' },
+  { action: 'TICKET_ISSUED', module: 'TICKETING', details: 'Electronic ticket issued' },
+  { action: 'BOOKING_MODIFIED', module: 'PSS', details: 'Passenger information updated' },
+  { action: 'REFUND_PROCESSED', module: 'TICKETING', details: 'Full refund issued to credit card' },
+  { action: 'CHECKIN_COMPLETED', module: 'DCS', details: 'Passenger checked in via kiosk' },
+  { action: 'BOARDING_COMPLETED', module: 'DCS', details: 'Boarding completed, 156 passengers' },
+  { action: 'FLIGHT_RELEASED', module: 'FLIGHTOPS', details: 'Flight release generated and signed' },
+  { action: 'CREW_ASSIGNED', module: 'CREW', details: 'Crew pairing assigned to flight' },
+  { action: 'MAINTENANCE_SCHEDULED', module: 'MRO', details: 'A-check scheduled for aircraft' },
+  { action: 'SETTINGS_UPDATED', module: 'SYSTEM', details: 'System configuration modified' },
+  { action: 'USER_PERMISSIONS_CHANGED', module: 'SECURITY', details: 'User access level updated' },
+];
+
+const browsers = ['Chrome 120', 'Firefox 121', 'Safari 17', 'Edge 120', 'Chrome Mobile'];
+const locations = ['New York, US', 'London, UK', 'Singapore, SG', 'Dubai, UAE', 'Tokyo, JP', 'Sydney, AU'];
+
+for (let i = 0; i < 50; i++) {
+  const audit = auditActions[i % auditActions.length];
+  const result = i % 20 === 0 ? 'failure' : 'success';
+  
+  auditLogs.push({
+    id: generateId('LOG', i),
+    timestamp: generateDate(-randomInt(0, 30)),
+    userId: `USR${String(randomInt(1, 50)).padStart(4, '0')}`,
+    username: `${FIRST_NAMES[i % FIRST_NAMES.length].toLowerCase()}.${LAST_NAMES[i % LAST_NAMES.length].toLowerCase()}`,
+    action: audit.action,
+    module: audit.module,
+    details: audit.details,
+    ipAddress: `${randomInt(100, 255)}.${randomInt(100, 255)}.${randomInt(100, 255)}.${randomInt(100, 255)}`,
+    userAgent: browsers[i % browsers.length],
+    result: result as AuditLog['result'],
+    sessionId: result === 'success' ? `SES${randomInt(100000, 999999)}` : undefined
+  });
+}
+
+// ============= GENERATE FARE CLASSES =============
+
+const fareClasses: FareClass[] = [];
+
+const fareClassData = [
+  { code: 'Y', name: 'Full Economy', cabin: 'economy', capacity: 100, booked: 75, available: 25, basePrice: 450 },
+  { code: 'B', name: 'Economy Flex', cabin: 'economy', capacity: 50, booked: 35, available: 15, basePrice: 550 },
+  { code: 'M', name: 'Economy Standard', cabin: 'economy', capacity: 80, booked: 60, available: 20, basePrice: 380 },
+  { code: 'K', name: 'Economy Saver', cabin: 'economy', capacity: 40, booked: 38, available: 2, basePrice: 280 },
+  { code: 'H', name: 'Economy Lite', cabin: 'economy', capacity: 30, booked: 28, available: 2, basePrice: 220 },
+  { code: 'J', name: 'Business Full', cabin: 'business', capacity: 30, booked: 22, available: 8, basePrice: 2200 },
+  { code: 'C', name: 'Business Flex', cabin: 'business', capacity: 20, booked: 15, available: 5, basePrice: 2800 },
+  { code: 'D', name: 'Business Promo', cabin: 'business', capacity: 15, booked: 12, available: 3, basePrice: 1800 },
+  { code: 'F', name: 'First Class', cabin: 'first', capacity: 10, booked: 7, available: 3, basePrice: 5500 },
+  { code: 'A', name: 'First Class Discount', cabin: 'first', capacity: 5, booked: 3, available: 2, basePrice: 4200 },
+];
+
+for (let i = 0; i < 35; i++) {
+  const fare = fareClassData[i % fareClassData.length];
+  const flight = flightInstances[i % flightInstances.length];
+  
+  fareClasses.push({
+    id: generateId('FC', i),
+    code: fare.code,
+    name: fare.name,
+    cabin: fare.cabin as FareClass['cabin'],
+    flightNumber: flight?.flightNumber || 'AA100',
+    departureDate: flight?.date || generateDate(),
+    origin: flight?.origin || 'JFK',
+    destination: flight?.destination || 'LHR',
+    capacity: fare.capacity,
+    booked: fare.booked + randomInt(-5, 5),
+    available: Math.max(0, fare.available + randomInt(-3, 3)),
+    basePrice: fare.basePrice,
+    currency: 'USD',
+    rules: ['Non-refundable', 'Changes with fee', 'Advance purchase 14 days']
+  });
+}
+
 // ============= EXPORT DEMO DATA =============
 
 export const demoData = {
@@ -1598,10 +2139,18 @@ export const demoData = {
   // PSS Data
   pnrs,
   tickets,
+  fareClasses,
 
   // DCS Data
   checkInRecords,
   baggageRecords,
+  boardingRecords,
+  loadSheets,
+  ssrRequests,
+  upgradeRequests,
+  specialBaggageRequests,
+  dangerousGoodsItems,
+  interlineBaggageData,
 
   // Crew Data
   crewMembers,
@@ -1618,6 +2167,8 @@ export const demoData = {
 
   // CRM Data
   customerProfiles,
+  campaigns,
+  complaints,
 
   // Agency Data
   agencies,
@@ -1625,6 +2176,8 @@ export const demoData = {
 
   // Ancillary Data
   ancillaryProducts,
+  bundles,
+  promoCodes,
 
   // Revenue Management
   revenueData,
@@ -1632,13 +2185,17 @@ export const demoData = {
 
   // Integration Data
   integrations,
+  securityEvents,
 
   // AI & Automation
   aiPredictions,
   automationRules,
 
   // Sustainability
-  sustainabilityMetrics
+  sustainabilityMetrics,
+
+  // Audit
+  auditLogs
 };
 
 export default demoData;

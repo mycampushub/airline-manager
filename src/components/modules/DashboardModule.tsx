@@ -1127,7 +1127,7 @@ export default function DashboardModule() {
 
       {/* Filters Dialog */}
       <Dialog open={showFiltersDialog} onOpenChange={setShowFiltersDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Dashboard Filters</DialogTitle>
           </DialogHeader>
@@ -1221,7 +1221,7 @@ export default function DashboardModule() {
 
       {/* Create Alert Dialog */}
       <Dialog open={showCreateAlertDialog} onOpenChange={setShowCreateAlertDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Create New Alert</DialogTitle>
           </DialogHeader>
@@ -1268,7 +1268,7 @@ export default function DashboardModule() {
             }}>
               Cancel
             </Button>
-            <Button onClick={handleCreateAlert}>
+            <Button onClick={handleCreateAlert} disabled={!newAlert.title.trim() || !newAlert.message.trim()}>
               Create Alert
             </Button>
           </DialogFooter>

@@ -216,6 +216,10 @@ export default function CrewModule() {
 
   // Handlers
   const handleAddCrew = () => {
+    if (!newCrew.firstName.trim() || !newCrew.lastName.trim() || !newCrew.position) {
+      toast({ title: 'Validation Error', description: 'Please fill in all required fields', variant: 'destructive' })
+      return
+    }
     addCrewMember({
       ...newCrew,
       dateOfBirth: '1990-01-01',
@@ -224,6 +228,7 @@ export default function CrewModule() {
       phone: '+1-555-0123'
     })
     setShowCrewDialog(false)
+    toast({ title: 'Crew Member Added', description: `${newCrew.firstName} ${newCrew.lastName} has been added` })
   }
 
   const handleCreateBid = () => {
@@ -672,7 +677,7 @@ export default function CrewModule() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowCrewDialog(false)}>Cancel</Button>
-                <Button onClick={handleAddCrew}>Add Crew</Button>
+                <Button onClick={handleAddCrew} disabled={!newCrew.firstName.trim() || !newCrew.lastName.trim() || !newCrew.position}>Add Crew</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -1666,7 +1671,7 @@ export default function CrewModule() {
 
       {/* Bidding History Dialog */}
       <Dialog open={showBiddingHistoryDialog} onOpenChange={setShowBiddingHistoryDialog}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Bidding History</DialogTitle>
           </DialogHeader>

@@ -105,7 +105,7 @@ export default function MROModule() {
   const handleExportData = () => {
     const headers = ['ID', 'Aircraft', 'Type', 'Status', 'Date', 'Priority']
     const rows = maintenanceRecords.map(m => [
-      m.id, m.aircraftId, m.type, m.status, m.scheduledDate, m.priority
+      m.id, m.aircraftRegistration, m.type, m.status, m.scheduledStart, m.priority
     ])
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
@@ -553,11 +553,11 @@ export default function MROModule() {
               <div className="flex items-center justify-between">
                 <CardTitle>Engineering Logbook</CardTitle>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => toast({ title: 'Search', description: 'Search functionality opened' })}>
+                  <Button variant="outline" size="sm" onClick={() => setShowPartsSearchDialog(true)}>
                     <Search className="h-4 w-4 mr-2" />
                     Search
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => toast({ title: 'Filter', description: 'Filter options opened' })}>
+                  <Button variant="outline" size="sm" onClick={() => toast({ title: 'Filter', description: 'Filter options opened - use column headers to sort' })}>
                     <Filter className="h-4 w-4 mr-2" />
                     Filter
                   </Button>
@@ -960,11 +960,11 @@ export default function MROModule() {
               <div className="flex items-center justify-between">
                 <CardTitle>Parts Inventory</CardTitle>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleSearchParts}>
+                  <Button variant="outline" size="sm" onClick={() => setShowPartsSearchDialog(true)}>
                     <Search className="h-4 w-4 mr-2" />
                     Search
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => toast({ title: 'Filter', description: 'Filter options opened' })}>
+                  <Button variant="outline" size="sm" onClick={() => toast({ title: 'Filter', description: 'Use column headers to sort and filter parts' })}>
                     <Filter className="h-4 w-4 mr-2" />
                     Filter
                   </Button>

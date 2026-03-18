@@ -64,7 +64,7 @@ import {
   Layers,
   Navigation
 } from 'lucide-react'
-import { useAirlineStore, type CheckInRecord, type BaggageRecord } from '@/lib/store'
+import { useAirlineStore, type CheckInRecord, type BaggageRecord, type SSRRequest, type UpgradeRequest, type SpecialBaggageRequest, type DangerousGoodsItem, type InterlineBaggage } from '@/lib/store'
 
 interface BoardingPassenger {
   id: string
@@ -356,13 +356,43 @@ export default function DCSModule() {
     addBaggage,
     pnrs,
     pendingAction,
-    setPendingAction
+    setPendingAction,
+    ssrRequests: storeSSRRequests,
+    upgradeRequests: storeUpgradeRequests,
+    specialBaggageRequests: storeSpecialBaggageRequests,
+    dangerousGoodsItems: storeDangerousGoodsItems,
+    interlineBaggageData: storeInterlineBaggageData
   } = useAirlineStore()
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('checkin')
   
   // Fee calculation state
   const [calculatedFees, setCalculatedFees] = useState<{type: string, amount: number}[]>([])
+
+  // Initialize SSR requests from store
+  useEffect(() => {
+    if (storeSSRRequests && Object.keys(storeSSRRequests).length > 0 && ssrRequests.length === 0) {
+      const allRequests: SSRRequest[] = [];
+      Object.values(storeSSRRequests).forEach(requests => {
+        allRequests.push(...requests);
+      });
+      const ssrByPassenger: Record<string, SSRRequest[]> = {};
+      allRequests.forEach(req => {
+        if (!ssrByPassenger[req.id.split('-')[0]]) {
+          ssrByPassenger[req.id.split('-')[0]] = [];
+        }
+        ssrByPassenger[req.id.split('-')[0]].push(req);
+      });
+      setSSRRequests(ssrByPassenger);
+    }
+  }, [storeSSRRequests]);
+
+  // Initialize upgrade requests from store
+  useEffect(() => {
+    if (storeUpgradeRequests && storeUpgradeRequests.length > 0 && upgradeRequests.length === 0) {
+      setUpgradeRequests(storeUpgradeRequests);
+    }
+  }, [storeUpgradeRequests]);
 
   // Handle pending actions from App header
   useEffect(() => {
@@ -473,6 +503,26 @@ export default function DCSModule() {
   const [ssrRequests, setSSRRequests] = useState<Record<string, SSRRequest[]>>({})
   const [selectedSSRType, setSelectedSSRType] = useState<SSRType>('meal')
   const [ssrNotes, setSSRNotes] = useState('')
+
+  // Initialize state from store demo data (after all state declarations)
+  useEffect(() => {
+    if (boardingRecords && boardingRecords.length > 0 && baggageTracking.length === 0) {
+      const tracking = baggageRecords.slice(0, 20).map((b, i) => ({
+        id: `TRK${i}`,
+        tagNumber: b.tagNumber,
+        passengerName: b.passengerName,
+        pnrNumber: b.pnrNumber,
+        origin: b.origin,
+        destination: b.destination,
+        flightNumber: b.flightNumber,
+        weight: b.weight,
+        pieces: b.pieces,
+        status: b.status as BaggageTracking['status'],
+        lastScanned: new Date().toISOString()
+      }));
+      setBaggageTracking(tracking);
+    }
+  }, [boardingRecords, baggageRecords, baggageTracking.length]);
 
   // Document validation state
   const [showDocumentDialog, setShowDocumentDialog] = useState(false)
